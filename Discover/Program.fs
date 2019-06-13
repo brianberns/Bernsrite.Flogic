@@ -52,29 +52,28 @@ module Function =
                     |.> func2
         }
 
-    let (>.>) = compose
+type Package =
+    {
+        Values : Value[]
+        Functions : Function[]
+    }
 
-[<AutoOpen>]
-module AutoOpen =
+module Natural =
 
-    let (|.>) = Function.(|.>)
-    let (>.>) = Function.(>.>)
-
-[<EntryPoint>]
-let main argv =
-    let naturalSignature = BasicSignature "natural"
-    let naturalType = BasicType naturalSignature
     let zero =
         BasicValue {
-            Signature = naturalSignature
+            Signature = BasicSignature "Natural"
             Value = "0"
         }
-    let succ = 
+
+    let typ = zero.Type
+
+    let succ =
         {
             Signature =
                 {
-                    InputType = naturalType
-                    OutputType = naturalType
+                    InputType = typ
+                    OutputType = typ
                 }
             Name = "Successor"
             Implementation = function
@@ -85,6 +84,13 @@ let main argv =
                     }
                 | FunctionValue _ -> failwith "Unexpected"
         }
-    printfn "%A" (zero |.> succ |.> succ)
-    printfn "%A" (zero |.> (succ >.> succ))
+
+    let package =
+        {
+            Values = [| zero |]
+            Functions = [| succ |]
+        }
+
+[<EntryPoint>]
+let main argv =
     0
