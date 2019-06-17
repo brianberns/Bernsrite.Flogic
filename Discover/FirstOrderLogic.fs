@@ -13,21 +13,21 @@ type Variable = Variable of Name
 
 type Term =
     | Variable of Name
-    | Constant of Name
     | Application of Function * List<Term>
 
     override this.ToString() =
         match this with
             | Variable name -> name
-            | Constant name -> name
             | Application ((Function (name, arity)), terms) ->
                 assert(arity = uint32 terms.Length)
-                sprintf "%s(%s)" name <| String.Join(", ", terms)
+                if arity = 0u then name
+                else
+                    sprintf "%s(%s)" name <| String.Join(", ", terms)
 
 type Formula =
 
         // atomic (no sub-formulas)
-    | IsTrue of Predicate * List<Term>
+    | Holds of Predicate * List<Term>
     | Equality of Term * Term
 
         // negation
@@ -45,9 +45,11 @@ type Formula =
 
     override this.ToString() =
         let rec loop isRoot = function
-            | IsTrue (Predicate (name, arity), terms) ->
+            | Holds (Predicate (name, arity), terms) ->
                 assert(arity = uint32 terms.Length)
-                sprintf "%s(%s)" name <| String.Join(", ", terms)
+                if arity = 0u then name
+                else
+                    sprintf "%s(%s)" name <| String.Join(", ", terms)
             | Equality (terml, termr) ->
                 sprintf "%s = %s" (terml.ToString()) (termr.ToString())
             | Negate formula ->
@@ -67,9 +69,11 @@ type Formula =
                     (formula2 |> loop false)
                     (if isRoot then "" else ")")
             | Biconditional (formula1, formula2) ->
-                sprintf "%s <-> %s"
+                sprintf "%s%s <-> %s%s"
+                    (if isRoot then "" else "(")
                     (formula1 |> loop false)
                     (formula2 |> loop false)
+                    (if isRoot then "" else ")")
             | Exists (variable, formula) ->
                 sprintf "∃%s %s"
                     (variable.ToString())
@@ -90,16 +94,16 @@ module InferenceRule =
     /// (P -> Q) & P => Q
     let modusPonens : InferenceRule =
         let formula name =
-            IsTrue (Predicate (name, 0u), [])
-        let P = formula "P"
-        let Q = formula "Q"
-        And (Implication (P, Q), P), Q
+            Holds (Predicate (name, 0u), [])
+        let p = formula "P"
+        let q = formula "Q"
+        And (Implication (p, q), p), q
 
     let unify template formula =
         let rec loop template formula =
             seq {
                 match (template, formula) with
-                    | (IsTrue (Predicate (name, 0u), terms), _) ->
+                    | (Holds (Predicate (name, 0u), terms), _) ->
                         assert(terms.Length = 0)
                         yield name, formula
                     | (And (templ1, templ2), And (form1, form2)) ->
