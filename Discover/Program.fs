@@ -15,8 +15,10 @@ module Program =
                     IsTrue (IsMortal, [x])),
                 IsTrue (IsMan, [x]))
         let (template, _) = InferenceRule.modusPonens
-        let result =
+        let results =
             InferenceRule.unify template formula
-        printfn "%A" result
+        printfn "%s" <| formula.ToString()
+        for (name, result) in results do
+            printfn "%s: %s" name <| result.ToString()
 
         0
