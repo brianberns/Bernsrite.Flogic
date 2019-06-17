@@ -11,11 +11,12 @@ type Function = Function of Name * Arity     // produces an "object"
 type Predicate = Predicate of Name * Arity   // produces a Boolean
 type Variable = Variable of Name
 
+[<StructuredFormatDisplay("{String")>]
 type Term =
     | Variable of Name
     | Application of Function * List<Term>
 
-    override this.ToString() =
+    member this.String =
         match this with
             | Variable name -> name
             | Application ((Function (name, arity)), terms) ->
@@ -24,6 +25,10 @@ type Term =
                 else
                     sprintf "%s(%s)" name <| String.Join(", ", terms)
 
+    override this.ToString() =
+        this.String
+
+[<StructuredFormatDisplay("{String}")>]
 type Formula =
 
         // atomic (no sub-formulas)
@@ -43,7 +48,7 @@ type Formula =
     | Exists of Variable * Formula
     | ForAll of Variable * Formula
 
-    override this.ToString() =
+    member this.String =
         let rec loop isRoot = function
             | Holds (Predicate (name, arity), terms) ->
                 assert(arity = uint32 terms.Length)
@@ -83,6 +88,9 @@ type Formula =
                     (variable.ToString())
                     (formula |> loop false)
         this |> loop true
+
+    override this.ToString() =
+        this.String
 
 // http://www.math.ubc.ca/~cytryn/teaching/scienceOneF10W11/handouts/OS.proof.3inference.html
 
