@@ -48,5 +48,14 @@ module InferenceRule =
         let Q = formula "Q"
         And (Implication (P, Q), P), Q
 
-    let apply ((inputTemplate, outputTemplate) : InferenceRule) (formula : Formula) =
-        formula
+    let rec unify (template : Formula) (formula : Formula) =
+        seq {
+            match (template, formula) with
+                | (IsTrue (Predicate (_, 0u), terms), _) ->
+                    assert(terms.Length = 0)
+                    yield template, formula
+                | (And (templ1, templ2), And (form1, form2)) ->
+                    yield! unify templ1 form1
+                    yield! unify templ2 form2
+                | _ -> ()
+        }

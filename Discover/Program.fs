@@ -14,9 +14,9 @@ module Program =
                     IsTrue (IsMan, [x]),
                     IsTrue (IsMortal, [x])),
                 IsTrue (IsMan, [x]))
+        let (template, _) = InferenceRule.modusPonens
         let result =
-            InferenceRule.apply InferenceRule.modusPonens formula
-        printfn "%A" formula
+            InferenceRule.unify template formula
         printfn "%A" result
 
         0
