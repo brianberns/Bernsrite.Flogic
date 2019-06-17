@@ -16,12 +16,11 @@ module Program =
                     Holds (isMan, [x]),
                     Holds (isMortal, [x])),
                 Holds (isMan, [x]))
-        let (template, _) = InferenceRule.modusPonens
-        let results = InferenceRule.unify template formula
+        let (antecedent, consequent) = InferenceRule.modusPonens
+        let substitutions = InferenceRule.unify antecedent formula
+        let result = InferenceRule.substitute consequent substitutions
 
-        printfn "%A" template
         printfn "%A" formula
-        for (name, form) in results do
-            printfn "%s: %A" name form
+        printfn "%A" result
 
         0

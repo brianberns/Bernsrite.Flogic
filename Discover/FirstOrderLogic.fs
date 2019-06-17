@@ -95,33 +95,48 @@ type Formula =
 // http://www.math.ubc.ca/~cytryn/teaching/scienceOneF10W11/handouts/OS.proof.3inference.html
 
 type InferenceRule =
-    Formula (*input template*) * Formula (*output template*)
+    Formula (*antecedent template*) * Formula (*consequent template*)
 
 module InferenceRule =
 
+    let formula name =
+        Holds (Predicate (name, 0u), [])
+
     /// (P -> Q) & P => Q
     let modusPonens : InferenceRule =
-        let formula name =
-            Holds (Predicate (name, 0u), [])
         let p = formula "P"
         let q = formula "Q"
         And (Implication (p, q), p), q
 
-    let unify template formula =
+    let unify antecedent formula =
         let rec loop template formula =
             seq {
                 match (template, formula) with
-                    | (Holds (Predicate (name, 0u), terms), _) ->
+                    | Holds (Predicate (name, 0u), terms), _ ->
                         assert(terms.Length = 0)
                         yield name, formula
-                    | (And (templ1, templ2), And (form1, form2)) ->
+                    | And (templ1, templ2), And (form1, form2) ->
                         yield! loop templ1 form1
                         yield! loop templ2 form2
-                    | (Implication (templ1, templ2), Implication (form1, form2)) ->
+                    | Implication (templ1, templ2), Implication (form1, form2) ->
                         yield! loop templ1 form1
                         yield! loop templ2 form2
                     | _ -> ()
             }
-        loop template formula
-            |> Seq.distinct
-            |> Seq.toArray
+        loop antecedent formula
+            |> Map.ofSeq   // to-do: check for incompatible substitutions
+
+    let rec substitute (consequent : Formula) (substitutions : Map<Name, Formula>) =
+        match consequent with
+            | Holds (Predicate (name, 0u), terms) ->
+                assert(terms.Length = 0)
+                substitutions.[name]
+            | And (formula1, formula2) ->
+                And (
+                    substitute formula1 substitutions,
+                    substitute formula2 substitutions)
+            | Implication (formula1, formula2) ->
+                Implication (
+                    substitute formula1 substitutions,
+                    substitute formula2 substitutions)
+            | _ -> failwith "Unexpected"
