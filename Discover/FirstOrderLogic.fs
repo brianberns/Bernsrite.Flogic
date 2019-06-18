@@ -121,7 +121,6 @@ module InferenceRule =
                     | Holds (Predicate (name, 0u), terms), _ ->
                         assert(terms.Length = 0)
                         yield! [Ok (name, formula)]
-                    | Equality _, Equality _ -> ()
                     | And (template1, template2), And (formula1, formula2) ->
                         yield! loop template1 formula1
                         yield! loop template2 formula2

@@ -10,27 +10,34 @@ module Program =
         let isMan = Predicate ("Man", 1u)
         let isMortal = Predicate ("Mortal", 1u)
         let x = Variable "x"
-        let formula =
-            And (
-                Implication (
-                    Holds (isMan, [x]),
-                    Holds (isMortal, [x])),
-                Holds (isMan, [x]))
-        printfn "%A" formula
-
+        let formulas =
+            [
+                And (
+                    Implication (
+                        Holds (isMan, [x]),
+                        Holds (isMortal, [x])),
+                    Holds (isMan, [x]))
+                And (
+                    Implication (
+                        Holds (isMan, [x]),
+                        Holds (isMortal, [x])),
+                    Not (Holds (isMortal, [x])))
+            ]
         let rules =
             [
                 InferenceRule.modusPonens
                 InferenceRule.modusTollens
             ]
-        for (antecedent, consequent) in rules do
-            printfn ""
-            match InferenceRule.unify antecedent formula with
-                | Ok substitutions ->
-                    printfn "%A" substitutions
-                    let result = InferenceRule.substitute consequent substitutions
-                    printfn "%A" result
-                | Error msg ->
-                    printfn "%s" msg
+        for formula in formulas do
+            printfn "%A" formula
+            for (antecedent, consequent) in rules do
+                printfn "   %A => %A" antecedent consequent
+                match InferenceRule.unify antecedent formula with
+                    | Ok substitutions ->
+                        printfn "      %A" substitutions
+                        let result = InferenceRule.substitute consequent substitutions
+                        printfn "      %A" result
+                    | Error msg ->
+                        printfn "      %s" msg
 
         0
