@@ -92,16 +92,133 @@ type Formula =
     override this.ToString() =
         this.String
 
-// http://www.mathpath.org/proof/proof.inference.htm
+module Formula =
+
+    /// Tries to unify the given template to the given fomula.
+    let unify template formula =
+
+            // unify recursively
+        let rec loop template formula =
+            seq {
+                match (template, formula) with
+
+                        // unify with placeholder
+                    | Holds (Predicate (name, 0u), terms), _ ->
+                        assert(terms.Length = 0)
+                        yield Ok (name, formula)
+
+                        // recurse
+                    | Not template', Not formula' ->
+                        yield! loop template' formula'
+                    | And (template1, template2), And (formula1, formula2) ->
+                        yield! loop template1 formula1
+                        yield! loop template2 formula2
+                    | Or (template1, template2), Or (formula1, formula2) ->
+                        yield! loop template1 formula1
+                        yield! loop template2 formula2
+                    | Implication (template1, template2), Implication (formula1, formula2) ->
+                        yield! loop template1 formula1
+                        yield! loop template2 formula2
+
+                        // error
+                    | _ -> yield sprintf "Can't unify %A with %A" template formula
+                            |> Error
+            }
+
+            // get raw results
+        let results =
+            loop template formula
+                |> Seq.toArray
+
+            // did an error occur?
+        let msgOpt =
+            results
+                |> Array.tryPick (function
+                    | Error msg -> Some msg
+                    | Ok _ -> None)
+
+            // create result
+        match msgOpt with
+            | Some msg -> Error msg
+            | None ->
+
+                    // gather bindings
+                let bindings =
+                    results
+                        |> Array.choose (function
+                            | Error _ -> None
+                            | Ok pair -> Some pair)
+
+                    // look for binding conflicts
+                let conflicts =
+                    bindings
+                        |> Seq.groupBy fst
+                        |> Seq.map (fun (name, group) ->
+                            let distinct =
+                                group
+                                    |> Seq.map snd
+                                    |> Seq.distinct
+                                    |> Seq.toArray
+                            name, distinct)
+                        |> Seq.choose (fun (name, formulas) ->
+                            if formulas.Length = 1 then
+                                None
+                            else
+                                Some (name, formulas))
+                        |> Seq.toArray
+
+                    // package into a result
+                if conflicts.Length = 0 then
+                    bindings
+                        |> Map.ofSeq
+                        |> Ok
+                else
+                    let conflicts =
+                        conflicts
+                            |> Array.map (fun (name, formulas) ->
+                                sprintf "(%s conflicts: %s)"
+                                    name
+                                    (String.Join(", ", formulas)))
+                    String.Join(", ", conflicts)
+                        |> Error
+
+    /// Substitutes the given bindings in the given formula.
+    let rec substitute bindings = function
+
+            // bind with placeholder
+        | Holds (Predicate (name, 0u), terms) ->
+            assert(terms.Length = 0)
+            match bindings |> Map.tryFind name with
+                | Some formula -> formula
+                | None -> failwithf "No binding for %s" name
+
+            // recurse
+        | Not formula ->
+            Not (
+                formula |> substitute bindings)
+        | And (formula1, formula2) ->
+            And (
+                formula1 |> substitute bindings,
+                formula2 |> substitute bindings)
+        | Implication (formula1, formula2) ->
+            Implication (
+                formula1 |> substitute bindings,
+                formula2 |> substitute bindings)
+
+            // error
+        | _ -> failwith "Unexpected"
 
 type InferenceRule =
     Formula (*antecedent template*) * Formula (*consequent template*)
 
+/// http://www.mathpath.org/proof/proof.inference.htm
 module InferenceRule =
 
+    /// Creates a 0-arity placeholder for a predicate.
     let private formula name =
         Holds (Predicate (name, 0u), [])
 
+    /// Placeholders.
     let private p = formula "P"
     let private q = formula "Q"
     let private r = formula "R"
@@ -134,91 +251,17 @@ module InferenceRule =
             Not p),
         q
 
-    let unify template formula =
-        let rec loop template formula =
-            seq {
-                match (template, formula) with
-                    | Holds (Predicate (name, 0u), terms), _ ->
-                        assert(terms.Length = 0)
-                        yield! [Ok (name, formula)]
-                    | Not template', Not formula' ->
-                        yield! loop template' formula'
-                    | And (template1, template2), And (formula1, formula2) ->
-                        yield! loop template1 formula1
-                        yield! loop template2 formula2
-                    | Or (template1, template2), Or (formula1, formula2) ->
-                        yield! loop template1 formula1
-                        yield! loop template2 formula2
-                    | Implication (template1, template2), Implication (formula1, formula2) ->
-                        yield! loop template1 formula1
-                        yield! loop template2 formula2
-                    | _ -> yield! [
-                        sprintf "Can't unify %A with %A" template formula
-                            |> Error]
-            }
-        let results =
-            loop template formula
-                |> Seq.toArray
-        let msgOpt =
-            results
-                |> Array.tryPick (function
-                    | Error msg -> Some msg
-                    | Ok _ -> None)
-        match msgOpt with
-            | Some msg -> Error msg
-            | None ->
-                let matches =
-                    results
-                        |> Array.choose (function
-                            | Error _ -> None
-                            | Ok pair -> Some pair)
-                let groups =
-                    matches
-                        |> Seq.groupBy fst
-                        |> Seq.map (fun (name, group) ->
-                            let distinct =
-                                group
-                                    |> Seq.distinct
-                                    |> Seq.toArray
-                            name, distinct)
-                        |> Seq.toArray
-                let conflicts =
-                    groups
-                        |> Array.choose (fun (name, group) ->
-                            if group.Length = 1 then
-                                None
-                            else
-                                let formulas =
-                                    group |> Array.map snd
-                                Some (name, formulas))
-                if conflicts.Length = 0 then
-                    matches
-                        |> Map.ofSeq
-                        |> Ok
-                else
-                    let conflicts =
-                        conflicts
-                            |> Array.map (fun (name, formulas) ->
-                                sprintf "(%s conflicts: %s)"
-                                    name
-                                    (String.Join(", ", formulas)))
-                    String.Join(", ", conflicts)
-                        |> Error
+    let allRules =
+        [|
+            modusPonens
+            modusTollens
+            hypotheticalSyllogism
+            disjunctiveSyllogism
+        |]
 
-    let rec substitute (consequent : Formula) (substitutions : Map<Name, Formula>) =
-        match consequent with
-            | Holds (Predicate (name, 0u), terms) ->
-                assert(terms.Length = 0)
-                substitutions.[name]
-            | Not formula' ->
-                Not (
-                    substitute formula' substitutions)
-            | And (formula1, formula2) ->
-                And (
-                    substitute formula1 substitutions,
-                    substitute formula2 substitutions)
-            | Implication (formula1, formula2) ->
-                Implication (
-                    substitute formula1 substitutions,
-                    substitute formula2 substitutions)
-            | _ -> failwith "Unexpected"
+    /// Tries to apply the given rule to the given formula.
+    let apply formula ((antecedent, consequent) : InferenceRule) =
+        formula
+            |> Formula.unify antecedent
+            |> Result.map (fun bindings ->
+                consequent |> Formula.substitute bindings)

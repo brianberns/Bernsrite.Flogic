@@ -2,56 +2,77 @@
 
 open Microsoft.VisualStudio.TestTools.UnitTesting
 
+module Result =
+
+    let tryGet = function
+        | Ok value -> Some value
+        | Error _ -> None
+
+    let isError = function
+        | Ok _ -> false
+        | Error _ -> true
+
 [<TestClass>]
 type UnitTest() =
 
+    let isMan = Predicate ("Man", 1u)
+    let isWoman = Predicate ("Woman", 1u)
+    let isHuman = Predicate ("Human", 1u)
+    let isMortal = Predicate ("Mortal", 1u)
+    let x = [Variable "x"]
+
+    let test formula expectedRule expectedFormula =
+        for rule in InferenceRule.allRules do
+            let result = rule |> InferenceRule.apply formula
+            if rule = expectedRule then
+                Assert.AreEqual(Some expectedFormula, result |> Result.tryGet)
+            else
+                Assert.IsTrue(result |> Result.isError)
+
     [<TestMethod>]
-    member __.Test() =
-        let isMan = Predicate ("Man", 1u)
-        let isWoman = Predicate ("Woman", 1u)
-        let isHuman = Predicate ("Human", 1u)
-        let isMortal = Predicate ("Mortal", 1u)
-        let x = Variable "x"
-        let formulas =
-            [
-                And (
-                    Implication (
-                        Holds (isMan, [x]),
-                        Holds (isMortal, [x])),
-                    Holds (isMan, [x]))
-                And (
-                    Implication (
-                        Holds (isMan, [x]),
-                        Holds (isMortal, [x])),
-                    Not (Holds (isMortal, [x])))
-                And (
-                    Implication (
-                        Holds (isMan, [x]),
-                        Holds (isHuman, [x])),
-                    Implication (
-                        Holds (isHuman, [x]),
-                        Holds (isMortal, [x])))
-                And (
-                    Or (
-                        Holds (isMan, [x]),
-                        Holds (isWoman, [x])),
-                    Not (Holds (isMan, [x])))
-            ]
-        let rules =
-            [
-                InferenceRule.modusPonens
-                InferenceRule.modusTollens
-                InferenceRule.hypotheticalSyllogism
-                InferenceRule.disjunctiveSyllogism
-            ]
-        for formula in formulas do
-            printfn "%A" formula
-            for (antecedent, consequent) in rules do
-                printfn "   %A => %A" antecedent consequent
-                match InferenceRule.unify antecedent formula with
-                    | Ok substitutions ->
-                        printfn "      %A" substitutions
-                        let result = InferenceRule.substitute consequent substitutions
-                        printfn "      %A" result
-                    | Error msg ->
-                        printfn "      Error: %s" msg
+    member __.ModusPonens() =
+        test
+            (And (
+                Implication (
+                    Holds (isMan, x),
+                    Holds (isMortal, x)),
+                Holds (isMan, x)))
+            InferenceRule.modusPonens
+            (Holds (isMortal, x))
+
+    [<TestMethod>]
+    member __.ModusTollens() =
+        test
+            (And (
+                Implication (
+                    Holds (isMan, x),
+                    Holds (isMortal, x)),
+                Not (Holds (isMortal, x))))
+            InferenceRule.modusTollens
+            (Not (Holds (isMan, x)))
+
+    [<TestMethod>]
+    member __.HypotheticalSyllogism() =
+        test
+            (And (
+                Implication (
+                    Holds (isMan, x),
+                    Holds (isHuman, x)),
+                Implication (
+                    Holds (isHuman, x),
+                    Holds (isMortal, x))))
+            InferenceRule.hypotheticalSyllogism
+            (Implication (
+                Holds (isMan, x),
+                Holds (isMortal, x)))
+
+    [<TestMethod>]
+    member __.DisjunctiveSyllogism() =
+        test
+            (And (
+                Or (
+                    Holds (isMan, x),
+                    Holds (isWoman, x)),
+                Not (Holds (isMan, x))))
+            InferenceRule.disjunctiveSyllogism
+            (Holds (isWoman, x))
