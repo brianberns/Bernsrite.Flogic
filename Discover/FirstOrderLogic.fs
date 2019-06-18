@@ -140,12 +140,36 @@ module InferenceRule =
         match msgOpt with
             | Some msg -> Error msg
             | None ->
-                results
-                    |> Seq.choose (function
-                        | Error _ -> None
-                        | Ok pair -> Some pair)
-                    |> Map.ofSeq
-                    |> Ok
+                let matches =
+                    results
+                        |> Array.choose (function
+                            | Error _ -> None
+                            | Ok pair -> Some pair)
+                let groups =
+                    matches
+                        |> Seq.groupBy fst
+                        |> Seq.map (fun (name, group) ->
+                            let distinct =
+                                group
+                                    |> Seq.distinct
+                                    |> Seq.toArray
+                            name, distinct)
+                        |> Seq.toArray
+                let conflicts =
+                    groups
+                        |> Array.choose (fun (name, group) ->
+                            if group.Length = 1 then
+                                None
+                            else
+                                Some name)
+                if conflicts.Length = 0 then
+                    matches
+                        |> Map.ofSeq
+                        |> Ok
+                else
+                    String.Join(", ", conflicts)
+                        |> sprintf "Conflicts: %s"
+                        |> Error
 
     let rec substitute (consequent : Formula) (substitutions : Map<Name, Formula>) =
         match consequent with
