@@ -49,48 +49,44 @@ type Formula =
     | ForAll of Variable * Formula
 
     member this.String =
-        let rec loop isRoot = function
-            | Holds (Predicate (name, arity), terms) ->
-                assert(arity = uint32 terms.Length)
-                if arity = 0u then name
-                else
-                    sprintf "%s(%s)" name <| String.Join(", ", terms)
-            | Equality (terml, termr) ->
-                sprintf "%s = %s" (terml.ToString()) (termr.ToString())
-            | Not formula ->
-                sprintf "~%s" (formula.ToString())
-            | And (formula1, formula2) ->
-                sprintf "%s%s & %s%s"
+
+        let rec loop isRoot formula =
+
+            let infix symbol formula1 formula2 =
+                sprintf "%s%s %s %s%s"
                     (if isRoot then "" else "(")
                     (formula1 |> loop false)
+                    symbol
                     (formula2 |> loop false)
                     (if isRoot then "" else ")")
-            | Or (formula1, formula2) ->
-                sprintf "%s%s | %s%s"
-                    (if isRoot then "" else "(")
-                    (formula1 |> loop false)
-                    (formula2 |> loop false)
-                    (if isRoot then "" else ")")
-            | Implication (formula1, formula2) ->
-                sprintf "%s%s -> %s%s"
-                    (if isRoot then "" else "(")
-                    (formula1 |> loop false)
-                    (formula2 |> loop false)
-                    (if isRoot then "" else ")")
-            | Biconditional (formula1, formula2) ->
-                sprintf "%s%s <-> %s%s"
-                    (if isRoot then "" else "(")
-                    (formula1 |> loop false)
-                    (formula2 |> loop false)
-                    (if isRoot then "" else ")")
-            | Exists (variable, formula) ->
-                sprintf "∃%s %s"
-                    (variable.ToString())
-                    (formula |> loop false)
-            | ForAll (variable, formula) ->
-                sprintf "∀%s %s"
-                    (variable.ToString())
-                    (formula |> loop false)
+
+            match formula with
+                | Holds (Predicate (name, arity), terms) ->
+                    assert(arity = uint32 terms.Length)
+                    if arity = 0u then name
+                    else
+                        sprintf "%s(%s)" name <| String.Join(", ", terms)
+                | Equality (term1, term2) ->
+                    sprintf "%A = %A" term1 term2
+                | Not formula ->
+                    sprintf "~%A" formula
+                | And (formula1, formula2) ->
+                    infix "&" formula1 formula2
+                | Or (formula1, formula2) ->
+                    infix "|" formula1 formula2
+                | Implication (formula1, formula2) ->
+                    infix "->" formula1 formula2
+                | Biconditional (formula1, formula2) ->
+                    infix "<->" formula1 formula2
+                | Exists (variable, formula) ->
+                    sprintf "∃%A %s"
+                        variable
+                        (formula |> loop false)
+                | ForAll (variable, formula) ->
+                    sprintf "∀%A %s"
+                        variable
+                        (formula |> loop false)
+
         this |> loop true
 
     override this.ToString() =
