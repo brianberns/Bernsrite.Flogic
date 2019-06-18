@@ -60,13 +60,17 @@ type Formula =
             | Not formula ->
                 sprintf "~%s" (formula.ToString())
             | And (formula1, formula2) ->
-                sprintf "%s & %s"
+                sprintf "%s%s & %s%s"
+                    (if isRoot then "" else "(")
                     (formula1 |> loop false)
                     (formula2 |> loop false)
+                    (if isRoot then "" else ")")
             | Or (formula1, formula2) ->
-                sprintf "%s | %s"
+                sprintf "%s%s | %s%s"
+                    (if isRoot then "" else "(")
                     (formula1 |> loop false)
                     (formula2 |> loop false)
+                    (if isRoot then "" else ")")
             | Implication (formula1, formula2) ->
                 sprintf "%s%s -> %s%s"
                     (if isRoot then "" else "(")
@@ -99,24 +103,40 @@ type InferenceRule =
 
 module InferenceRule =
 
-    let formula name =
+    let private formula name =
         Holds (Predicate (name, 0u), [])
 
-    let p = formula "P"
-    let q = formula "Q"
-    let r = formula "R"
+    let private p = formula "P"
+    let private q = formula "Q"
+    let private r = formula "R"
        
     /// (P -> Q) & P => Q
     let modusPonens : InferenceRule =
-        And (Implication (p, q), p), q
+        And (
+            Implication (p, q),
+            p),
+        q
 
     /// (P -> Q) & ~Q => ~P
     let modusTollens : InferenceRule =
-        And (Implication (p, q), (Not q)), Not p
+        And (
+            Implication (p, q),
+            (Not q)),
+        Not p
 
     /// (P -> Q) & (Q -> R) => (P -> Q)
-    let hypotheticalSyllogism =
-        And (Implication (p, q), Implication (q, r)), Implication (p, r)
+    let hypotheticalSyllogism : InferenceRule =
+        And (
+            Implication (p, q),
+            Implication (q, r)),
+        Implication (p, r)
+
+    /// (P | Q) & ~P => Q
+    let disjunctiveSyllogism : InferenceRule =
+        And (
+            Or (p, q),
+            Not p),
+        q
 
     let unify template formula =
         let rec loop template formula =
@@ -128,6 +148,9 @@ module InferenceRule =
                     | Not template', Not formula' ->
                         yield! loop template' formula'
                     | And (template1, template2), And (formula1, formula2) ->
+                        yield! loop template1 formula1
+                        yield! loop template2 formula2
+                    | Or (template1, template2), Or (formula1, formula2) ->
                         yield! loop template1 formula1
                         yield! loop template2 formula2
                     | Implication (template1, template2), Implication (formula1, formula2) ->
