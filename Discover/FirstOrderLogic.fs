@@ -96,7 +96,7 @@ type Formula =
     override this.ToString() =
         this.String
 
-// http://www.math.ubc.ca/~cytryn/teaching/scienceOneF10W11/handouts/OS.proof.3inference.html
+// http://www.mathpath.org/proof/proof.inference.htm
 
 type InferenceRule =
     Formula (*antecedent template*) * Formula (*consequent template*)

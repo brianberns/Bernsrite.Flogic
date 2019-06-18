@@ -1,12 +1,12 @@
 ﻿namespace Discover
 
-module Program =
+open Microsoft.VisualStudio.TestTools.UnitTesting
 
-    [<EntryPoint>]
-    let main argv =
+[<TestClass>]
+type UnitTest() =
 
-        System.Console.OutputEncoding <- System.Text.Encoding.Unicode
-
+    [<TestMethod>]
+    member __.Test() =
         let isMan = Predicate ("Man", 1u)
         let isWoman = Predicate ("Woman", 1u)
         let isHuman = Predicate ("Human", 1u)
@@ -55,5 +55,3 @@ module Program =
                         printfn "      %A" result
                     | Error msg ->
                         printfn "      Error: %s" msg
-
-        0
