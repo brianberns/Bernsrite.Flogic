@@ -36,7 +36,7 @@ type Formula =
     | Equality of Term * Term
 
         // negation
-    | Negate of Formula
+    | Not of Formula
 
         // binary connectives
     | And of Formula * Formula
@@ -57,7 +57,7 @@ type Formula =
                     sprintf "%s(%s)" name <| String.Join(", ", terms)
             | Equality (terml, termr) ->
                 sprintf "%s = %s" (terml.ToString()) (termr.ToString())
-            | Negate formula ->
+            | Not formula ->
                 sprintf "~%s" (formula.ToString())
             | And (formula1, formula2) ->
                 sprintf "%s & %s"
@@ -108,23 +108,45 @@ module InferenceRule =
         let q = formula "Q"
         And (Implication (p, q), p), q
 
-    let unify antecedent formula =
+    /// (P -> Q) & ~Q => ~P
+    let modusTollens : InferenceRule =
+        let p = formula "P"
+        let q = formula "Q"
+        And (Implication (p, q), (Not q)), Not p
+
+    let unify template formula =
         let rec loop template formula =
             seq {
                 match (template, formula) with
                     | Holds (Predicate (name, 0u), terms), _ ->
                         assert(terms.Length = 0)
-                        yield name, formula
-                    | And (templ1, templ2), And (form1, form2) ->
-                        yield! loop templ1 form1
-                        yield! loop templ2 form2
-                    | Implication (templ1, templ2), Implication (form1, form2) ->
-                        yield! loop templ1 form1
-                        yield! loop templ2 form2
-                    | _ -> ()
+                        yield! [Ok (name, formula)]
+                    | Equality _, Equality _ -> ()
+                    | And (template1, template2), And (formula1, formula2) ->
+                        yield! loop template1 formula1
+                        yield! loop template2 formula2
+                    | Implication (template1, template2), Implication (formula1, formula2) ->
+                        yield! loop template1 formula1
+                        yield! loop template2 formula2
+                    | _ -> yield! [Error "No match"]
             }
-        loop antecedent formula
-            |> Map.ofSeq   // to-do: check for incompatible substitutions
+        let results =
+            loop template formula
+                |> Seq.toArray
+        let msgOpt =
+            results
+                |> Array.tryPick (function
+                    | Error msg -> Some msg
+                    | Ok _ -> None)
+        match msgOpt with
+            | Some msg -> Error msg
+            | None ->
+                results
+                    |> Seq.choose (function
+                        | Error _ -> None
+                        | Ok pair -> Some pair)
+                    |> Map.ofSeq
+                    |> Ok
 
     let rec substitute (consequent : Formula) (substitutions : Map<Name, Formula>) =
         match consequent with
