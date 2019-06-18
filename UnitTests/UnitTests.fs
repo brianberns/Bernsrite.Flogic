@@ -2,16 +2,6 @@
 
 open Microsoft.VisualStudio.TestTools.UnitTesting
 
-module Result =
-
-    let tryGet = function
-        | Ok value -> Some value
-        | Error _ -> None
-
-    let isError = function
-        | Ok _ -> false
-        | Error _ -> true
-
 [<TestClass>]
 type UnitTest() =
 
@@ -22,12 +12,19 @@ type UnitTest() =
     let x = [Variable "x"]
 
     let test formula expectedRule expectedFormula =
+
         for rule in InferenceRule.allRules do
             let result = rule |> InferenceRule.apply formula
             if rule = expectedRule then
                 Assert.AreEqual(Some expectedFormula, result |> Result.tryGet)
             else
                 Assert.IsTrue(result |> Result.isError)
+
+        match InferenceRule.prove formula expectedFormula with
+            | Some proof ->
+                for step in proof do
+                    printfn "%A" step
+            | None -> Assert.Fail()
 
     [<TestMethod>]
     member __.ModusPonens() =

@@ -208,6 +208,16 @@ module Formula =
             // error
         | _ -> failwith "Unexpected"
 
+module Result =
+
+    let tryGet = function
+        | Ok value -> Some value
+        | Error _ -> None
+
+    let isError = function
+        | Ok _ -> false
+        | Error _ -> true
+
 type InferenceRule =
     Formula (*antecedent template*) * Formula (*consequent template*)
 
@@ -265,3 +275,27 @@ module InferenceRule =
             |> Formula.unify antecedent
             |> Result.map (fun bindings ->
                 consequent |> Formula.substitute bindings)
+
+    let prove premise conclusion =
+        let rec loop steps formula =
+            let childSteps =
+                allRules
+                    |> Array.choose (fun rule ->
+                        rule
+                            |> apply formula
+                            |> Result.tryGet
+                            |> Option.map (fun child ->
+                                child, rule))
+            let stepOpt =
+                childSteps
+                    |> Array.tryFind (fun (child, _) ->
+                        child = conclusion)
+            match stepOpt with
+                | Some step -> Some (step :: steps)
+                | None ->
+                    childSteps
+                        |> Array.tryPick (fun (child, _) ->
+                            child |> loop steps)
+        premise
+            |> loop []
+            |> Option.map (List.rev >> Array.ofList)
