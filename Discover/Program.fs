@@ -8,6 +8,7 @@ module Program =
         System.Console.OutputEncoding <- System.Text.Encoding.Unicode
 
         let isMan = Predicate ("Man", 1u)
+        let isHuman = Predicate ("Human", 1u)
         let isMortal = Predicate ("Mortal", 1u)
         let x = Variable "x"
         let formulas =
@@ -22,11 +23,19 @@ module Program =
                         Holds (isMan, [x]),
                         Holds (isMortal, [x])),
                     Not (Holds (isMortal, [x])))
+                And (
+                    Implication (
+                        Holds (isMan, [x]),
+                        Holds (isHuman, [x])),
+                    Implication (
+                        Holds (isHuman, [x]),
+                        Holds (isMortal, [x])))
             ]
         let rules =
             [
                 InferenceRule.modusPonens
                 InferenceRule.modusTollens
+                InferenceRule.hypotheticalSyllogism
             ]
         for formula in formulas do
             printfn "%A" formula

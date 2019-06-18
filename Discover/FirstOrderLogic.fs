@@ -102,17 +102,21 @@ module InferenceRule =
     let formula name =
         Holds (Predicate (name, 0u), [])
 
+    let p = formula "P"
+    let q = formula "Q"
+    let r = formula "R"
+       
     /// (P -> Q) & P => Q
     let modusPonens : InferenceRule =
-        let p = formula "P"
-        let q = formula "Q"
         And (Implication (p, q), p), q
 
     /// (P -> Q) & ~Q => ~P
     let modusTollens : InferenceRule =
-        let p = formula "P"
-        let q = formula "Q"
         And (Implication (p, q), (Not q)), Not p
+
+    /// (P -> Q) & (Q -> R) => (P -> Q)
+    let hypotheticalSyllogism =
+        And (Implication (p, q), Implication (q, r)), Implication (p, r)
 
     let unify template formula =
         let rec loop template formula =
@@ -123,8 +127,6 @@ module InferenceRule =
                         yield! [Ok (name, formula)]
                     | Not template', Not formula' ->
                         yield! loop template' formula'
-                    | Not template', _ ->
-                        yield! loop template' (Not formula)
                     | And (template1, template2), And (formula1, formula2) ->
                         yield! loop template1 formula1
                         yield! loop template2 formula2
