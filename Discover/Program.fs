@@ -38,6 +38,6 @@ module Program =
                         let result = InferenceRule.substitute consequent substitutions
                         printfn "      %A" result
                     | Error msg ->
-                        printfn "      %s" msg
+                        printfn "      Error: %s" msg
 
         0

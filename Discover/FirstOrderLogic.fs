@@ -127,7 +127,9 @@ module InferenceRule =
                     | Implication (template1, template2), Implication (formula1, formula2) ->
                         yield! loop template1 formula1
                         yield! loop template2 formula2
-                    | _ -> yield! [Error "No match"]
+                    | _ -> yield! [
+                        sprintf "Can't unify %A with %A" template formula
+                            |> Error]
             }
         let results =
             loop template formula
@@ -161,14 +163,21 @@ module InferenceRule =
                             if group.Length = 1 then
                                 None
                             else
-                                Some name)
+                                let formulas =
+                                    group |> Array.map snd
+                                Some (name, formulas))
                 if conflicts.Length = 0 then
                     matches
                         |> Map.ofSeq
                         |> Ok
                 else
+                    let conflicts =
+                        conflicts
+                            |> Array.map (fun (name, formulas) ->
+                                sprintf "(%s conflicts: %s)"
+                                    name
+                                    (String.Join(", ", formulas)))
                     String.Join(", ", conflicts)
-                        |> sprintf "Conflicts: %s"
                         |> Error
 
     let rec substitute (consequent : Formula) (substitutions : Map<Name, Formula>) =
