@@ -101,11 +101,11 @@ type Formula =
                 | Biconditional (formula1, formula2) ->
                     infix "<->" formula1 formula2
                 | Exists (variable, formula) ->
-                    sprintf "∃%A %s"
+                    sprintf "∃%A.%s"
                         variable
                         (formula |> loop false)
                 | ForAll (variable, formula) ->
-                    sprintf "∀%A %s"
+                    sprintf "∀%A.%s"
                         variable
                         (formula |> loop false)
 
@@ -113,126 +113,6 @@ type Formula =
 
     override this.ToString() =
         this.String
-
-module Formula =
-
-    /// Tries to bind the given template to the given fomula.
-    let bind template formula =
-
-            // bind recursively
-        let rec loop template formula =
-            seq {
-                match (template, formula) with
-
-                        // bind placeholder
-                    | Holds (Predicate (name, 0u), terms), _ ->
-                        assert(terms.Length = 0)
-                        yield Ok (name, formula)
-
-                        // recurse
-                    | Not template', Not formula' ->
-                        yield! loop template' formula'
-                    | And (template1, template2), And (formula1, formula2) ->
-                        yield! loop template1 formula1
-                        yield! loop template2 formula2
-                    | Or (template1, template2), Or (formula1, formula2) ->
-                        yield! loop template1 formula1
-                        yield! loop template2 formula2
-                    | Implication (template1, template2), Implication (formula1, formula2) ->
-                        yield! loop template1 formula1
-                        yield! loop template2 formula2
-
-                        // error
-                    | _ -> yield sprintf "Can't bind %A to %A" template formula
-                            |> Error
-            }
-
-            // get raw results
-        let results =
-            loop template formula
-                |> Seq.toArray
-
-            // did an error occur?
-        let msgOpt =
-            results
-                |> Array.tryPick (function
-                    | Error msg -> Some msg
-                    | Ok _ -> None)
-
-            // create result
-        match msgOpt with
-            | Some msg -> Error msg
-            | None ->
-
-                    // gather bindings
-                let bindings =
-                    results
-                        |> Array.choose (function
-                            | Error _ -> None
-                            | Ok pair -> Some pair)
-
-                    // look for binding conflicts
-                let conflicts =
-                    bindings
-                        |> Seq.groupBy fst
-                        |> Seq.map (fun (name, group) ->
-                            let distinct =
-                                group
-                                    |> Seq.map snd
-                                    |> Seq.distinct
-                                    |> Seq.toArray
-                            name, distinct)
-                        |> Seq.choose (fun (name, formulas) ->
-                            if formulas.Length = 1 then
-                                None
-                            else
-                                Some (name, formulas))
-                        |> Seq.toArray
-
-                    // package into a result
-                if conflicts.Length = 0 then
-                    bindings
-                        |> Map.ofSeq
-                        |> Ok
-                else
-                    let conflicts =
-                        conflicts
-                            |> Array.map (fun (name, formulas) ->
-                                sprintf "(%s conflicts: %s)"
-                                    name
-                                    (String.Join(", ", formulas)))
-                    String.Join(", ", conflicts)
-                        |> Error
-
-    /// Substitutes the given bindings in the given formula.
-    let rec substitute bindings = function
-
-            // bind with placeholder
-        | Holds (Predicate (name, 0u), terms) ->
-            assert(terms.Length = 0)
-            match bindings |> Map.tryFind name with
-                | Some formula -> formula
-                | None -> failwithf "No binding for %s" name
-
-            // recurse
-        | Not formula ->
-            Not (
-                formula |> substitute bindings)
-        | And (formula1, formula2) ->
-            And (
-                formula1 |> substitute bindings,
-                formula2 |> substitute bindings)
-        | Or (formula1, formula2) ->
-            Or (
-                formula1 |> substitute bindings,
-                formula2 |> substitute bindings)
-        | Implication (formula1, formula2) ->
-            Implication (
-                formula1 |> substitute bindings,
-                formula2 |> substitute bindings)
-
-            // error
-        | _ -> failwith "Unexpected"
 
 module Result =
 
@@ -244,75 +124,214 @@ module Result =
         | Ok _ -> false
         | Error _ -> true
 
-type InferenceRule =
-    Formula (*antecedent template*) * Formula (*consequent template*)
+type MetaVariable = Formula
 
-/// http://www.mathpath.org/proof/proof.inference.htm
-module InferenceRule =
+module MetaVariable =
 
-    /// Creates a 0-arity placeholder for a predicate.
-    let private formula name =
+    /// Creates a metavariable. This is currently implemented as
+    /// 0-arity placeholder for a predicate.
+    let create name : MetaVariable =
         Holds (Predicate (name, 0u), [])
 
+    let nameOf (metaVar : MetaVariable) =
+        match metaVar with
+            | Holds (Predicate (name, 0u), []) -> name
+            | _ -> failwith "Unexpected"
+
+/// A schema is a formula that might contain metavariables.
+type Schema = Formula
+
+module Schema =
+
+    /// Finds possible bindings of the given formula to the given
+    /// schema (including potentially incompatible ones).
+    let private bindRaw formula schema =
+
+        let rec loop formula (schema : Schema) =
+            seq {
+                match (formula, schema) with
+
+                        // bind metavariable
+                    | _, Holds (Predicate (_, 0u), terms) ->
+                        assert(terms.Length = 0)
+                        yield Ok ((schema : MetaVariable), formula)
+
+                        // recurse
+                    | Not formula', Not schema' ->
+                        yield! schema' |> loop formula'
+                    | And (formula1, formula2), And (schema1, schema2) ->
+                        yield! schema1 |> loop formula1
+                        yield! schema2 |> loop formula2
+                    | Or (formula1, formula2), Or (schema1, schema2) ->
+                        yield! schema1 |> loop formula1
+                        yield! schema2 |> loop formula2
+                    | Implication (formula1, formula2), Implication (schema1, schema2) ->
+                        yield! schema1 |> loop formula1
+                        yield! schema2 |> loop formula2
+
+                        // error
+                    | _ -> yield sprintf "Can't bind %A to %A" schema formula
+                            |> Error
+            }
+
+        schema
+            |> loop formula
+            |> Seq.toArray
+
+    let private resolve rawResults =
+
+            // did an error occur?
+        let msgOpt =
+            rawResults
+                |> Array.tryPick (function
+                    | Error msg -> Some msg
+                    | Ok _ -> None)
+
+            // create result
+        match msgOpt with
+            | Some msg -> Error msg
+            | None ->
+
+                    // gather bindings
+                let bindings : (MetaVariable * Formula)[] =
+                    rawResults
+                        |> Array.choose (function
+                            | Error _ -> None
+                            | Ok pair -> Some pair)
+
+                    // look for binding conflicts
+                let conflicts =
+                    bindings
+                        |> Seq.groupBy fst
+                        |> Seq.map (fun (metaVar, group) ->
+                            let distinct =
+                                group
+                                    |> Seq.map snd
+                                    |> Seq.distinct
+                                    |> Seq.toArray
+                            metaVar, distinct)
+                        |> Seq.choose (fun (metaVar, formulas) ->
+                            if formulas.Length = 1 then
+                                None
+                            else
+                                Some (metaVar, formulas))
+                        |> Seq.toArray
+
+                    // package into a result
+                if conflicts.Length = 0 then
+                    bindings
+                        |> Map.ofSeq
+                        |> Ok
+                else
+                    let conflicts =
+                        conflicts
+                            |> Array.map (fun (metaVar, formulas) ->
+                                sprintf "(%A conflicts: %s)"
+                                    metaVar
+                                    (String.Join(", ", formulas)))
+                    String.Join(", ", conflicts)
+                        |> Error
+
+    let bind formulas schemas =
+        if Array.length formulas >= Array.length schemas then
+            formulas
+                |> List.ofArray
+                |> List.permutations schemas.Length
+                |> Seq.tryPick (fun formulaList ->
+                    Seq.zip formulaList schemas
+                        |> Seq.collect (fun (formula, schema) ->
+                            schema |> bindRaw formula)
+                        |> Seq.toArray
+                        |> resolve
+                        |> Result.tryGet)
+        else None
+
+    /// Substitutes the given bindings in the given schema.
+    let rec substitute (bindings : Map<MetaVariable, Formula>) (schema : Schema) =
+        match schema with
+
+                // bind with placeholder
+            | Holds (Predicate (name, 0u), terms) ->
+                assert(terms.Length = 0)
+                match bindings |> Map.tryFind schema with
+                    | Some formula -> formula
+                    | None -> failwithf "No binding for metavariable %s" name
+
+                // recurse
+            | Not formula ->
+                Not (
+                    formula |> substitute bindings)
+            | And (formula1, formula2) ->
+                And (
+                    formula1 |> substitute bindings,
+                    formula2 |> substitute bindings)
+            | Or (formula1, formula2) ->
+                Or (
+                    formula1 |> substitute bindings,
+                    formula2 |> substitute bindings)
+            | Implication (formula1, formula2) ->
+                Implication (
+                    formula1 |> substitute bindings,
+                    formula2 |> substitute bindings)
+
+                // error
+            | _ -> failwith "Unexpected"
+
+type InferenceRule =
+    {
+        Premises : Schema[]
+        Conclusion : Schema
+    }
+
+module InferenceRule =
+
     /// Placeholders.
-    let private p = formula "P"
-    let private q = formula "Q"
-    let private r = formula "R"
-    let private s = formula "S"
-       
-    /// (P -> Q) & P => Q
-    let modusPonens : InferenceRule =
-        And (
-            Implication (p, q),
-            p),
-        q
+    let private p = MetaVariable.create "P"
+    let private q = MetaVariable.create "Q"
+    let private r = MetaVariable.create "R"
+    let private s = MetaVariable.create "S"
 
-    /// (P -> Q) & ~Q => ~P
-    let modusTollens : InferenceRule =
-        And (
-            Implication (p, q),
-            (Not q)),
-        Not p
+    /// AKA modus ponens.
+    let implicationElimination =
+        {
+            Premises = [| Implication (p, q); p |]
+            Conclusion = q
+        }
 
-    /// (P -> Q) & (Q -> R) => (P -> Q)
-    let hypotheticalSyllogism : InferenceRule =
-        And (
-            Implication (p, q),
-            Implication (q, r)),
-        Implication (p, r)
+    let implicationCreation =
+        {
+            Premises = [| q |]
+            Conclusion = Implication (p, q)
+        }
 
-    /// (P | Q) & ~P => Q
-    let disjunctiveSyllogism : InferenceRule =
-        And (
-            Or (p, q),
-            Not p),
-        q
-
-    /// ((P -> Q) & (R -> S)) & (P | R) => (Q | S)
-    let constructiveDilemma : InferenceRule =
-        And (
-            And (
-                Implication (p, q),
-                Implication (r, s)),
-            Or (p, r)),
-        Or (q, s)
+    let implicationDistribution =
+        {
+            Premises =
+                [|
+                    Implication (
+                        p,
+                        Implication (q, r))
+                |]
+            Conclusion =
+                Implication (
+                    Implication (p, q),
+                    Implication (p, r))
+        }
 
     let allRules =
         [|
-            modusPonens
-            modusTollens
-            hypotheticalSyllogism
-            disjunctiveSyllogism
-            constructiveDilemma
+            implicationElimination
+            // implicationCreation
+            // implicationDistribution
         |]
 
-    /// Tries to apply the given rule to the given formula.
-    let apply formula ((antecedent, consequent) : InferenceRule) =
-        formula
-            |> Formula.bind antecedent
-            |> Result.map (fun bindings ->
-                consequent |> Formula.substitute bindings)
+    /// Tries to apply the given rule to the given formulas.
+    let tryApply formulas rule =
+        Schema.bind formulas rule.Premises
+            |> Option.map (fun bindings ->
+                rule.Conclusion |> Schema.substitute bindings)
 
+    (*
     let prove premise conclusion rules =
         let rec loop steps formula =
             let childSteps =
@@ -338,3 +357,4 @@ module InferenceRule =
         premise
             |> loop []
             |> Option.map (List.rev >> Array.ofList)
+    *)
