@@ -1,16 +1,36 @@
-﻿namespace Discover
+﻿/// Based on the syntax of first-order logic. This is also isomorphic to
+/// Stanford's relational/Herbrand logic syntax:
+///    +--------------------------+------------------------------------+
+///    | Stanford                 | First-order                        |
+///    +--------------------------+------------------------------------+
+///    | Relational logic         |                                    |
+///    |    Object constant       | Function of arity 0                |
+///    |    Variable              | Variable                           |
+///    |    Relation constant     | Predicate                          |
+///    |    Term                  | Term                               |
+///    |    Relational sentence   | Atomic formula                     |
+///    |    Logical sentence      | Non-atomic, non-quantified formula |
+///    |    Quantified sentence   | Quantified formula                 |
+///    | Herbrand logic           |                                    |
+///    |    Function constant     | Function of arity > 0              |
+///    |    Functional expression | Function application               |
+///    +--------------------------+------------------------------------+
+
+namespace Discover
 
 open System
-
-// http://www.cs.jhu.edu/~phi/ai/slides/lecture-first-order-logic.pdf
 
 type Arity = uint32
 type Name = string
 
-type Function = Function of Name * Arity     // produces an "object"
-type Predicate = Predicate of Name * Arity   // produces a Boolean
+type Function = Function of Name * Arity
 type Variable = Variable of Name
 
+/// A term typically denotes an object that exists in the world.
+/// E.g.
+///    * Joe: constant (i.e. function of arity 0)
+///    * Joe's father: function application
+///    * someone: variable
 [<StructuredFormatDisplay("{String")>]
 type Term =
     | Variable of Name
@@ -27,6 +47,8 @@ type Term =
 
     override this.ToString() =
         this.String
+
+type Predicate = Predicate of Name * Arity   // produces a Boolean
 
 [<StructuredFormatDisplay("{String}")>]
 type Formula =
@@ -94,15 +116,15 @@ type Formula =
 
 module Formula =
 
-    /// Tries to unify the given template to the given fomula.
-    let unify template formula =
+    /// Tries to bind the given template to the given fomula.
+    let bind template formula =
 
-            // unify recursively
+            // bind recursively
         let rec loop template formula =
             seq {
                 match (template, formula) with
 
-                        // unify with placeholder
+                        // bind placeholder
                     | Holds (Predicate (name, 0u), terms), _ ->
                         assert(terms.Length = 0)
                         yield Ok (name, formula)
@@ -121,7 +143,7 @@ module Formula =
                         yield! loop template2 formula2
 
                         // error
-                    | _ -> yield sprintf "Can't unify %A with %A" template formula
+                    | _ -> yield sprintf "Can't bind %A to %A" template formula
                             |> Error
             }
 
@@ -200,6 +222,10 @@ module Formula =
             And (
                 formula1 |> substitute bindings,
                 formula2 |> substitute bindings)
+        | Or (formula1, formula2) ->
+            Or (
+                formula1 |> substitute bindings,
+                formula2 |> substitute bindings)
         | Implication (formula1, formula2) ->
             Implication (
                 formula1 |> substitute bindings,
@@ -232,6 +258,7 @@ module InferenceRule =
     let private p = formula "P"
     let private q = formula "Q"
     let private r = formula "R"
+    let private s = formula "S"
        
     /// (P -> Q) & P => Q
     let modusPonens : InferenceRule =
@@ -261,37 +288,49 @@ module InferenceRule =
             Not p),
         q
 
+    /// ((P -> Q) & (R -> S)) & (P | R) => (Q | S)
+    let constructiveDilemma : InferenceRule =
+        And (
+            And (
+                Implication (p, q),
+                Implication (r, s)),
+            Or (p, r)),
+        Or (q, s)
+
     let allRules =
         [|
             modusPonens
             modusTollens
             hypotheticalSyllogism
             disjunctiveSyllogism
+            constructiveDilemma
         |]
 
     /// Tries to apply the given rule to the given formula.
     let apply formula ((antecedent, consequent) : InferenceRule) =
         formula
-            |> Formula.unify antecedent
+            |> Formula.bind antecedent
             |> Result.map (fun bindings ->
                 consequent |> Formula.substitute bindings)
 
-    let prove premise conclusion =
+    let prove premise conclusion rules =
         let rec loop steps formula =
             let childSteps =
-                allRules
-                    |> Array.choose (fun rule ->
+                rules
+                    |> Seq.choose (fun rule ->
                         rule
                             |> apply formula
                             |> Result.tryGet
                             |> Option.map (fun child ->
                                 child, rule))
+                    |> Seq.toArray
             let stepOpt =
                 childSteps
                     |> Array.tryFind (fun (child, _) ->
                         child = conclusion)
             match stepOpt with
-                | Some step -> Some (step :: steps)
+                | Some step ->
+                    Some (step :: steps)
                 | None ->
                     childSteps
                         |> Array.tryPick (fun (child, _) ->

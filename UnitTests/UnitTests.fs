@@ -20,7 +20,10 @@ type UnitTest() =
             else
                 Assert.IsTrue(result |> Result.isError)
 
-        match InferenceRule.prove formula expectedFormula with
+        let proofOpt =
+            InferenceRule.allRules
+                |> InferenceRule.prove formula expectedFormula
+        match proofOpt with
             | Some proof ->
                 for step in proof do
                     printfn "%A" step
