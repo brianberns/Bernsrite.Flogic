@@ -247,7 +247,7 @@ module Schema =
         else None
 
     /// Substitutes the given bindings in the given schema.
-    let rec substitute (bindings : Map<MetaVariable, Formula>) (schema : Schema) =
+    let rec substitute bindings (schema : Schema) =
         match schema with
 
                 // bind with placeholder
@@ -291,6 +291,11 @@ module InferenceRule =
     let private r = MetaVariable.create "R"
     let private s = MetaVariable.create "S"
 
+    /// P -> Q
+    /// P
+    /// ------
+    /// Q
+    ///
     /// AKA modus ponens.
     let implicationElimination =
         {
@@ -298,12 +303,18 @@ module InferenceRule =
             Conclusion = q
         }
 
+    /// Q
+    /// ------
+    /// P -> Q
     let implicationCreation =
         {
             Premises = [| q |]
             Conclusion = Implication (p, q)
         }
 
+    /// P -> (Q -> R)
+    /// -------------
+    /// (P -> Q) -> (P -> R)
     let implicationDistribution =
         {
             Premises =
@@ -321,8 +332,8 @@ module InferenceRule =
     let allRules =
         [|
             implicationElimination
-            // implicationCreation
-            // implicationDistribution
+            implicationCreation
+            implicationDistribution
         |]
 
     /// Tries to apply the given rule to the given formulas.
