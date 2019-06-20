@@ -50,7 +50,9 @@
     <Content Include="packages.config" />
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="List.fs" />
-    <Compile Include="Logic.fs" />
+    <Compile Include="Formula.fs" />
+    <Compile Include="Schema.fs" />
+    <Compile Include="InferenceRule.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">
