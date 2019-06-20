@@ -11,26 +11,26 @@ type UnitTest() =
 
     [<TestMethod>]
     member __.ImplicationElimination() =
-        Assert.AreEqual(
-            Holds (isMortal, x) |> Some,
+        let conclusions =
             InferenceRule.implicationElimination
-                |> InferenceRule.tryApply
-                    [|
-                        Implication (
-                            Holds (isMan, x),
-                            Holds (isMortal, x))
-                        Holds (isMan, x)
-                    |])
-
-    [<TestMethod>]
-    member __.ImplicationCreation() =
-        let bindingsOpt =
-            InferenceRule.implicationCreation.Premises
-                |> Schema.bind
+                |> InferenceRule.apply
                     [|
                         Implication (
                             Holds (isMan, x),
                             Holds (isMortal, x))
                         Holds (isMan, x)
                     |]
-        printfn "%A" bindingsOpt
+        Assert.AreEqual(1, conclusions.Length)
+        Assert.AreEqual(Holds (isMortal, x), conclusions.[0])
+
+    [<TestMethod>]
+    member __.ImplicationCreation() =
+        let premises =
+            [|
+                Holds (isMan, x)
+                Holds (isMortal, x)
+            |]
+        let bindings =
+            InferenceRule.implicationCreation.Premises
+                |> Schema.bind premises
+        Assert.AreEqual(premises.Length, bindings.Length)

@@ -114,16 +114,6 @@ type Formula =
     override this.ToString() =
         this.String
 
-module Result =
-
-    let tryGet = function
-        | Ok value -> Some value
-        | Error _ -> None
-
-    let isError = function
-        | Ok _ -> false
-        | Error _ -> true
-
 type MetaVariable = Formula
 
 module MetaVariable =
@@ -141,11 +131,14 @@ module MetaVariable =
 /// A schema is a formula that might contain metavariables.
 type Schema = Formula
 
+/// Binding of metavariables to formulas.
+type Binding = Map<MetaVariable, Formula>
+
 module Schema =
 
-    /// Finds possible bindings of the given formula to the given
-    /// schema (including potentially incompatible ones).
-    let private bindRaw formula schema =
+    /// Finds possible mappings of the given formula to the given
+    /// schema (including potentially contradictory ones).
+    let private findMappingOpts formula schema =
 
         let rec loop formula (schema : Schema) =
             seq {
@@ -154,7 +147,7 @@ module Schema =
                         // bind metavariable
                     | _, Holds (Predicate (_, 0u), terms) ->
                         assert(terms.Length = 0)
-                        yield Ok ((schema : MetaVariable), formula)
+                        yield Some ((schema : MetaVariable), formula)
 
                         // recurse
                     | Not formula', Not schema' ->
@@ -170,81 +163,53 @@ module Schema =
                         yield! schema2 |> loop formula2
 
                         // error
-                    | _ -> yield sprintf "Can't bind %A to %A" schema formula
-                            |> Error
+                    | _ -> yield None
             }
 
         schema
             |> loop formula
             |> Seq.toArray
 
-    let private resolve rawResults =
+    let private resolve mappingOpts : Option<Binding> =
 
             // did an error occur?
-        let msgOpt =
-            rawResults
-                |> Array.tryPick (function
-                    | Error msg -> Some msg
-                    | Ok _ -> None)
+        let mappings =
+            mappingOpts |> Array.choose id
+        assert(mappings.Length <= mappingOpts.Length)
+        if mappings.Length = mappingOpts.Length then
 
-            // create result
-        match msgOpt with
-            | Some msg -> Error msg
-            | None ->
+                // validate mappings
+            let distinct = mappings |> Array.distinct
+            let isValid =
+                distinct
+                    |> Seq.groupBy fst
+                    |> Seq.forall (fun (_, group) ->
+                        (group |> Seq.length) = 1)
 
-                    // gather bindings
-                let bindings : (MetaVariable * Formula)[] =
-                    rawResults
-                        |> Array.choose (function
-                            | Error _ -> None
-                            | Ok pair -> Some pair)
+                // package mappings into a binding
+            if isValid then
+                let binding = distinct |> Map.ofSeq
+                assert(binding.Count = distinct.Length)
+                Some binding
+            else None
 
-                    // look for binding conflicts
-                let conflicts =
-                    bindings
-                        |> Seq.groupBy fst
-                        |> Seq.map (fun (metaVar, group) ->
-                            let distinct =
-                                group
-                                    |> Seq.map snd
-                                    |> Seq.distinct
-                                    |> Seq.toArray
-                            metaVar, distinct)
-                        |> Seq.choose (fun (metaVar, formulas) ->
-                            if formulas.Length = 1 then
-                                None
-                            else
-                                Some (metaVar, formulas))
-                        |> Seq.toArray
+        else None
 
-                    // package into a result
-                if conflicts.Length = 0 then
-                    bindings
-                        |> Map.ofSeq
-                        |> Ok
-                else
-                    let conflicts =
-                        conflicts
-                            |> Array.map (fun (metaVar, formulas) ->
-                                sprintf "(%A conflicts: %s)"
-                                    metaVar
-                                    (String.Join(", ", formulas)))
-                    String.Join(", ", conflicts)
-                        |> Error
-
+    /// Finds all possible bindings of the given formulas to the
+    /// given schemas.
     let bind formulas schemas =
         if Array.length formulas >= Array.length schemas then
             formulas
                 |> List.ofArray
                 |> List.permutations schemas.Length
-                |> Seq.tryPick (fun formulaList ->
+                |> Seq.choose (fun formulaList ->
                     Seq.zip formulaList schemas
                         |> Seq.collect (fun (formula, schema) ->
-                            schema |> bindRaw formula)
+                            schema |> findMappingOpts formula)
                         |> Seq.toArray
-                        |> resolve
-                        |> Result.tryGet)
-        else None
+                        |> resolve)
+                |> Seq.toArray
+        else Array.empty
 
     /// Substitutes the given bindings in the given schema.
     let rec substitute bindings (schema : Schema) =
@@ -336,11 +301,12 @@ module InferenceRule =
             implicationDistribution
         |]
 
-    /// Tries to apply the given rule to the given formulas.
-    let tryApply formulas rule =
+    /// Finds all possible applications of the given rule to the
+    /// given formulas.
+    let apply formulas rule =
         Schema.bind formulas rule.Premises
-            |> Option.map (fun bindings ->
-                rule.Conclusion |> Schema.substitute bindings)
+            |> Array.map (fun binding ->
+                rule.Conclusion |> Schema.substitute binding)
 
     (*
     let prove premise conclusion rules =
