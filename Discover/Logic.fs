@@ -15,6 +15,7 @@
 ///    |    Function constant     | Function of arity > 0              |
 ///    |    Functional expression | Function application               |
 ///    +--------------------------+------------------------------------+
+/// See http://intrologic.stanford.edu/public/index.php
 
 namespace Discover
 
@@ -173,6 +174,7 @@ module Schema =
             |> loop formula
             |> Seq.toArray
 
+    /// Resolves errors or incompatibilities in the given mappings.
     let private resolve mappingOpts : Option<Binding> =
 
             // did an error occur?
@@ -249,6 +251,7 @@ module Schema =
                 // error
             | _ -> failwith "Unexpected"
 
+/// Ordinary rule of inference (i.e. not structured).
 type InferenceRule =
     {
         Premises : Schema[]
@@ -257,11 +260,10 @@ type InferenceRule =
 
 module InferenceRule =
 
-    /// Placeholders.
+    /// Metavariables.
     let private p = MetaVariable.create "P"
     let private q = MetaVariable.create "Q"
     let private r = MetaVariable.create "R"
-    let private s = MetaVariable.create "S"
 
     /// P
     /// Q
@@ -348,7 +350,7 @@ module InferenceRule =
             Conclusions = [| p |]
         }
 
-    /// Introduction introduction is a structured rule:
+    /// Implication introduction is a structured rule:
     ///
     /// P |- Q  (i.e. Q can be proved from P)
     /// ------
