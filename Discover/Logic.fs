@@ -161,6 +161,9 @@ module Schema =
                     | Implication (formula1, formula2), Implication (schema1, schema2) ->
                         yield! schema1 |> loop formula1
                         yield! schema2 |> loop formula2
+                    | Biconditional (formula1, formula2), Biconditional (schema1, schema2) ->
+                        yield! schema1 |> loop formula1
+                        yield! schema2 |> loop formula2
 
                         // error
                     | _ -> yield None
@@ -238,6 +241,10 @@ module Schema =
                 Implication (
                     formula1 |> substitute bindings,
                     formula2 |> substitute bindings)
+            | Biconditional (formula1, formula2) ->
+                Biconditional (
+                    formula1 |> substitute bindings,
+                    formula2 |> substitute bindings)
 
                 // error
             | _ -> failwith "Unexpected"
@@ -245,7 +252,7 @@ module Schema =
 type InferenceRule =
     {
         Premises : Schema[]
-        Conclusion : Schema
+        Conclusions : Schema[]
     }
 
 module InferenceRule =
@@ -256,6 +263,99 @@ module InferenceRule =
     let private r = MetaVariable.create "R"
     let private s = MetaVariable.create "S"
 
+    /// P
+    /// Q
+    /// -----
+    /// P & Q
+    let andIntroduction =
+        {
+            Premises = [| p; q |]
+            Conclusions = [| And (p, q) |]
+        }
+
+    /// P & Q
+    /// -----
+    /// P
+    let andEliminationLeft =
+        {
+            Premises = [| And (p, q) |]
+            Conclusions = [| p |]
+        }
+
+    /// P & Q
+    /// -----
+    /// Q
+    let andEliminationRight =
+        {
+            Premises = [| And (p, q) |]
+            Conclusions = [| q |]
+        }
+
+    /// P
+    /// -----
+    /// P | Q
+    let orIntroductionLeft =
+        {
+            Premises = [| p |]
+            Conclusions = [| Or (p, q) |]
+        }
+
+    /// Q
+    /// -----
+    /// P | Q
+    let orIntroductionRight =
+        {
+            Premises = [| q |]
+            Conclusions = [| Or (p, q) |]
+        }
+
+    /// P | Q
+    /// P -> R
+    /// Q -> R
+    /// -----
+    /// R
+    let orElimination =
+        {
+            Premises =
+                [|
+                    Or (p, q)
+                    Implication (p, r)
+                    Implication (q, r)
+                |]
+            Conclusions = [| r |]
+        }
+
+    /// P -> Q
+    /// P -> ~Q
+    /// -----
+    /// ~P
+    let notIntroduction =
+        {
+            Premises =
+                [|
+                    Implication (p, q)
+                    Implication (p, Not q)
+                |]
+            Conclusions = [| Not p |]
+        }
+
+    /// ~~P
+    /// -----
+    /// P
+    let notElimination =
+        {
+            Premises = [| Not (Not p) |]
+            Conclusions = [| p |]
+        }
+
+    /// Introduction introduction is a structured rule:
+    ///
+    /// P |- Q  (i.e. Q can be proved from P)
+    /// ------
+    /// P -> Q
+    ///
+    /// Implementation is programmatic instead of declarative.
+
     /// P -> Q
     /// P
     /// ------
@@ -265,40 +365,54 @@ module InferenceRule =
     let implicationElimination =
         {
             Premises = [| Implication (p, q); p |]
-            Conclusion = q
+            Conclusions = [| q |]
         }
 
-    /// Q
-    /// ------
     /// P -> Q
-    let implicationCreation =
-        {
-            Premises = [| q |]
-            Conclusion = Implication (p, q)
-        }
-
-    /// P -> (Q -> R)
-    /// -------------
-    /// (P -> Q) -> (P -> R)
-    let implicationDistribution =
+    /// Q -> P
+    /// -------
+    /// P <-> Q
+    let biconditionalIntroduction =
         {
             Premises =
                 [|
-                    Implication (
-                        p,
-                        Implication (q, r))
+                    Implication (p, q)
+                    Implication (q, p)
                 |]
-            Conclusion =
-                Implication (
-                    Implication (p, q),
-                    Implication (p, r))
+            Conclusions = [| Biconditional (p, q) |]
+        }
+
+    /// P -> Q
+    /// Q -> P
+    /// -------
+    /// P <-> Q
+    let biconditionalElimination =
+        {
+            Premises = [| Biconditional (p, q) |]
+            Conclusions =
+                [|
+                    Implication (p, q)
+                    Implication (q, p)
+                |]
         }
 
     let allRules =
         [|
+            andIntroduction
+            andEliminationLeft
+            andEliminationRight
+
+            orIntroductionLeft
+            orIntroductionRight
+            orElimination
+
+            notIntroduction
+            notElimination
+
             implicationElimination
-            implicationCreation
-            implicationDistribution
+
+            biconditionalIntroduction
+            biconditionalElimination
         |]
 
     /// Finds all possible applications of the given rule to the
@@ -306,32 +420,5 @@ module InferenceRule =
     let apply formulas rule =
         Schema.bind formulas rule.Premises
             |> Array.map (fun binding ->
-                rule.Conclusion |> Schema.substitute binding)
-
-    (*
-    let prove premise conclusion rules =
-        let rec loop steps formula =
-            let childSteps =
-                rules
-                    |> Seq.choose (fun rule ->
-                        rule
-                            |> apply formula
-                            |> Result.tryGet
-                            |> Option.map (fun child ->
-                                child, rule))
-                    |> Seq.toArray
-            let stepOpt =
-                childSteps
-                    |> Array.tryFind (fun (child, _) ->
-                        child = conclusion)
-            match stepOpt with
-                | Some step ->
-                    Some (step :: steps)
-                | None ->
-                    childSteps
-                        |> Array.tryPick (fun (child, _) ->
-                            child |> loop steps)
-        premise
-            |> loop []
-            |> Option.map (List.rev >> Array.ofList)
-    *)
+                rule.Conclusions
+                    |> Array.map (Schema.substitute binding))

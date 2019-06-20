@@ -21,16 +21,24 @@ type UnitTest() =
                         Holds (isMan, x)
                     |]
         Assert.AreEqual(1, conclusions.Length)
-        Assert.AreEqual(Holds (isMortal, x), conclusions.[0])
+        Assert.AreEqual(1, conclusions.[0].Length)
+        Assert.AreEqual(Holds (isMortal, x), conclusions.[0].[0])
 
     [<TestMethod>]
     member __.ImplicationCreation() =
+        let implicationCreation =
+            let p = MetaVariable.create "P"
+            let q = MetaVariable.create "Q"
+            {
+                Premises = [| q |]
+                Conclusions = [| Implication (p, q) |]
+            }
         let premises =
             [|
                 Holds (isMan, x)
                 Holds (isMortal, x)
             |]
         let bindings =
-            InferenceRule.implicationCreation.Premises
+            implicationCreation.Premises
                 |> Schema.bind premises
         Assert.AreEqual(premises.Length, bindings.Length)
