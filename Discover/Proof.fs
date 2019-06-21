@@ -1,13 +1,31 @@
 ﻿namespace Discover
 
+open System
+
 type ProofStep =
     Option<InferenceRule> * Formula
 
+[<StructuredFormatDisplay("{String}")>]
 type Proof =
     {
         Steps : List<ProofStep>
         PendingPremises : Set<Formula>
     }
+
+    member this.String =
+        let steps =
+            this.Steps
+                |> List.rev
+                |> Seq.map (fun (ruleOpt, formula) ->
+                    let rule =
+                        ruleOpt
+                            |> Option.map (fun rule ->
+                                rule.Name)
+                            |> Option.defaultValue "premise"
+                    sprintf "%A : %s" formula rule)
+        String.Join("\r\n", steps)
+
+    override this.ToString() = this.String
 
 module Proof =
 

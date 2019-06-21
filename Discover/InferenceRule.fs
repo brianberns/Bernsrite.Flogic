@@ -1,11 +1,15 @@
 ﻿namespace Discover
 
 /// Ordinary rule of inference (i.e. not structured).
+[<StructuredFormatDisplay("{Name}")>]
 type InferenceRule =
     {
         Premises : Schema[]
         Conclusions : Schema[]
+        Name : string
     }
+
+    override this.ToString() = this.Name
 
 module InferenceRule =
 
@@ -22,6 +26,7 @@ module InferenceRule =
         {
             Premises = [| p; q |]
             Conclusions = [| And (p, q) |]
+            Name = "andIntroduction"
         }
 
     /// P & Q
@@ -31,6 +36,7 @@ module InferenceRule =
         {
             Premises = [| And (p, q) |]
             Conclusions = [| p |]
+            Name = "andEliminationLeft"
         }
 
     /// P & Q
@@ -40,6 +46,7 @@ module InferenceRule =
         {
             Premises = [| And (p, q) |]
             Conclusions = [| q |]
+            Name = "andEliminationRight"
         }
 
     /// P
@@ -49,6 +56,7 @@ module InferenceRule =
         {
             Premises = [| p |]
             Conclusions = [| Or (p, q) |]
+            Name = "orIntroductionLeft"
         }
 
     /// Q
@@ -58,6 +66,7 @@ module InferenceRule =
         {
             Premises = [| q |]
             Conclusions = [| Or (p, q) |]
+            Name = "orIntroductionRight"
         }
 
     /// P | Q
@@ -74,6 +83,7 @@ module InferenceRule =
                     Implication (q, r)
                 |]
             Conclusions = [| r |]
+            Name = "orElimination"
         }
 
     /// P -> Q
@@ -88,6 +98,7 @@ module InferenceRule =
                     Implication (p, Not q)
                 |]
             Conclusions = [| Not p |]
+            Name = "notIntroduction"
         }
 
     /// ~~P
@@ -97,6 +108,7 @@ module InferenceRule =
         {
             Premises = [| Not (Not p) |]
             Conclusions = [| p |]
+            Name = "notElimination"
         }
 
     /// Implication introduction is a structured rule:
@@ -117,6 +129,7 @@ module InferenceRule =
         {
             Premises = [| Implication (p, q); p |]
             Conclusions = [| q |]
+            Name = "implicationElimination"
         }
 
     /// P -> Q
@@ -131,6 +144,7 @@ module InferenceRule =
                     Implication (q, p)
                 |]
             Conclusions = [| Biconditional (p, q) |]
+            Name = "biconditionalIntroduction"
         }
 
     /// P -> Q
@@ -145,6 +159,7 @@ module InferenceRule =
                     Implication (p, q)
                     Implication (q, p)
                 |]
+            Name = "biconditionalElimination"
         }
 
     let allRules =

@@ -32,6 +32,7 @@ type UnitTest() =
             {
                 Premises = [| q |]
                 Conclusions = [| Implication (p, q) |]
+                Name = "implicationCreation"
             }
         let premises =
             [|
@@ -64,4 +65,10 @@ type UnitTest() =
                     [|3; 1|]
                     (Some InferenceRule.implicationElimination)
                     [q]
+        let proof =
+            proof
+                |> Proof.addSteps
+                    [|4; 2|]
+                    (Some InferenceRule.implicationElimination)
+                    [r]
         printfn "%A" proof
