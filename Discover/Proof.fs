@@ -2,26 +2,44 @@
 
 open System
 
+/// One step in a proof.
+[<StructuredFormatDisplay("{String}")>]
+type ProofStep =
+    {
+        Formula : Formula
+        Rule : InferenceRule
+        Indexes : int[] (*1-based indexes from end of list*)
+    }
+
+    /// Display string.
+    member this.String =
+        sprintf "%A\t\t%A%s%s"
+            this.Formula
+            this.Rule
+            (if this.Indexes.Length > 0 then ": " else "")
+            (String.Join(", ", this.Indexes))
+
+    /// Display string.
+    override this.ToString() = this.String
+
+/// A structured proof.
 [<StructuredFormatDisplay("{String}")>]
 type Proof =
     {
-        Steps : List<Formula * InferenceRule * int[] (*1-based indexes from end of list*)>
+        Steps : List<ProofStep>
         PendingPremises : Set<Formula>
     }
 
+    /// Display string.
     member this.String =
         let steps =
             this.Steps
                 |> List.rev
-                |> Seq.mapi (fun index (formula, rule, indexes) ->
-                    sprintf "%d. %A\t\t%A%s%s"
-                        (index + 1)
-                        formula
-                        rule
-                        (if indexes.Length > 0 then ": " else "")
-                        (String.Join(", ", indexes)))
+                |> Seq.mapi (fun index step ->
+                    sprintf "%d. %A" (index + 1) step)
         String.Join("\r\n", steps)
 
+    /// Display string.
     override this.ToString() = this.String
 
 module Proof =
@@ -35,7 +53,12 @@ module Proof =
     let private add (formula, rule, indexes) proof =
         {
             proof with
-                Steps = (formula, rule, indexes) :: proof.Steps
+                Steps =
+                    {
+                        Formula = formula
+                        Rule = rule
+                        Indexes = indexes
+                    } :: proof.Steps
                 PendingPremises =
                     match rule with
                         | Premise ->
@@ -59,9 +82,8 @@ module Proof =
         let antecedents =
             indexes
                 |> Array.map (fun index ->
-                    let formula, _, _ =
-                        proof.Steps.[length - index]
-                    formula)
+                    let step = proof.Steps.[length - index]
+                    step.Formula)
 
         match rule with
             | Premise
