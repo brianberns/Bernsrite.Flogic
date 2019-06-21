@@ -8,7 +8,7 @@ type ProofStep =
     {
         Formula : Formula
         Rule : InferenceRule
-        Indexes : int[] (*1-based indexes from end of list*)
+        AntecedentIndexes : int[] (*1-based indexes from end of list*)
     }
 
     /// Display string.
@@ -16,8 +16,8 @@ type ProofStep =
         sprintf "%A\t\t%A%s%s"
             this.Formula
             this.Rule
-            (if this.Indexes.Length > 0 then ": " else "")
-            (String.Join(", ", this.Indexes))
+            (if this.AntecedentIndexes.Length > 0 then ": " else "")
+            (String.Join(", ", this.AntecedentIndexes))
 
     /// Display string.
     override this.ToString() = this.String
@@ -27,7 +27,8 @@ type ProofStep =
 type Proof =
     {
         Steps : List<ProofStep>
-        PendingPremises : Set<Formula>
+        ActiveAssumptionIndexes : List<int>
+        ValidAntecedentIndexes : Set<int>
     }
 
     /// Display string.
@@ -48,28 +49,87 @@ module Proof =
     let empty =
         {
             Steps = List.empty
-            PendingPremises = Set.empty
+            ActiveAssumptionIndexes = List.empty
+            ValidAntecedentIndexes = Set.empty
         }
 
-    /// Adds the given step to the given proof without validation.
-    let private add (formula, rule, indexes) proof =
-        {
-            proof with
-                Steps =
-                    {
-                        Formula = formula
-                        Rule = rule
-                        Indexes = indexes
-                    } :: proof.Steps
-                PendingPremises =
-                    match rule with
-                        | Premise ->
-                            proof.PendingPremises.Add(formula)
-                        | _ -> proof.PendingPremises
-        }
+    /// Tries to add the given step to the given proof.
+    let private tryAdd (formula, rule, antecedentIndexes) proof =
 
-    let addSteps consequents rule (indexes : _[]) proof =
+            // validate antecedent indexes
+        let isValid =
+            antecedentIndexes
+                |> Seq.forall (fun index ->
+                    proof.ValidAntecedentIndexes.Contains(index))
+        let isValid =
+            if isValid then
+                match rule with
+                    | ImplicationIntroduction ->
+                        (antecedentIndexes |> Array.length = 2)
+                            && (antecedentIndexes.[0] = proof.ActiveAssumptionIndexes.Head)
+                    | _ -> isValid
+            else isValid
 
+        if isValid then
+
+                // compute index of this new step
+            let index = proof.Steps.Length + 1
+
+            Some {
+                proof with
+
+                        // add step
+                    Steps =
+                        {
+                            Formula = formula
+                            Rule = rule
+                            AntecedentIndexes = antecedentIndexes
+                        } :: proof.Steps
+
+                        // push/pop active assumption?
+                    ActiveAssumptionIndexes =
+                        match rule with
+
+                                // push new active assumption (must be discharged later)
+                            | Assumption ->
+                                index :: proof.ActiveAssumptionIndexes
+
+                                // discharge active assumption
+                            | ImplicationIntroduction ->
+                                proof.ActiveAssumptionIndexes.Tail
+
+                                // no-op
+                            | _ -> proof.ActiveAssumptionIndexes
+
+                        // prevent future use of completed sub-proof
+                    ValidAntecedentIndexes =
+                        let indexes =
+                            match rule with
+                                | ImplicationIntroduction ->
+                                    (proof.ValidAntecedentIndexes, antecedentIndexes)
+                                        ||> Seq.fold (fun acc index ->
+                                            acc.Remove(index))
+                                | _ -> proof.ValidAntecedentIndexes
+                        indexes.Add(index)
+            }
+
+        else None
+
+    module Seq =
+
+        /// Applies a function to each item in a sequence, short-circuiting
+        /// if the function fails.
+        let tryFold folder state source =
+            let folder' stateOpt item =
+                stateOpt
+                    |> Option.bind (fun state ->
+                        folder state item)
+            Seq.fold folder' (Some state) source
+
+    /// Tries to add steps to the given proof.
+    let tryAddSteps formulas rule (indexes : _[]) proof =
+
+            // validate number of antecedent indexes
         let nRulePremises =
             match rule with
                 | Premise -> 0
@@ -79,32 +139,36 @@ module Proof =
                 | ImplicationIntroduction -> 2
         if nRulePremises = indexes.Length then
 
-            let length = proof.Steps.Length
+                // find antecedent formulas
             let antecedents =
+                let length = proof.Steps.Length
                 indexes
                     |> Array.map (fun index ->
                         let step = proof.Steps.[length - index]
                         step.Formula)
 
+                // ensure that given formulas actually follow from the antecedents
             let isValid =
                 match rule with
                     | Premise
                     | Assumption -> true
                     | Ordinary _
                     | ImplicationIntroduction ->
-                        let consequentSet =
-                            set consequents
-                        let possibleConsequentSets =
+                        let formulaSet =
+                            set formulas
+                        let possibleFormulaSets =
                             rule
                                 |> InferenceRule.apply antecedents
                                 |> Array.map set
-                        possibleConsequentSets
-                            |> Seq.exists ((=) consequentSet)
+                        possibleFormulaSets
+                            |> Seq.exists ((=) formulaSet)
             if isValid then
-                consequents
-                    |> Seq.fold (fun acc consequent ->
-                        acc |> add (consequent, rule, indexes)) proof
-                    |> Some
+
+                    // attempt to add the given steps to the proof
+                formulas
+                    |> Seq.tryFold (fun acc formula ->
+                        acc |> tryAdd (formula, rule, indexes)) proof
+
             else None
 
         else None

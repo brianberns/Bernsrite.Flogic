@@ -67,7 +67,7 @@ type UnitTest() =
             (Proof.empty, steps)
                 ||> Seq.fold (fun acc (formulas, rule, indexes) ->
                     let proofOpt =
-                        acc |> Proof.addSteps formulas rule indexes
+                        acc |> Proof.tryAddSteps formulas rule indexes
                     match proofOpt with
                         | Some proof -> proof
                         | None ->
