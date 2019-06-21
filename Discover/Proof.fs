@@ -57,13 +57,6 @@ module Proof =
     /// Tries to add the given step to the given proof.
     let private tryAdd (formula, rule, antecedentIndexes) proof =
 
-            // expand antecedents if necessary
-        let antecedentIndexes =
-            if rule = ImplicationIntroduction
-                && antecedentIndexes |> Array.length = 1 then
-                [| antecedentIndexes.[0]; antecedentIndexes.[0] |]
-            else antecedentIndexes
-
             // validate
         let isValid =
             antecedentIndexes
@@ -138,7 +131,11 @@ module Proof =
     /// Tries to add steps to the given proof.
     let tryAddSteps formulas rule (indexes : _[]) proof =
 
-            // validate number of antecedent indexes
+            // validate number of antecedents
+        let indexes =
+            if rule = ImplicationIntroduction && indexes.Length = 1 then
+                [| indexes.[0]; indexes.[0] |]
+            else indexes
         let nRulePremises =
             match rule with
                 | Premise -> 0
