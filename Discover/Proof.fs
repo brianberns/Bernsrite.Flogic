@@ -59,16 +59,15 @@ module Proof =
 
         match rule with
             | Premise -> ()
-            | Ordinary oir ->
+            | _ ->
                 let consequentSet =
                     set consequents
                 let possibleConsequentSets =
-                    oir
-                        |> OrdinaryInferenceRule.apply antecedents
+                    rule
+                        |> InferenceRule.apply antecedents
                         |> Array.map set
                 assert(possibleConsequentSets
                     |> Seq.exists ((=) consequentSet))
-            | _ -> failwith "Not yet implemented"
 
         consequents
             |> Seq.map (fun consequent ->

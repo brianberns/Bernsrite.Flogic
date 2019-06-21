@@ -211,6 +211,13 @@ module InferenceRule =
     /// Finds all possible applications of the given rule to the
     /// given formulas.
     let apply formulas = function
+        | Premise ->
+            [| formulas |]
         | Ordinary rule ->
             rule |> OrdinaryInferenceRule.apply formulas
-        | _ -> failwith "Not supported"
+        | ImplicationIntroduction ->
+            if formulas.Length = 2 then
+                [|
+                    [| Implication (formulas.[0], formulas.[1]) |]
+                |]
+            else Array.empty

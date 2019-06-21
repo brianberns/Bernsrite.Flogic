@@ -79,4 +79,10 @@ type UnitTest() =
                     [|4; 2|]
                     InferenceRule.implicationElimination
                     [r]
+        let proof =
+            proof
+                |> Proof.addSteps
+                    [|3; 5|]
+                    InferenceRule.ImplicationIntroduction
+                    [Implication (p, r)]
         printfn "%A" proof
