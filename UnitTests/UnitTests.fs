@@ -53,22 +53,30 @@ type UnitTest() =
 
         let proof = Proof.empty
         let proof =
-            proof |> Proof.addSteps [||] None [
-                Implication (p, q)
-                Implication (q, r)
-            ]
+            proof
+                |> Proof.addSteps
+                    [||]
+                    InferenceRule.Premise
+                    [
+                        Implication (p, q)
+                        Implication (q, r)
+                    ]
         let proof =
-            proof |> Proof.addSteps [||] None [p]
+            proof
+                |> Proof.addSteps
+                    [||]
+                    InferenceRule.Premise
+                    [p]
         let proof =
             proof
                 |> Proof.addSteps
                     [|3; 1|]
-                    (Some InferenceRule.implicationElimination)
+                    InferenceRule.implicationElimination
                     [q]
         let proof =
             proof
                 |> Proof.addSteps
                     [|4; 2|]
-                    (Some InferenceRule.implicationElimination)
+                    InferenceRule.implicationElimination
                     [r]
         printfn "%A" proof

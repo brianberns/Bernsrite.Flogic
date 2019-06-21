@@ -1,13 +1,45 @@
 ﻿namespace Discover
 
-/// Ordinary rule of inference (i.e. not structured).
+/// Ordinary rule of inference.
 [<StructuredFormatDisplay("{Name}")>]
-type InferenceRule =
+type OrdinaryInferenceRule =
     {
         Premises : Schema[]
         Conclusions : Schema[]
         Name : string
     }
+
+    override this.ToString() = this.Name
+
+module OrdinaryInferenceRule =
+
+    /// Finds all possible applications of the given rule to the
+    /// given formulas.
+    let apply formulas rule =
+        Schema.bind formulas rule.Premises
+            |> Array.map (fun binding ->
+                rule.Conclusions
+                    |> Array.map (Schema.substitute binding))
+
+[<StructuredFormatDisplay("{Name}")>]
+type InferenceRule =
+
+    /// Premise or assumption.
+    | Premise
+
+    /// Ordinary rule.
+    | Ordinary of OrdinaryInferenceRule
+
+    /// P |- Q  (i.e. Q can be proved from P)
+    /// ------
+    /// P -> Q
+    | ImplicationIntroduction
+
+    member this.Name =
+        match this with
+            | Premise -> "Premise"
+            | Ordinary oir -> oir.Name
+            | ImplicationIntroduction -> "Implication introduction"
 
     override this.ToString() = this.Name
 
@@ -23,50 +55,50 @@ module InferenceRule =
     /// -----
     /// P & Q
     let andIntroduction =
-        {
+        Ordinary {
             Premises = [| p; q |]
             Conclusions = [| And (p, q) |]
-            Name = "andIntroduction"
+            Name = "And introduction"
         }
 
     /// P & Q
     /// -----
     /// P
     let andEliminationLeft =
-        {
+        Ordinary {
             Premises = [| And (p, q) |]
             Conclusions = [| p |]
-            Name = "andEliminationLeft"
+            Name = "And elimination (left)"
         }
 
     /// P & Q
     /// -----
     /// Q
     let andEliminationRight =
-        {
+        Ordinary {
             Premises = [| And (p, q) |]
             Conclusions = [| q |]
-            Name = "andEliminationRight"
+            Name = "And elimination (right)"
         }
 
     /// P
     /// -----
     /// P | Q
     let orIntroductionLeft =
-        {
+        Ordinary {
             Premises = [| p |]
             Conclusions = [| Or (p, q) |]
-            Name = "orIntroductionLeft"
+            Name = "Or introduction (left)"
         }
 
     /// Q
     /// -----
     /// P | Q
     let orIntroductionRight =
-        {
+        Ordinary {
             Premises = [| q |]
             Conclusions = [| Or (p, q) |]
-            Name = "orIntroductionRight"
+            Name = "Or introduction (right)"
         }
 
     /// P | Q
@@ -75,7 +107,7 @@ module InferenceRule =
     /// -----
     /// R
     let orElimination =
-        {
+        Ordinary {
             Premises =
                 [|
                     Or (p, q)
@@ -83,7 +115,7 @@ module InferenceRule =
                     Implication (q, r)
                 |]
             Conclusions = [| r |]
-            Name = "orElimination"
+            Name = "Or elimination"
         }
 
     /// P -> Q
@@ -91,33 +123,25 @@ module InferenceRule =
     /// -----
     /// ~P
     let notIntroduction =
-        {
+        Ordinary {
             Premises =
                 [|
                     Implication (p, q)
                     Implication (p, Not q)
                 |]
             Conclusions = [| Not p |]
-            Name = "notIntroduction"
+            Name = "Not introduction"
         }
 
     /// ~~P
     /// -----
     /// P
     let notElimination =
-        {
+        Ordinary {
             Premises = [| Not (Not p) |]
             Conclusions = [| p |]
-            Name = "notElimination"
+            Name = "Not elimination"
         }
-
-    /// Implication introduction is a structured rule:
-    ///
-    /// P |- Q  (i.e. Q can be proved from P)
-    /// ------
-    /// P -> Q
-    ///
-    /// Implementation is programmatic instead of declarative.
 
     /// P -> Q
     /// P
@@ -126,10 +150,10 @@ module InferenceRule =
     ///
     /// AKA modus ponens.
     let implicationElimination =
-        {
+        Ordinary {
             Premises = [| Implication (p, q); p |]
             Conclusions = [| q |]
-            Name = "implicationElimination"
+            Name = "Implication elimination"
         }
 
     /// P -> Q
@@ -137,14 +161,14 @@ module InferenceRule =
     /// -------
     /// P <-> Q
     let biconditionalIntroduction =
-        {
+        Ordinary {
             Premises =
                 [|
                     Implication (p, q)
                     Implication (q, p)
                 |]
             Conclusions = [| Biconditional (p, q) |]
-            Name = "biconditionalIntroduction"
+            Name = "Biconditional introduction"
         }
 
     /// P -> Q
@@ -152,18 +176,20 @@ module InferenceRule =
     /// -------
     /// P <-> Q
     let biconditionalElimination =
-        {
+        Ordinary {
             Premises = [| Biconditional (p, q) |]
             Conclusions =
                 [|
                     Implication (p, q)
                     Implication (q, p)
                 |]
-            Name = "biconditionalElimination"
+            Name = "Biconditional elimination"
         }
 
     let allRules =
         [|
+            Premise
+
             andIntroduction
             andEliminationLeft
             andEliminationRight
@@ -176,6 +202,7 @@ module InferenceRule =
             notElimination
 
             implicationElimination
+            ImplicationIntroduction
 
             biconditionalIntroduction
             biconditionalElimination
@@ -183,8 +210,7 @@ module InferenceRule =
 
     /// Finds all possible applications of the given rule to the
     /// given formulas.
-    let apply formulas rule =
-        Schema.bind formulas rule.Premises
-            |> Array.map (fun binding ->
-                rule.Conclusions
-                    |> Array.map (Schema.substitute binding))
+    let apply formulas = function
+        | Ordinary rule ->
+            rule |> OrdinaryInferenceRule.apply formulas
+        | _ -> failwith "Not supported"

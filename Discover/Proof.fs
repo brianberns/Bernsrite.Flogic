@@ -2,13 +2,10 @@
 
 open System
 
-type ProofStep =
-    Option<InferenceRule> * Formula
-
 [<StructuredFormatDisplay("{String}")>]
 type Proof =
     {
-        Steps : List<ProofStep>
+        Steps : List<InferenceRule * Formula>
         PendingPremises : Set<Formula>
     }
 
@@ -16,13 +13,8 @@ type Proof =
         let steps =
             this.Steps
                 |> List.rev
-                |> Seq.map (fun (ruleOpt, formula) ->
-                    let rule =
-                        ruleOpt
-                            |> Option.map (fun rule ->
-                                rule.Name)
-                            |> Option.defaultValue "premise"
-                    sprintf "%A : %s" formula rule)
+                |> Seq.map (fun (rule, formula) ->
+                    sprintf "%A : %A" formula rule)
         String.Join("\r\n", steps)
 
     override this.ToString() = this.String
@@ -35,25 +27,26 @@ module Proof =
             PendingPremises = Set.empty
         }
 
-    let private add (ruleOpt, formula) proof =
+    let private add (rule, formula) proof =
         {
             proof with
-                Steps = (ruleOpt, formula) :: proof.Steps
+                Steps = (rule, formula) :: proof.Steps
                 PendingPremises =
-                    if ruleOpt.IsSome then
-                        proof.PendingPremises
-                    else
-                        proof.PendingPremises.Add(formula)
+                    match rule with
+                        | Premise ->
+                            proof.PendingPremises.Add(formula)
+                        | _ -> proof.PendingPremises
         }
 
-    let addSteps (indexes : _[]) ruleOpt consequents proof =
+    let addSteps (indexes : _[]) rule consequents proof =
 
         assert(
             let nRulePremises =
-                ruleOpt
-                    |> Option.map (fun rule ->
-                        rule.Premises.Length)
-                    |> Option.defaultValue 0
+                match rule with
+                    | Premise -> 0
+                    | Ordinary oir ->
+                        oir.Premises.Length
+                    | ImplicationIntroduction -> 2
             nRulePremises = indexes.Length)
 
         let length = proof.Steps.Length
@@ -64,20 +57,21 @@ module Proof =
                         proof.Steps.[length - idx]   // 1-based, from end
                     formula)
 
-        match ruleOpt with
-            | Some rule ->
+        match rule with
+            | Premise -> ()
+            | Ordinary oir ->
                 let consequentSet =
                     set consequents
                 let possibleConsequentSets =
-                    rule
-                        |> InferenceRule.apply antecedents
+                    oir
+                        |> OrdinaryInferenceRule.apply antecedents
                         |> Array.map set
                 assert(possibleConsequentSets
                     |> Seq.exists ((=) consequentSet))
-            | None -> ()
+            | _ -> failwith "Not yet implemented"
 
         consequents
             |> Seq.map (fun consequent ->
-                ruleOpt, consequent)
+                rule, consequent)
             |> Seq.fold (fun acc step ->
                 acc |> add step) proof
