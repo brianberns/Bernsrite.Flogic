@@ -120,7 +120,7 @@ type UnitTest() =
                 (*11*) [ q ], InferenceRule.notElimination, [| 10 |];
                 (*12*) [ Implication (p, q) ], ImplicationIntroduction, [| 3; 11 |];
                 (*13*) [ q ], Assumption, Array.empty;
-                (*14*) [ Implication (q, q) ], ImplicationIntroduction, [| 13; 13 |];
+                (*14*) [ Implication (q, q) ], ImplicationIntroduction, [| 13 |];
                 (*15*) [ q ], InferenceRule.orElimination, [| 1; 12; 14 |]
             |]
 

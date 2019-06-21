@@ -57,10 +57,17 @@ module Proof =
     /// Tries to add the given step to the given proof.
     let private tryAdd (formula, rule, antecedentIndexes) proof =
 
-            // validate antecedent indexes
+            // expand antecedents if necessary
+        let antecedentIndexes =
+            if rule = ImplicationIntroduction
+                && antecedentIndexes |> Array.length = 1 then
+                [| antecedentIndexes.[0]; antecedentIndexes.[0] |]
+            else antecedentIndexes
+
+            // validate
         let isValid =
             antecedentIndexes
-                |> Seq.forall (fun index ->
+                |> Array.forall (fun index ->
                     proof.ValidAntecedentIndexes.Contains(index))
                 && match rule with
                     | Premise ->
