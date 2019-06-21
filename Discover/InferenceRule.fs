@@ -192,6 +192,7 @@ module InferenceRule =
             Name = "Biconditional elimination"
         }
 
+    /// Fitch rules: http://intrologic.stanford.edu/glossary/fitch_system.html
     let allRules =
         [|
             Premise

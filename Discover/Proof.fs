@@ -23,6 +23,7 @@ type ProofStep =
     override this.ToString() = this.String
 
 /// A structured proof.
+/// http://intrologic.stanford.edu/public/section.php?section=section_04_03
 [<StructuredFormatDisplay("{String}")>]
 type Proof =
     {
@@ -65,7 +66,7 @@ module Proof =
                     | ImplicationIntroduction ->
                         (antecedentIndexes |> Array.length = 2)
                             && (antecedentIndexes.[0] = proof.ActiveAssumptionIndexes.Head)
-                            && (antecedentIndexes.[1] > antecedentIndexes.[0])
+                            && (antecedentIndexes.[1] >= antecedentIndexes.[0])
                     | _ -> true
 
         if isValid then
