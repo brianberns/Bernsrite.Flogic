@@ -54,13 +54,13 @@ type UnitTest() =
         let steps =
             [|
                 [
-                    Implication (p, q)                                                      // 1
-                    Implication (q, r)                                                      // 2
-                ], InferenceRule.Premise, Array.empty
-                [ p ], InferenceRule.Assumption, Array.empty                                // 3
-                [ q ], InferenceRule.implicationElimination, [| 3; 1 |]                     // 4
-                [ r ], InferenceRule.implicationElimination, [| 4; 2 |]                     // 5
-                [ Implication (p, r) ], InferenceRule.ImplicationIntroduction, [| 3; 5 |]   // 6
+                    (*1*) Implication (p, q)
+                    (*2*) Implication (q, r)
+                ], InferenceRule.Premise, Array.empty;
+                (*3*) [ p ], InferenceRule.Assumption, Array.empty;
+                (*4*) [ q ], InferenceRule.implicationElimination, [| 3; 1 |];
+                (*5*) [ r ], InferenceRule.implicationElimination, [| 4; 2 |];
+                (*6*) [ Implication (p, r) ], InferenceRule.ImplicationIntroduction, [| 3; 5 |]
             |]
 
         let proof =
