@@ -24,12 +24,17 @@ module OrdinaryInferenceRule =
 [<StructuredFormatDisplay("{Name}")>]
 type InferenceRule =
 
-    /// Premise or assumption.
+    /// Top-level premise.
     | Premise
 
     /// Ordinary rule.
     | Ordinary of OrdinaryInferenceRule
 
+    /// Sub-proof assumption.
+    | Assumption
+
+    /// Discharges an assumption, P.
+    ///
     /// P |- Q  (i.e. Q can be proved from P)
     /// ------
     /// P -> Q
@@ -39,6 +44,7 @@ type InferenceRule =
         match this with
             | Premise -> "Premise"
             | Ordinary oir -> oir.Name
+            | Assumption -> "Assumption"
             | ImplicationIntroduction -> "Implication introduction"
 
     override this.ToString() = this.Name
@@ -189,6 +195,7 @@ module InferenceRule =
     let allRules =
         [|
             Premise
+            Assumption
 
             andIntroduction
             andEliminationLeft
@@ -211,6 +218,7 @@ module InferenceRule =
     /// Finds all possible applications of the given rule to the
     /// given formulas.
     let apply formulas = function
+        | Assumption
         | Premise ->
             [| formulas |]
         | Ordinary rule ->

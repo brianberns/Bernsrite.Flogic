@@ -51,6 +51,7 @@ module Proof =
                     | Premise -> 0
                     | Ordinary oir ->
                         oir.Premises.Length
+                    | Assumption -> 0
                     | ImplicationIntroduction -> 2
             nRulePremises = indexes.Length)
 
@@ -63,8 +64,10 @@ module Proof =
                     formula)
 
         match rule with
-            | Premise -> ()
-            | _ ->
+            | Premise
+            | Assumption -> ()
+            | Ordinary _
+            | ImplicationIntroduction ->
                 let consequentSet =
                     set consequents
                 let possibleConsequentSets =

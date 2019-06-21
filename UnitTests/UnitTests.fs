@@ -65,7 +65,7 @@ type UnitTest() =
             proof
                 |> Proof.addSteps
                     [||]
-                    InferenceRule.Premise
+                    InferenceRule.Assumption
                     [p]
         let proof =
             proof
