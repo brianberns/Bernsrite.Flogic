@@ -61,15 +61,12 @@ module Proof =
             antecedentIndexes
                 |> Seq.forall (fun index ->
                     proof.ValidAntecedentIndexes.Contains(index))
-        let isValid =
-            if isValid then
-                match rule with
+                && match rule with
                     | ImplicationIntroduction ->
                         (antecedentIndexes |> Array.length = 2)
                             && (antecedentIndexes.[0] = proof.ActiveAssumptionIndexes.Head)
                             && (antecedentIndexes.[1] > antecedentIndexes.[0])
-                    | _ -> isValid
-            else isValid
+                    | _ -> true
 
         if isValid then
 
