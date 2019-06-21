@@ -44,8 +44,7 @@ type UnitTest() =
                 |> Schema.bind premises
         Assert.AreEqual(premises.Length, bindings.Length)
 
-    [<TestMethod>]
-    member __.Proof() =
+    member __.StartProof() =
 
         let p = MetaVariable.create "p"
         let q = MetaVariable.create "q"
@@ -63,14 +62,28 @@ type UnitTest() =
                 (*6*) [ Implication (p, r) ], InferenceRule.ImplicationIntroduction, [| 3; 5 |]
             |]
 
-        let proof =
-            (Proof.empty, steps)
-                ||> Seq.fold (fun acc (formulas, rule, indexes) ->
-                    let proofOpt =
-                        acc |> Proof.tryAddSteps formulas rule indexes
-                    match proofOpt with
-                        | Some proof -> proof
-                        | None ->
-                            Assert.Fail()
-                            Proof.empty)
+        (Proof.empty, steps)
+            ||> Seq.fold (fun acc (formulas, rule, indexes) ->
+                let proofOpt =
+                    acc |> Proof.tryAddSteps formulas rule indexes
+                match proofOpt with
+                    | Some proof -> proof
+                    | None ->
+                        Assert.Fail()
+                        Proof.empty)
+
+    [<TestMethod>]
+    member this.ValidProof() =
+        let proof = this.StartProof()
         printfn "%A" proof
+        Assert.IsTrue(proof |> Proof.isComplete)
+
+    [<TestMethod>]
+    member this.InvalidProof() =
+        let proofOpt =
+            this.StartProof()
+                |> Proof.tryAddSteps
+                    [ MetaVariable.create "r" ]
+                    InferenceRule.implicationElimination
+                    [| 2; 4 |]
+        Assert.AreEqual(None, proofOpt)

@@ -67,6 +67,7 @@ module Proof =
                     | ImplicationIntroduction ->
                         (antecedentIndexes |> Array.length = 2)
                             && (antecedentIndexes.[0] = proof.ActiveAssumptionIndexes.Head)
+                            && (antecedentIndexes.[1] > antecedentIndexes.[0])
                     | _ -> isValid
             else isValid
 
@@ -106,7 +107,8 @@ module Proof =
                         let indexes =
                             match rule with
                                 | ImplicationIntroduction ->
-                                    (proof.ValidAntecedentIndexes, antecedentIndexes)
+                                    let range = [ antecedentIndexes.[0] .. antecedentIndexes.[1] ]
+                                    (proof.ValidAntecedentIndexes, range)
                                         ||> Seq.fold (fun acc index ->
                                             acc.Remove(index))
                                 | _ -> proof.ValidAntecedentIndexes
@@ -172,3 +174,8 @@ module Proof =
             else None
 
         else None
+
+    /// Is the given proof complete?
+    let isComplete proof =
+        proof.Steps.Length > 0
+            && proof.ActiveAssumptionIndexes.Length = 0
