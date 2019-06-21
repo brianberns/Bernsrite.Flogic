@@ -53,6 +53,7 @@
     <Compile Include="Formula.fs" />
     <Compile Include="Schema.fs" />
     <Compile Include="InferenceRule.fs" />
+    <Compile Include="Proof.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">

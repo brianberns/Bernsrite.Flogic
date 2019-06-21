@@ -49,9 +49,10 @@ type Term =
     override this.ToString() =
         this.String
 
-type Predicate = Predicate of Name * Arity   // produces a Boolean
+/// E.g. Mortal(x) is a predicate of arity 1.
+type Predicate = Predicate of Name * Arity
 
-/// E.g. Man(x) -> Mortal(x)
+/// E.g. Man(Socrates) -> Mortal(Socrates).
 [<StructuredFormatDisplay("{String}")>]
 type Formula =
 

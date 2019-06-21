@@ -42,3 +42,26 @@ type UnitTest() =
             implicationCreation.Premises
                 |> Schema.bind premises
         Assert.AreEqual(premises.Length, bindings.Length)
+
+    [<TestMethod>]
+    member __.Proof() =
+
+        let p = MetaVariable.create "p"
+        let q = MetaVariable.create "q"
+        let r = MetaVariable.create "r"
+
+        let proof = Proof.empty
+        let proof =
+            proof |> Proof.addSteps [||] None [
+                Implication (p, q)
+                Implication (q, r)
+            ]
+        let proof =
+            proof |> Proof.addSteps [||] None [p]
+        let proof =
+            proof
+                |> Proof.addSteps
+                    [|3; 1|]
+                    (Some InferenceRule.implicationElimination)
+                    [q]
+        printfn "%A" proof
