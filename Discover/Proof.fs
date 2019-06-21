@@ -44,12 +44,14 @@ type Proof =
 
 module Proof =
 
+    /// An empty proof.
     let empty =
         {
             Steps = List.empty
             PendingPremises = Set.empty
         }
 
+    /// Adds the given step to the given proof without validation.
     let private add (formula, rule, indexes) proof =
         {
             proof with
@@ -66,39 +68,43 @@ module Proof =
                         | _ -> proof.PendingPremises
         }
 
-    let addSteps (indexes : _[]) rule consequents proof =
+    let addSteps consequents rule (indexes : _[]) proof =
 
-        assert(
-            let nRulePremises =
+        let nRulePremises =
+            match rule with
+                | Premise -> 0
+                | Ordinary oir ->
+                    oir.Premises.Length
+                | Assumption -> 0
+                | ImplicationIntroduction -> 2
+        if nRulePremises = indexes.Length then
+
+            let length = proof.Steps.Length
+            let antecedents =
+                indexes
+                    |> Array.map (fun index ->
+                        let step = proof.Steps.[length - index]
+                        step.Formula)
+
+            let isValid =
                 match rule with
-                    | Premise -> 0
-                    | Ordinary oir ->
-                        oir.Premises.Length
-                    | Assumption -> 0
-                    | ImplicationIntroduction -> 2
-            nRulePremises = indexes.Length)
+                    | Premise
+                    | Assumption -> true
+                    | Ordinary _
+                    | ImplicationIntroduction ->
+                        let consequentSet =
+                            set consequents
+                        let possibleConsequentSets =
+                            rule
+                                |> InferenceRule.apply antecedents
+                                |> Array.map set
+                        possibleConsequentSets
+                            |> Seq.exists ((=) consequentSet)
+            if isValid then
+                consequents
+                    |> Seq.fold (fun acc consequent ->
+                        acc |> add (consequent, rule, indexes)) proof
+                    |> Some
+            else None
 
-        let length = proof.Steps.Length
-        let antecedents =
-            indexes
-                |> Array.map (fun index ->
-                    let step = proof.Steps.[length - index]
-                    step.Formula)
-
-        match rule with
-            | Premise
-            | Assumption -> ()
-            | Ordinary _
-            | ImplicationIntroduction ->
-                let consequentSet =
-                    set consequents
-                let possibleConsequentSets =
-                    rule
-                        |> InferenceRule.apply antecedents
-                        |> Array.map set
-                assert(possibleConsequentSets
-                    |> Seq.exists ((=) consequentSet))
-
-        consequents
-            |> Seq.fold (fun acc consequent ->
-                acc |> add (consequent, rule, indexes)) proof
+        else None

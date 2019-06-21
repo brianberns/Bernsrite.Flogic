@@ -51,38 +51,26 @@ type UnitTest() =
         let q = MetaVariable.create "q"
         let r = MetaVariable.create "r"
 
-        let proof = Proof.empty
+        let steps =
+            [|
+                [
+                    Implication (p, q)                                                      // 1
+                    Implication (q, r)                                                      // 2
+                ], InferenceRule.Premise, Array.empty
+                [ p ], InferenceRule.Assumption, Array.empty                                // 3
+                [ q ], InferenceRule.implicationElimination, [| 3; 1 |]                     // 4
+                [ r ], InferenceRule.implicationElimination, [| 4; 2 |]                     // 5
+                [ Implication (p, r) ], InferenceRule.ImplicationIntroduction, [| 3; 5 |]   // 6
+            |]
+
         let proof =
-            proof
-                |> Proof.addSteps
-                    [||]
-                    InferenceRule.Premise
-                    [
-                        Implication (p, q)
-                        Implication (q, r)
-                    ]
-        let proof =
-            proof
-                |> Proof.addSteps
-                    [||]
-                    InferenceRule.Assumption
-                    [p]
-        let proof =
-            proof
-                |> Proof.addSteps
-                    [|3; 1|]
-                    InferenceRule.implicationElimination
-                    [q]
-        let proof =
-            proof
-                |> Proof.addSteps
-                    [|4; 2|]
-                    InferenceRule.implicationElimination
-                    [r]
-        let proof =
-            proof
-                |> Proof.addSteps
-                    [|3; 5|]
-                    InferenceRule.ImplicationIntroduction
-                    [Implication (p, r)]
+            (Proof.empty, steps)
+                ||> Seq.fold (fun acc (formulas, rule, indexes) ->
+                    let proofOpt =
+                        acc |> Proof.addSteps formulas rule indexes
+                    match proofOpt with
+                        | Some proof -> proof
+                        | None ->
+                            Assert.Fail()
+                            Proof.empty)
         printfn "%A" proof
