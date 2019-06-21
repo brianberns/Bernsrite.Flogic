@@ -63,6 +63,8 @@ module Proof =
                 |> Seq.forall (fun index ->
                     proof.ValidAntecedentIndexes.Contains(index))
                 && match rule with
+                    | Premise ->
+                        proof.ActiveAssumptionIndexes.IsEmpty
                     | ImplicationIntroduction ->
                         (antecedentIndexes |> Array.length = 2)
                             && (antecedentIndexes.[0] = proof.ActiveAssumptionIndexes.Head)
