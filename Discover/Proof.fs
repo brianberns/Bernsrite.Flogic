@@ -5,7 +5,7 @@ open System
 [<StructuredFormatDisplay("{String}")>]
 type Proof =
     {
-        Steps : List<InferenceRule * Formula>
+        Steps : List<Formula * InferenceRule * int[] (*1-based indexes from end of list*)>
         PendingPremises : Set<Formula>
     }
 
@@ -13,8 +13,13 @@ type Proof =
         let steps =
             this.Steps
                 |> List.rev
-                |> Seq.map (fun (rule, formula) ->
-                    sprintf "%A : %A" formula rule)
+                |> Seq.mapi (fun index (formula, rule, indexes) ->
+                    sprintf "%d. %A\t\t%A%s%s"
+                        (index + 1)
+                        formula
+                        rule
+                        (if indexes.Length > 0 then ": " else "")
+                        (String.Join(", ", indexes)))
         String.Join("\r\n", steps)
 
     override this.ToString() = this.String
@@ -27,10 +32,10 @@ module Proof =
             PendingPremises = Set.empty
         }
 
-    let private add (rule, formula) proof =
+    let private add (formula, rule, indexes) proof =
         {
             proof with
-                Steps = (rule, formula) :: proof.Steps
+                Steps = (formula, rule, indexes) :: proof.Steps
                 PendingPremises =
                     match rule with
                         | Premise ->
@@ -52,9 +57,9 @@ module Proof =
         let length = proof.Steps.Length
         let antecedents =
             indexes
-                |> Array.map (fun idx ->
-                    let _, formula =
-                        proof.Steps.[length - idx]   // 1-based, from end
+                |> Array.map (fun index ->
+                    let formula, _, _ =
+                        proof.Steps.[length - index]
                     formula)
 
         match rule with
@@ -70,7 +75,5 @@ module Proof =
                     |> Seq.exists ((=) consequentSet))
 
         consequents
-            |> Seq.map (fun consequent ->
-                rule, consequent)
-            |> Seq.fold (fun acc step ->
-                acc |> add step) proof
+            |> Seq.fold (fun acc consequent ->
+                acc |> add (consequent, rule, indexes)) proof
