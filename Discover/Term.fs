@@ -19,7 +19,7 @@ type Term =
     /// Atomic term: v
     | Term of Variable
 
-    /// Function applicatoin: f(t1, t2, ...)
+    /// Function application: f(t1, t2, ...)
     | Application of Function * List<Term>
 
     /// Display string.
@@ -37,6 +37,23 @@ type Term =
         this.String
 
 module Term =
+
+    /// A constant is a function of arity 0.
+    let (|Constant|_|) = function
+        | Term (Variable _) -> None
+        | Application ((Function (name, arity)), terms) ->
+            assert(arity = uint32 terms.Length)
+            if arity = 0u then
+                Some name
+            else None
+
+    /// Indicates whether the given term is "ground" (i.e. contains no
+    /// variables).
+    let rec isGround = function
+        | Term (Variable _) -> false
+        | Constant _ -> true
+        | Application (Function _, terms) ->
+            terms |> Seq.forall isGround
 
     /// Answers the distinct variables contained in the given term.
     let getVariables term =
