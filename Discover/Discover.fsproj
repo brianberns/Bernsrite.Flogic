@@ -50,6 +50,7 @@
     <Content Include="packages.config" />
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="List.fs" />
+    <Compile Include="Term.fs" />
     <Compile Include="Formula.fs" />
     <Compile Include="Schema.fs" />
     <Compile Include="InferenceRule.fs" />

@@ -141,20 +141,21 @@ type UnitTest() =
     [<TestMethod>]
     member __.UniversalElimination() =
 
+            // "everybody hates somebody"
         let formula =
             let x = Variable "x"
             let y = Variable "y"
-            let hates = Predicate ("hates", 2u)
             ForAll (
                 x,
                 Exists (
                     y,
                     Formula (
-                        hates,
+                        Predicate ("hates", 2u),
                         [Term x; Term y])))
         Assert.AreEqual(
             "∀x.∃y.hates(x, y)", formula.ToString())
 
+            // "Jane hates somebody": valid
         let newFormulaOpt =
             let jane = Variable "jane"
             formula
@@ -163,6 +164,7 @@ type UnitTest() =
             Some "∃y.hates(jane, y)",
             newFormulaOpt |> Option.map (fun nf -> nf.ToString()))
 
+            // "somebody hates herself": invalid
         let newFormulaOpt =
             let y = Variable "y"
             formula
