@@ -1,5 +1,6 @@
 ﻿namespace Discover
 
+/// Placeholder for a predicate.
 type MetaVariable = Formula
 
 module MetaVariable =
@@ -9,20 +10,15 @@ module MetaVariable =
     let create name : MetaVariable =
         Holds (Predicate (name, 0u), [])
 
-    let nameOf (metaVar : MetaVariable) =
-        match metaVar with
-            | Holds (Predicate (name, 0u), []) -> name
-            | _ -> failwith "Unexpected"
-
 /// A schema is a formula that might contain metavariables.
 type Schema = Formula
 
-/// Binding of metavariables to formulas.
+/// Mapping of metavariables to formulas.
 type Binding = Map<MetaVariable, Formula>
 
 module Schema =
 
-    /// Finds possible mappings of the given formula to the given
+    /// Finds possible mappings for the given formula using the given
     /// schema (including potentially contradictory ones).
     let private findMappingOpts formula schema =
 

@@ -47,22 +47,25 @@ type InferenceRule =
     /// P(t) where term t is substitutable for variable v in P.
     | UniversalElimination of Term
 
+    /// Display string.
     member this.Name =
         match this with
-            | Premise -> "Premise"
             | Ordinary oir -> oir.Name
+            | Premise -> "Premise"
             | Assumption -> "Assumption"
             | ImplicationIntroduction -> "Implication introduction"
             | UniversalElimination _ -> "Universal elimination"
 
+    /// Display string.
     override this.ToString() = this.Name
 
 module InferenceRule =
 
     /// Metavariables.
-    let private p = MetaVariable.create "P"
-    let private q = MetaVariable.create "Q"
-    let private r = MetaVariable.create "R"
+    let private p, private q, private r =
+        MetaVariable.create "P",
+        MetaVariable.create "Q",
+        MetaVariable.create "R"
 
     /// P
     /// Q
@@ -157,12 +160,12 @@ module InferenceRule =
             Name = "Not elimination"
         }
 
+    /// Modus ponens.
+    ///
     /// P -> Q
     /// P
     /// ------
     /// Q
-    ///
-    /// AKA modus ponens.
     let implicationElimination =
         Ordinary {
             Premises = [| Implication (p, q); p |]
@@ -224,7 +227,8 @@ module InferenceRule =
             biconditionalElimination
         |]
 
-    let universalElimination term = function
+    /// Tries to instantiate a universal quantification.
+    let tryUniversalElimination term = function
         | ForAll (variable, formula) ->
             formula |> Formula.trySubstitute variable term
         | _ -> None
@@ -245,7 +249,7 @@ module InferenceRule =
             else Array.empty
         | UniversalElimination term ->
             if formulas.Length = 1 then
-                match universalElimination term formulas.[0] with
+                match tryUniversalElimination term formulas.[0] with
                     | Some formula ->
                         [|
                             [| formula |]

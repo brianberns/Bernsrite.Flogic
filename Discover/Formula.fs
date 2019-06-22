@@ -37,6 +37,7 @@ type Term =
     | Term of Variable
     | Application of Function * List<Term>
 
+    /// Display string.
     member this.String =
         match this with
             | Term (Variable name) -> name
@@ -46,6 +47,7 @@ type Term =
                 else
                     sprintf "%s(%s)" name <| String.Join(", ", terms)
 
+    /// Display string.
     override this.ToString() =
         this.String
 
@@ -91,6 +93,7 @@ type Formula =
     | Exists of Variable * Formula
     | ForAll of Variable * Formula
 
+    /// Display string.
     member this.String =
 
         let rec loop isRoot formula =
@@ -132,6 +135,7 @@ type Formula =
 
         this |> loop true
 
+    /// Display string.
     override this.ToString() =
         this.String
 
@@ -175,10 +179,14 @@ module Formula =
             |> loop
             |> set
 
+    /// Tries to substitute the given term for the given variable in the
+    /// given formula.
     let trySubstitute variable term formula =
 
+            // extract variables from given term
         let newVariables = term |> Term.getVariables
 
+            // substitutes within a term
         let rec substituteTerm = function
             | Term var as oldTerm ->
                 assert(newVariables.Contains(var) |> not)
@@ -189,10 +197,12 @@ module Formula =
                     func,
                     oldTerms |> substituteTerms)
 
+            // substitutes within multiple terms
         and substituteTerms oldTerms =
             oldTerms
                 |> List.map substituteTerm
 
+            // substitutes within a formula
         let rec substitute = function
             | Holds (predicate, oldTerms) ->
                 Holds (
@@ -230,8 +240,11 @@ module Formula =
                     variable,
                     formula |> substitute)
 
-        let oldVariables = formula |> getVariables
-        if Set.intersect newVariables oldVariables |> Set.isEmpty then
+            // ensure substitution is valid before doing it
+        let overlap =
+            let oldVariables = formula |> getVariables
+            Set.intersect newVariables oldVariables
+        if overlap.IsEmpty then
             formula |> substitute |> Some
         else
             None

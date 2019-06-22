@@ -158,7 +158,7 @@ type UnitTest() =
         let newFormulaOpt =
             let jane = Variable "jane"
             formula
-                |> InferenceRule.universalElimination (Term jane)
+                |> InferenceRule.tryUniversalElimination (Term jane)
         Assert.AreEqual(
             Some "∃y.hates(jane, y)",
             newFormulaOpt |> Option.map (fun nf -> nf.ToString()))
@@ -166,5 +166,5 @@ type UnitTest() =
         let newFormulaOpt =
             let y = Variable "y"
             formula
-                |> InferenceRule.universalElimination (Term y)
+                |> InferenceRule.tryUniversalElimination (Term y)
         Assert.AreEqual(None, newFormulaOpt)
