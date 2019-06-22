@@ -136,3 +136,35 @@ type UnitTest() =
                             Proof.empty)
         printfn "%A" proof
         Assert.IsTrue(proof |> Proof.isComplete)
+
+    /// http://intrologic.stanford.edu/public/section.php?section=section_08_02
+    [<TestMethod>]
+    member __.UniversalElimination() =
+
+        let formula =
+            let x = Variable "x"
+            let y = Variable "y"
+            let hates = Predicate ("hates", 2u)
+            ForAll (
+                x,
+                Exists (
+                    y,
+                    Holds (
+                        hates,
+                        [Term x; Term y])))
+        Assert.AreEqual(
+            "∀x.∃y.hates(x, y)", formula.ToString())
+
+        let newFormulaOpt =
+            let jane = Variable "jane"
+            formula
+                |> InferenceRule.universalElimination (Term jane)
+        Assert.AreEqual(
+            Some "∃y.hates(jane, y)",
+            newFormulaOpt |> Option.map (fun nf -> nf.ToString()))
+
+        let newFormulaOpt =
+            let y = Variable "y"
+            formula
+                |> InferenceRule.universalElimination (Term y)
+        Assert.AreEqual(None, newFormulaOpt)

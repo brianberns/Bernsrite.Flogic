@@ -45,7 +45,7 @@ type InferenceRule =
     /// ∀v.P(v)
     /// --------
     /// P(t) where term t is substitutable for variable v in P.
-    | UniversalElimination
+    | UniversalElimination of Term
 
     member this.Name =
         match this with
@@ -53,7 +53,7 @@ type InferenceRule =
             | Ordinary oir -> oir.Name
             | Assumption -> "Assumption"
             | ImplicationIntroduction -> "Implication introduction"
-            | UniversalElimination -> "Universal elimination"
+            | UniversalElimination _ -> "Universal elimination"
 
     override this.ToString() = this.Name
 
@@ -224,9 +224,9 @@ module InferenceRule =
             biconditionalElimination
         |]
 
-    let universalElimination = function
+    let universalElimination term = function
         | ForAll (variable, formula) ->
-            None
+            formula |> Formula.trySubstitute variable term
         | _ -> None
 
     /// Finds all possible applications of the given rule to the
@@ -243,9 +243,9 @@ module InferenceRule =
                     [| Implication (formulas.[0], formulas.[1]) |]
                 |]
             else Array.empty
-        | UniversalElimination ->
+        | UniversalElimination term ->
             if formulas.Length = 1 then
-                match universalElimination formulas.[0] with
+                match universalElimination term formulas.[0] with
                     | Some formula ->
                         [|
                             [| formula |]

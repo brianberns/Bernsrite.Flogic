@@ -121,12 +121,12 @@ type Formula =
                     infix "->" formula1 formula2
                 | Biconditional (formula1, formula2) ->
                     infix "<->" formula1 formula2
-                | Exists (variable, formula) ->
-                    sprintf "∃%A.%s"
+                | Exists (Variable variable, formula) ->
+                    sprintf "∃%s.%s"
                         variable
                         (formula |> loop false)
-                | ForAll (variable, formula) ->
-                    sprintf "∀%A.%s"
+                | ForAll (Variable variable, formula) ->
+                    sprintf "∀%s.%s"
                         variable
                         (formula |> loop false)
 

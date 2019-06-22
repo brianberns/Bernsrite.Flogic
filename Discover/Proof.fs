@@ -142,7 +142,7 @@ module Proof =
                 | Ordinary oir -> oir.Premises.Length
                 | Assumption -> 0
                 | ImplicationIntroduction -> 2
-                | UniversalElimination -> 1
+                | UniversalElimination _ -> 1
         if nRulePremises = indexes.Length then
 
                 // find antecedent formulas
@@ -158,9 +158,7 @@ module Proof =
                 match rule with
                     | Premise
                     | Assumption -> true
-                    | Ordinary _
-                    | ImplicationIntroduction
-                    | UniversalElimination ->
+                    | _ ->
                         let formulaSet = set formulas
                         let possibleFormulaSets =
                             rule
