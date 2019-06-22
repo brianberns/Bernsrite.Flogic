@@ -19,7 +19,7 @@ module OrdinaryInferenceRule =
         Schema.bind formulas rule.Premises
             |> Array.map (fun binding ->
                 rule.Conclusions
-                    |> Array.map (Schema.substitute binding))
+                    |> Array.map (Schema.apply binding))
 
 [<StructuredFormatDisplay("{Name}")>]
 type InferenceRule =
@@ -40,12 +40,20 @@ type InferenceRule =
     /// P -> Q
     | ImplicationIntroduction
 
+    /// Reasons from the general to the specific.
+    ///
+    /// ∀v.P(v)
+    /// --------
+    /// P(t) where term t is substitutable for variable v in P.
+    | UniversalElimination
+
     member this.Name =
         match this with
             | Premise -> "Premise"
             | Ordinary oir -> oir.Name
             | Assumption -> "Assumption"
             | ImplicationIntroduction -> "Implication introduction"
+            | UniversalElimination -> "Universal elimination"
 
     override this.ToString() = this.Name
 
@@ -216,6 +224,11 @@ module InferenceRule =
             biconditionalElimination
         |]
 
+    let universalElimination = function
+        | ForAll (variable, formula) ->
+            None
+        | _ -> None
+
     /// Finds all possible applications of the given rule to the
     /// given formulas.
     let apply formulas = function
@@ -229,4 +242,13 @@ module InferenceRule =
                 [|
                     [| Implication (formulas.[0], formulas.[1]) |]
                 |]
+            else Array.empty
+        | UniversalElimination ->
+            if formulas.Length = 1 then
+                match universalElimination formulas.[0] with
+                    | Some formula ->
+                        [|
+                            [| formula |]
+                        |]
+                    | None -> Array.empty
             else Array.empty

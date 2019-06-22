@@ -101,37 +101,38 @@ module Schema =
                 |> Seq.toArray
         else Array.empty
 
-    /// Substitutes the given bindings in the given schema.
-    let rec substitute bindings (schema : Schema) =
+    /// Applies the given binding to the given schema.
+    let rec apply (binding : Binding) (schema : Schema) =
         match schema with
 
-                // bind with placeholder
+                // bind with metavariable
             | Holds (Predicate (name, 0u), terms) ->
                 assert(terms.Length = 0)
-                match bindings |> Map.tryFind schema with
+                let metaVariable : MetaVariable = schema
+                match binding |> Map.tryFind metaVariable with
                     | Some formula -> formula
                     | None -> failwithf "No binding for metavariable %s" name
 
                 // recurse
-            | Not formula ->
+            | Not schema' ->
                 Not (
-                    formula |> substitute bindings)
-            | And (formula1, formula2) ->
+                    schema' |> apply binding)
+            | And (schema1, schema2) ->
                 And (
-                    formula1 |> substitute bindings,
-                    formula2 |> substitute bindings)
-            | Or (formula1, formula2) ->
+                    schema1 |> apply binding,
+                    schema2 |> apply binding)
+            | Or (schema1, schema2) ->
                 Or (
-                    formula1 |> substitute bindings,
-                    formula2 |> substitute bindings)
-            | Implication (formula1, formula2) ->
+                    schema1 |> apply binding,
+                    schema2 |> apply binding)
+            | Implication (schema1, schema2) ->
                 Implication (
-                    formula1 |> substitute bindings,
-                    formula2 |> substitute bindings)
-            | Biconditional (formula1, formula2) ->
+                    schema1 |> apply binding,
+                    schema2 |> apply binding)
+            | Biconditional (schema1, schema2) ->
                 Biconditional (
-                    formula1 |> substitute bindings,
-                    formula2 |> substitute bindings)
+                    schema1 |> apply binding,
+                    schema2 |> apply binding)
 
                 // error
             | _ -> failwith "Unexpected"

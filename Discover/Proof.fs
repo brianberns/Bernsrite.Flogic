@@ -139,10 +139,10 @@ module Proof =
         let nRulePremises =
             match rule with
                 | Premise -> 0
-                | Ordinary oir ->
-                    oir.Premises.Length
+                | Ordinary oir -> oir.Premises.Length
                 | Assumption -> 0
                 | ImplicationIntroduction -> 2
+                | UniversalElimination -> 1
         if nRulePremises = indexes.Length then
 
                 // find antecedent formulas
@@ -159,9 +159,9 @@ module Proof =
                     | Premise
                     | Assumption -> true
                     | Ordinary _
-                    | ImplicationIntroduction ->
-                        let formulaSet =
-                            set formulas
+                    | ImplicationIntroduction
+                    | UniversalElimination ->
+                        let formulaSet = set formulas
                         let possibleFormulaSets =
                             rule
                                 |> InferenceRule.apply antecedents

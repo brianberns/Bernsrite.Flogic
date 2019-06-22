@@ -7,7 +7,7 @@ type UnitTest() =
 
     let isMan = Predicate ("Man", 1u)
     let isMortal = Predicate ("Mortal", 1u)
-    let x = [Variable "x"]
+    let x = [Term (Variable "x")]
 
     [<TestMethod>]
     member __.ImplicationElimination() =

@@ -34,12 +34,12 @@ type Variable = Variable of Name
 ///    * someone: variable
 [<StructuredFormatDisplay("{String")>]
 type Term =
-    | Variable of Name
+    | Term of Variable
     | Application of Function * List<Term>
 
     member this.String =
         match this with
-            | Variable name -> name
+            | Term (Variable name) -> name
             | Application ((Function (name, arity)), terms) ->
                 assert(arity = uint32 terms.Length)
                 if arity = 0u then name
@@ -48,6 +48,24 @@ type Term =
 
     override this.ToString() =
         this.String
+
+module Term =
+
+    /// Answers the distinct variables contained in the given term.
+    let getVariables term =
+
+        let rec loop term =
+            seq {
+                match term with
+                    | Term var -> yield var
+                    | Application (_, terms) ->
+                        for term in terms do
+                            yield! term |> loop
+            }
+
+        term
+            |> loop
+            |> set
 
 /// E.g. Mortal(x) is a predicate of arity 1.
 type Predicate = Predicate of Name * Arity
@@ -116,3 +134,104 @@ type Formula =
 
     override this.ToString() =
         this.String
+
+module Formula =
+
+    /// Answers the distinct variables contained in the given formula.
+    let getVariables formula =
+
+        let rec loop formula =
+            seq {
+                match formula with
+                    | Holds (_, terms) ->
+                        for term in terms do
+                            yield! term |> Term.getVariables
+                    | Equality (term1, term2) ->
+                        yield! term1 |> Term.getVariables
+                        yield! term2 |> Term.getVariables
+                    | Not formula ->
+                        yield! formula |> loop
+                    | And (formula1, formula2) ->
+                        yield! formula1 |> loop
+                        yield! formula2 |> loop
+                    | Or (formula1, formula2) ->
+                        yield! formula1 |> loop
+                        yield! formula2 |> loop
+                    | Implication (formula1, formula2) ->
+                        yield! formula1 |> loop
+                        yield! formula2 |> loop
+                    | Biconditional (formula1, formula2) ->
+                        yield! formula1 |> loop
+                        yield! formula2 |> loop
+                    | Exists (variable, formula) ->
+                        yield variable
+                        yield! formula |> loop
+                    | ForAll (variable, formula) ->
+                        yield variable
+                        yield! formula |> loop
+            }
+
+        formula
+            |> loop
+            |> set
+
+    let trySubstitute variable term formula =
+
+        let newVariables = term |> Term.getVariables
+
+        let rec substituteTerm = function
+            | Term var as oldTerm ->
+                assert(newVariables.Contains(var) |> not)
+                if var = variable then term
+                else oldTerm
+            | Application (func, oldTerms) ->
+                Application (
+                    func,
+                    oldTerms |> substituteTerms)
+
+        and substituteTerms oldTerms =
+            oldTerms
+                |> List.map substituteTerm
+
+        let rec substitute = function
+            | Holds (predicate, oldTerms) ->
+                Holds (
+                    predicate,
+                    oldTerms |> substituteTerms)
+            | Equality (oldTerm1, oldTerm2) ->
+                Equality (
+                    oldTerm1 |> substituteTerm,
+                    oldTerm2 |> substituteTerm)
+            | Not formula ->
+                Not (
+                    formula |> substitute)
+            | And (formula1, formula2) ->
+                And (
+                    formula1 |> substitute,
+                    formula2 |> substitute)
+            | Or (formula1, formula2) ->
+                Or (
+                    formula1 |> substitute,
+                    formula2 |> substitute)
+            | Implication (formula1, formula2) ->
+                Implication (
+                    formula1 |> substitute,
+                    formula2 |> substitute)
+            | Biconditional (formula1, formula2) ->
+                Biconditional (
+                    formula1 |> substitute,
+                    formula2 |> substitute)
+            | Exists (variable, formula) ->
+                Exists (
+                    variable,
+                    formula |> substitute)
+            | ForAll (variable, formula) ->
+                ForAll (
+                    variable,
+                    formula |> substitute)
+
+        let oldVariables = formula |> getVariables
+        if Set.intersect newVariables oldVariables |> Set.isEmpty then
+            formula |> substitute |> Some
+        else
+            None
