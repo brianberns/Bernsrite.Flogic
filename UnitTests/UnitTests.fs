@@ -16,13 +16,13 @@ type UnitTest() =
                 |> InferenceRule.apply
                     [|
                         Implication (
-                            Holds (isMan, x),
-                            Holds (isMortal, x))
-                        Holds (isMan, x)
+                            Formula (isMan, x),
+                            Formula (isMortal, x))
+                        Formula (isMan, x)
                     |]
         Assert.AreEqual(1, conclusions.Length)
         Assert.AreEqual(1, conclusions.[0].Length)
-        Assert.AreEqual(Holds (isMortal, x), conclusions.[0].[0])
+        Assert.AreEqual(Formula (isMortal, x), conclusions.[0].[0])
 
     [<TestMethod>]
     member __.ImplicationCreation() =
@@ -36,8 +36,8 @@ type UnitTest() =
             }
         let premises =
             [|
-                Holds (isMan, x)
-                Holds (isMortal, x)
+                Formula (isMan, x)
+                Formula (isMortal, x)
             |]
         let bindings =
             implicationCreation.Premises
@@ -149,7 +149,7 @@ type UnitTest() =
                 x,
                 Exists (
                     y,
-                    Holds (
+                    Formula (
                         hates,
                         [Term x; Term y])))
         Assert.AreEqual(

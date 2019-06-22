@@ -34,7 +34,11 @@ type Variable = Variable of Name
 ///    * someone: variable
 [<StructuredFormatDisplay("{String")>]
 type Term =
+
+    /// Atomic term: v
     | Term of Variable
+
+    /// Function applicatoin: f(t1, t2, ...)
     | Application of Function * List<Term>
 
     /// Display string.
@@ -76,21 +80,28 @@ type Predicate = Predicate of Name * Arity
 [<StructuredFormatDisplay("{String}")>]
 type Formula =
 
-        // atomic (no sub-formulas)
-    | Holds of Predicate * List<Term>
-    | Equality of Term * Term
+    /// Atomic formula (no sub-formulas): P(t1, t2, ...)
+    | Formula of Predicate * List<Term>
 
-        // negation
+    // Negation: ~P
     | Not of Formula
 
-        // binary connectives
+    /// Conjunction: P & Q
     | And of Formula * Formula
+
+    /// Disjunction: P | Q
     | Or of Formula * Formula
+
+    /// Implication: P -> Q
     | Implication of Formula * Formula
+
+    /// Biconditional: P <-> Q
     | Biconditional of Formula * Formula
 
-        // quantifiers
+    /// Existential quantifier: ∃x.P(x)
     | Exists of Variable * Formula
+
+    /// Universal quantifier: ∀x.P(x)
     | ForAll of Variable * Formula
 
     /// Display string.
@@ -107,13 +118,11 @@ type Formula =
                     (if isRoot then "" else ")")
 
             match formula with
-                | Holds (Predicate (name, arity), terms) ->
+                | Formula (Predicate (name, arity), terms) ->
                     assert(arity = uint32 terms.Length)
                     if arity = 0u then name
                     else
                         sprintf "%s(%s)" name <| String.Join(", ", terms)
-                | Equality (term1, term2) ->
-                    sprintf "%A = %A" term1 term2
                 | Not formula ->
                     sprintf "~%A" formula
                 | And (formula1, formula2) ->
@@ -147,7 +156,7 @@ module Formula =
         let rec loop formula =
             seq {
                 match formula with
-                    | Holds (_, terms) ->
+                    | Formula (_, terms) ->
                         for term in terms do
                             yield! term |> Term.getVariables
                     | Equality (term1, term2) ->
@@ -204,8 +213,8 @@ module Formula =
 
             // substitutes within a formula
         let rec substitute = function
-            | Holds (predicate, oldTerms) ->
-                Holds (
+            | Formula (predicate, oldTerms) ->
+                Formula (
                     predicate,
                     oldTerms |> substituteTerms)
             | Equality (oldTerm1, oldTerm2) ->

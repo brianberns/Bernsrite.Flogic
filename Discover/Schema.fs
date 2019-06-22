@@ -8,7 +8,7 @@ module MetaVariable =
     /// Creates a metavariable. This is currently implemented as
     /// 0-arity placeholder for a predicate.
     let create name : MetaVariable =
-        Holds (Predicate (name, 0u), [])
+        Formula (Predicate (name, 0u), [])
 
 /// A schema is a formula that might contain metavariables.
 type Schema = Formula
@@ -27,7 +27,7 @@ module Schema =
                 match (formula, schema) with
 
                         // bind metavariable
-                    | _, Holds (Predicate (_, 0u), terms) ->
+                    | _, Formula (Predicate (_, 0u), terms) ->
                         assert(terms.Length = 0)
                         yield Some ((schema : MetaVariable), formula)
 
@@ -102,7 +102,7 @@ module Schema =
         match schema with
 
                 // bind with metavariable
-            | Holds (Predicate (name, 0u), terms) ->
+            | Formula (Predicate (name, 0u), terms) ->
                 assert(terms.Length = 0)
                 let metaVariable : MetaVariable = schema
                 match binding |> Map.tryFind metaVariable with
