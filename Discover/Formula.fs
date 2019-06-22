@@ -159,9 +159,6 @@ module Formula =
                     | Formula (_, terms) ->
                         for term in terms do
                             yield! term |> Term.getVariables
-                    | Equality (term1, term2) ->
-                        yield! term1 |> Term.getVariables
-                        yield! term2 |> Term.getVariables
                     | Not formula ->
                         yield! formula |> loop
                     | And (formula1, formula2) ->
@@ -217,10 +214,6 @@ module Formula =
                 Formula (
                     predicate,
                     oldTerms |> substituteTerms)
-            | Equality (oldTerm1, oldTerm2) ->
-                Equality (
-                    oldTerm1 |> substituteTerm,
-                    oldTerm2 |> substituteTerm)
             | Not formula ->
                 Not (
                     formula |> substitute)
