@@ -53,6 +53,11 @@ type InferenceRule =
     /// is the substituion of t for v in P.
     | UniversalElimination of Term
 
+    /// ∃v.P(ν1, ..., νn, ν)
+    /// ------------------
+    /// P(skolem(ν1, ... ,νn)) where "skolem" is a not an existing function.
+    | ExistentialElimination
+
     /// Display string.
     member this.Name =
         match this with
@@ -63,6 +68,7 @@ type InferenceRule =
             | UniversalIntroduction _ -> "Universal introduction"
             | UniversalElimination term ->
                 sprintf "Universal elimination (%A)" term
+            | ExistentialElimination -> "Existential elimination"
 
     /// Display string.
     override this.ToString() = this.Name
@@ -259,6 +265,13 @@ module InferenceRule =
                 if formulas.Length = 1 then
                     formulas.[0]
                         |> Formula.tryUniversalElimination term
+                        |> Option.map wrap
+                        |> Option.defaultValue Array.empty
+                else Array.empty
+            | ExistentialElimination ->
+                if formulas.Length = 1 then
+                    formulas.[0]
+                        |> Formula.tryExistentialElimination
                         |> Option.map wrap
                         |> Option.defaultValue Array.empty
                 else Array.empty

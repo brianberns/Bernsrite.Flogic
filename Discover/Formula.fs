@@ -153,33 +153,49 @@ module Formula =
 
         formula |> loop
 
-    /// Indicates whether the given variable occurs free within the
-    /// given formula.
+    /// Answers the free variables in the given formula.
+    let getFreeVariables formula =
+
+        let rec loop formula =
+            seq {
+                match formula with
+                    | Formula (_, terms) ->
+                        for term in terms do
+                            yield! term |> Term.getVariables
+                    | Not formula ->
+                        yield! formula |> loop
+                    | And (formula1, formula2) ->
+                        yield! formula1 |> loop
+                        yield! formula2 |> loop
+                    | Or (formula1, formula2) ->
+                        yield! formula1 |> loop
+                        yield! formula2 |> loop
+                    | Implication (formula1, formula2) ->
+                        yield! formula1 |> loop
+                        yield! formula2 |> loop
+                    | Biconditional (formula1, formula2) ->
+                        yield! formula1 |> loop
+                        yield! formula2 |> loop
+                    | Exists (variable, formula) ->
+                        for var in formula |> loop do
+                            if var <> variable then
+                                yield var
+                    | ForAll (variable, formula) ->
+                        for var in formula |> loop do
+                            if var <> variable then
+                                yield var
+            }
+
+        formula
+            |> loop
+            |> set
+
+    /// Indicates whether the given variable occurs free within the given
+    /// formula.
     let isFree variable formula =
-
-        let rec loop = function
-            | Formula (_, terms) ->
-                let contains =
-                    Term.getVariables >> Set.contains variable
-                terms |> Seq.exists contains
-            | Not formula ->
-                formula |> loop
-            | And (formula1, formula2) ->
-                (formula1 |> loop) || (formula2 |> loop)
-            | Or (formula1, formula2) ->
-                (formula1 |> loop) || (formula2 |> loop)
-            | Implication (formula1, formula2) ->
-                (formula1 |> loop) || (formula2 |> loop)
-            | Biconditional (formula1, formula2) ->
-                (formula1 |> loop) || (formula2 |> loop)
-            | Exists (var, formula) ->
-                if var = variable then false
-                else formula |> loop
-            | ForAll (var, formula) ->
-                if var = variable then false
-                else formula |> loop
-
-        formula |> loop
+        formula
+            |> getFreeVariables
+            |> Set.contains variable
 
     /// A term is free for a variable in a formula iff no free occurrence
     /// of the νariable occurs within the scope of a quantifier of some
@@ -253,4 +269,17 @@ module Formula =
                 formula
                     |> substitute variable term
                     |> Some
+        | _ -> None
+
+    /// Tries to eliminate an existential quantification.
+    let tryExistentialElimination = function
+        | Exists (variable, formula) ->
+            let skolem =
+                formula
+                    |> getFreeVariables
+                    |> Seq.toArray
+                    |> Skolem.createTerm
+            formula
+                |> substitute variable skolem
+                |> Some
         | _ -> None

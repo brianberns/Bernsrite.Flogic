@@ -181,6 +181,7 @@ module Proof =
                 | ImplicationIntroduction -> 2
                 | UniversalIntroduction _ -> 1
                 | UniversalElimination _ -> 1
+                | ExistentialElimination -> 1
         if nRulePremises = indexes.Length then
 
                 // find antecedent formulas
