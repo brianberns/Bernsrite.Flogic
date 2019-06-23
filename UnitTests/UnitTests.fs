@@ -44,55 +44,60 @@ type UnitTest() =
                 |> Schema.bind premises
         Assert.AreEqual(premises.Length, bindings.Length)
 
-    member __.StartPropositionalProof() =
+    member __.GetPropositionalSteps() =
 
         let p = MetaVariable.create "p"
         let q = MetaVariable.create "q"
         let r = MetaVariable.create "r"
 
-        let steps =
-            [|
-                [
-                    (*1*) Implication (p, q)
-                    (*2*) Implication (q, r)
-                ], InferenceRule.Premise, Array.empty;
-                (*3*) [ p ], InferenceRule.Assumption, Array.empty;
-                (*4*) [ q ], InferenceRule.implicationElimination, [| 3; 1 |];
-                (*5*) [ r ], InferenceRule.implicationElimination, [| 4; 2 |];
-                (*6*) [ Implication (p, r) ], InferenceRule.ImplicationIntroduction, [| 3; 5 |]
-            |]
+        [|
+            [
+                (*1*) Implication (p, q)
+                (*2*) Implication (q, r)
+            ], InferenceRule.Premise, Array.empty;
+            (*3*) [ p ], InferenceRule.Assumption, Array.empty;
+            (*4*) [ q ], InferenceRule.implicationElimination, [| 3; 1 |];
+            (*5*) [ r ], InferenceRule.implicationElimination, [| 4; 2 |];
+            (*6*) [ Implication (p, r) ], InferenceRule.ImplicationIntroduction, [| 3; 5 |]
+        |]
 
-        (Proof.empty, steps)
-            ||> Seq.fold (fun acc (formulas, rule, indexes) ->
-                let proofOpt =
-                    acc |> Proof.tryAddSteps formulas rule indexes
-                match proofOpt with
-                    | Some proof -> proof
-                    | None ->
-                        Assert.Fail()
-                        Proof.empty)
+    member __.TryProve(steps) =
+        (Some Proof.empty, steps)
+            ||> Seq.fold (fun proofOpt (formulas, rule, indexes) ->
+                proofOpt
+                    |> Option.bind (
+                        Proof.tryAddSteps formulas rule indexes))
+
+    member this.Prove(steps) =
+        match this.TryProve(steps) with
+            | Some proof ->
+                printfn "%A" proof
+                Assert.IsTrue(proof |> Proof.isComplete)
+            | None -> Assert.Fail()
 
     /// http://intrologic.stanford.edu/public/section.php?section=section_04_03
     [<TestMethod>]
     member this.ValidPropositionalProof1() =
-        let proof = this.StartPropositionalProof()
-        printfn "%A" proof
-        Assert.IsTrue(proof |> Proof.isComplete)
+        let steps = this.GetPropositionalSteps()
+        this.Prove(steps)
 
     /// http://intrologic.stanford.edu/public/section.php?section=section_04_03
     [<TestMethod>]
     member this.InvalidPropositionalProof() =
-        let proofOpt =
-            this.StartPropositionalProof()
-                |> Proof.tryAddSteps
-                    [ MetaVariable.create "r" ]
-                    InferenceRule.implicationElimination
+        let steps =
+            [|
+                yield! this.GetPropositionalSteps()
+                yield
+                    [ MetaVariable.create "r" ],
+                    InferenceRule.implicationElimination,
                     [| 2; 4 |]
+            |]
+        let proofOpt = this.TryProve(steps)
         Assert.AreEqual(None, proofOpt)
 
     /// http://intrologic.stanford.edu/public/section.php?section=section_04_03
     [<TestMethod>]
-    member __.ValidPropositionalProof2() =
+    member this.ValidPropositionalProof2() =
 
         let p = MetaVariable.create "p"
         let q = MetaVariable.create "q"
@@ -103,39 +108,25 @@ type UnitTest() =
                 Name = "Reiteration"
             }
 
-        let steps =
-            [|
-                [
-                    (*1*) Or (p, q)
-                    (*2*) Not p
-                ], Premise, Array.empty;
-                (*3*) [ p ], Assumption, Array.empty;
-                (*4*) [ Not q ], Assumption, Array.empty;
-                (*5*) [ p ], reiteration, [| 3 |];
-                (*6*) [ Implication (Not q, p) ], ImplicationIntroduction, [| 4; 5 |];
-                (*7*) [ Not q ], Assumption, Array.empty;
-                (*8*) [ Not p ], reiteration, [| 2 |];
-                (*9*) [ Implication (Not q, Not p) ], ImplicationIntroduction, [| 7; 8 |];
-                (*10*) [ Not (Not q) ], InferenceRule.notIntroduction, [| 6; 9 |];
-                (*11*) [ q ], InferenceRule.notElimination, [| 10 |];
-                (*12*) [ Implication (p, q) ], ImplicationIntroduction, [| 3; 11 |];
-                (*13*) [ q ], Assumption, Array.empty;
-                (*14*) [ Implication (q, q) ], ImplicationIntroduction, [| 13 |];
-                (*15*) [ q ], InferenceRule.orElimination, [| 1; 12; 14 |]
-            |]
-
-        let proof =
-            (Proof.empty, steps)
-                ||> Seq.fold (fun acc (formulas, rule, indexes) ->
-                    let proofOpt =
-                        acc |> Proof.tryAddSteps formulas rule indexes
-                    match proofOpt with
-                        | Some proof -> proof
-                        | None ->
-                            Assert.Fail()
-                            Proof.empty)
-        printfn "%A" proof
-        Assert.IsTrue(proof |> Proof.isComplete)
+        [|
+            [
+                (*1*) Or (p, q)
+                (*2*) Not p
+            ], Premise, Array.empty;
+            (*3*) [ p ], Assumption, Array.empty;
+            (*4*) [ Not q ], Assumption, Array.empty;
+            (*5*) [ p ], reiteration, [| 3 |];
+            (*6*) [ Implication (Not q, p) ], ImplicationIntroduction, [| 4; 5 |];
+            (*7*) [ Not q ], Assumption, Array.empty;
+            (*8*) [ Not p ], reiteration, [| 2 |];
+            (*9*) [ Implication (Not q, Not p) ], ImplicationIntroduction, [| 7; 8 |];
+            (*10*) [ Not (Not q) ], InferenceRule.notIntroduction, [| 6; 9 |];
+            (*11*) [ q ], InferenceRule.notElimination, [| 10 |];
+            (*12*) [ Implication (p, q) ], ImplicationIntroduction, [| 3; 11 |];
+            (*13*) [ q ], Assumption, Array.empty;
+            (*14*) [ Implication (q, q) ], ImplicationIntroduction, [| 13 |];
+            (*15*) [ q ], InferenceRule.orElimination, [| 1; 12; 14 |]
+        |] |> this.Prove
 
     [<TestMethod>]
     member __.UniversalIntroduction() =
