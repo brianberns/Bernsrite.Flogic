@@ -54,6 +54,23 @@ module Proof =
             ValidAntecedentIndexes = Set.empty
         }
 
+    /// Answers the indicated step within the given proof.
+    let getStep index proof =
+        proof.Steps.[proof.Steps.Length - index]
+
+    /// Answers the active assumptions within the given proof.
+    let activeAssumptions proof =
+        proof.ActiveAssumptionIndexes
+            |> Seq.map (fun index ->
+                let step = proof |> getStep index
+                step.Formula)
+            |> Seq.toArray
+
+    /// Is the given proof complete?
+    let isComplete proof =
+        proof.Steps.Length > 0
+            && proof.ActiveAssumptionIndexes.Length = 0
+
     /// Tries to add the given step to the given proof.
     let private tryAdd (formula, rule, antecedentIndexes) proof =
 
@@ -117,6 +134,26 @@ module Proof =
 
         else None
 
+    /// Finds all possible applications of the given rule to the given formulas
+    /// within the given proof.
+    let apply formulas rule proof =
+
+        let wrap formula =
+            [|
+                [| formula |]
+            |]
+
+        match rule with
+            | UniversalIntroduction variable ->
+                if formulas |> Array.length = 1 then
+                    let assumptions = proof |> activeAssumptions
+                    formulas.[0]
+                        |> Formula.tryUniversalIntroduction variable assumptions
+                        |> Option.map wrap
+                        |> Option.defaultValue Array.empty
+                else Array.empty
+            | _ -> rule |> InferenceRule.apply formulas
+
     module Seq =
 
         /// Applies a function to each item in a sequence, short-circuiting
@@ -162,8 +199,8 @@ module Proof =
                     | _ ->
                         let formulaSet = set formulas
                         let possibleFormulaSets =
-                            rule
-                                |> InferenceRule.apply antecedents
+                            proof
+                                |> apply antecedents rule
                                 |> Array.map set
                         possibleFormulaSets
                             |> Seq.exists ((=) formulaSet)
@@ -177,8 +214,3 @@ module Proof =
             else None
 
         else None
-
-    /// Is the given proof complete?
-    let isComplete proof =
-        proof.Steps.Length > 0
-            && proof.ActiveAssumptionIndexes.Length = 0

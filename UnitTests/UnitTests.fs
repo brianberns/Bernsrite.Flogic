@@ -44,60 +44,53 @@ type UnitTest() =
                 |> Schema.bind premises
         Assert.AreEqual(premises.Length, bindings.Length)
 
-    member __.GetPropositionalSteps() =
+    member __.TryProve(steps) =
+        (Ok Proof.empty, steps)
+            ||> Seq.fold (fun proofResult (formulas, rule, indexes) ->
+                match proofResult with
+                    | Ok proof ->
+                        match proof |> Proof.tryAddSteps formulas rule indexes with
+                            | Some proof' -> Ok proof'
+                            | None -> Error (proof.Steps.Length + 1)
+                    | _ -> proofResult)
+
+    member this.Prove(steps) =
+        match this.TryProve(steps) with
+            | Ok proof ->
+                printfn "%A" proof
+                Assert.IsTrue(proof |> Proof.isComplete)
+            | Error index -> Assert.Fail(sprintf "Step %d" index)
+
+    /// http://intrologic.stanford.edu/public/section.php?section=section_04_03
+    [<TestMethod>]
+    member this.PropositionalProof1() =
 
         let p = MetaVariable.create "p"
         let q = MetaVariable.create "q"
         let r = MetaVariable.create "r"
 
-        [|
-            [
-                (*1*) Implication (p, q)
-                (*2*) Implication (q, r)
-            ], InferenceRule.Premise, Array.empty;
-            (*3*) [ p ], InferenceRule.Assumption, Array.empty;
-            (*4*) [ q ], InferenceRule.implicationElimination, [| 3; 1 |];
-            (*5*) [ r ], InferenceRule.implicationElimination, [| 4; 2 |];
-            (*6*) [ Implication (p, r) ], InferenceRule.ImplicationIntroduction, [| 3; 5 |]
-        |]
-
-    member __.TryProve(steps) =
-        (Some Proof.empty, steps)
-            ||> Seq.fold (fun proofOpt (formulas, rule, indexes) ->
-                proofOpt
-                    |> Option.bind (
-                        Proof.tryAddSteps formulas rule indexes))
-
-    member this.Prove(steps) =
-        match this.TryProve(steps) with
-            | Some proof ->
-                printfn "%A" proof
-                Assert.IsTrue(proof |> Proof.isComplete)
-            | None -> Assert.Fail()
-
-    /// http://intrologic.stanford.edu/public/section.php?section=section_04_03
-    [<TestMethod>]
-    member this.ValidPropositionalProof1() =
-        let steps = this.GetPropositionalSteps()
-        this.Prove(steps)
-
-    /// http://intrologic.stanford.edu/public/section.php?section=section_04_03
-    [<TestMethod>]
-    member this.InvalidPropositionalProof() =
         let steps =
             [|
-                yield! this.GetPropositionalSteps()
-                yield
-                    [ MetaVariable.create "r" ],
-                    InferenceRule.implicationElimination,
-                    [| 2; 4 |]
+                [
+                    (*1*) Implication (p, q)
+                    (*2*) Implication (q, r)
+                ], InferenceRule.Premise, Array.empty;
+                (*3*) [ p ], InferenceRule.Assumption, Array.empty;
+                (*4*) [ q ], InferenceRule.implicationElimination, [| 3; 1 |];
+                (*5*) [ r ], InferenceRule.implicationElimination, [| 4; 2 |];
+                (*6*) [ Implication (p, r) ], InferenceRule.ImplicationIntroduction, [| 3; 5 |]
             |]
-        let proofOpt = this.TryProve(steps)
-        Assert.AreEqual(None, proofOpt)
+        this.Prove(steps)
 
-    /// http://intrologic.stanford.edu/public/section.php?section=section_04_03
+        let proofResult =
+            [|
+                yield! steps
+                yield (*7*) [ MetaVariable.create "r" ], InferenceRule.implicationElimination, [| 2; 4 |]
+            |] |> this.TryProve
+        Assert.AreEqual(Result<Proof, _>.Error 7, proofResult)
+
     [<TestMethod>]
-    member this.ValidPropositionalProof2() =
+    member this.PropositionalProof2() =
 
         let p = MetaVariable.create "p"
         let q = MetaVariable.create "q"
@@ -129,25 +122,31 @@ type UnitTest() =
         |] |> this.Prove
 
     [<TestMethod>]
-    member __.UniversalIntroduction() =
+    member this.UniversalIntroduction() =
 
         let x = Variable "x"
         let p = Formula (Predicate ("p", 1u), [Term x])
         let q = Formula (Predicate ("q", 1u), [Term x])
 
-        let conclusions =
-            UniversalIntroduction (x, [| p |])
-                |> InferenceRule.apply [| q |]
-        Assert.AreEqual(0, conclusions.Length)
+        let steps =
+            [|
+                (*1*) [| Implication (p, q) |], InferenceRule.Premise, Array.empty
+                (*2*) [| p |], InferenceRule.Assumption, Array.empty
+                (*3*) [| q |], InferenceRule.implicationElimination, [| 1; 2 |]
+            |]
 
-        let conclusions =
-            UniversalIntroduction (x, [| |])
-                |> InferenceRule.apply [| Implication (p, q) |]
-        Assert.AreEqual(1, conclusions.Length)
-        Assert.AreEqual(1, conclusions.[0].Length)
-        Assert.AreEqual(
-            "∀x.(p(x) -> q(x))",
-            conclusions.[0].[0].ToString())
+        let proofResult =
+            [|
+                yield! steps
+                yield (*4*) [| ForAll (x, q) |], InferenceRule.UniversalIntroduction x, [| 3 |]
+            |] |> this.TryProve
+        Assert.AreEqual(Result<Proof, _>.Error 4, proofResult)
+
+        [|
+            yield! steps
+            yield (*4*) [| Implication (p, q) |], InferenceRule.ImplicationIntroduction, [| 2; 3 |]
+            yield (*5*) [| ForAll (x, Implication (p, q)) |], InferenceRule.UniversalIntroduction x, [| 4 |]
+        |] |> this.Prove
 
     /// http://intrologic.stanford.edu/public/section.php?section=section_08_02
     [<TestMethod>]
@@ -260,13 +259,22 @@ type UnitTest() =
             [|5; 3|]
 
             (*7*)
-            (*
             [|
                 ForAll (
                     y,
                     Formula (loves, [Term x; Term y]))
             |],
-            InferenceRule.UniversalIntroduction (y, ),
+            InferenceRule.UniversalIntroduction y,
             [|6|]
-            *)
+
+            (*8*)
+            [|
+                ForAll (
+                    x,
+                    ForAll (
+                        y,
+                        Formula (loves, [Term x; Term y])))
+            |],
+            InferenceRule.UniversalIntroduction x,
+            [|7|]
         |] |> this.Prove

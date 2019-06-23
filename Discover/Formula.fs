@@ -233,3 +233,24 @@ module Formula =
             term |> Term.getVariables
         Set.intersect variableScopes termVariables
             |> Set.isEmpty
+
+    /// Tries to introduce a universal quantification of the given formula.
+    let tryUniversalIntroduction variable assumptions formula =
+        let isValid =
+            if formula |> isFree variable then
+                assumptions
+                    |> Seq.forall (
+                        isFree variable >> not)
+            else true
+        if isValid then
+            ForAll (variable, formula) |> Some
+        else None
+
+    /// Tries to instantiate a universal quantification.
+    let tryUniversalElimination term = function
+        | ForAll (variable, formula)
+            when formula |> isFreeFor term variable ->
+                formula
+                    |> substitute variable term
+                    |> Some
+        | _ -> None

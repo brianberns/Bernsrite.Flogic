@@ -42,9 +42,8 @@ type InferenceRule =
 
     /// P
     /// ----
-    /// ∀v.P where v doesn't appear free in both P and an active
-    /// assumption.
-    | UniversalIntroduction of (Variable * Formula[] (*assumptions*))
+    /// ∀v.P where v doesn't appear free in both P and an active assumption.
+    | UniversalIntroduction of Variable
 
     /// Reasons from the general to the specific.
     ///
@@ -236,29 +235,7 @@ module InferenceRule =
             biconditionalElimination
         |]
 
-    /// Tries to introduce a universal quantification.
-    let private tryUniversalIntroduction variable assumptions formula =
-        let isValid =
-            if formula |> Formula.isFree variable then
-                assumptions
-                    |> Seq.forall (
-                        Formula.isFree variable >> not)
-            else true
-        if isValid then
-            ForAll (variable, formula) |> Some
-        else None
-
-    /// Tries to instantiate a universal quantification.
-    let private tryUniversalElimination term = function
-        | ForAll (variable, formula)
-            when formula |> Formula.isFreeFor term variable ->
-                formula
-                    |> Formula.substitute variable term
-                    |> Some
-        | _ -> None
-
-    /// Finds all possible applications of the given rule to the
-    /// given formulas.
+    /// Finds all possible applications of the given rule to the given formulas.
     let apply formulas =
 
         let wrap formula =
@@ -276,17 +253,12 @@ module InferenceRule =
                 if formulas.Length = 2 then
                     Implication (formulas.[0], formulas.[1]) |> wrap
                 else Array.empty
-            | UniversalIntroduction (variable, assumptions) ->
-                if formulas.Length = 1 then
-                    formulas.[0]
-                        |> tryUniversalIntroduction variable assumptions
-                        |> Option.map wrap
-                        |> Option.defaultValue Array.empty
-                else Array.empty
+            | UniversalIntroduction _ ->
+                failwith "Universal introduction requires assumptions"
             | UniversalElimination term ->
                 if formulas.Length = 1 then
                     formulas.[0]
-                        |> tryUniversalElimination term
+                        |> Formula.tryUniversalElimination term
                         |> Option.map wrap
                         |> Option.defaultValue Array.empty
                 else Array.empty
