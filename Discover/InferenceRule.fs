@@ -40,6 +40,12 @@ type InferenceRule =
     /// P -> Q
     | ImplicationIntroduction
 
+    /// P
+    /// ----
+    /// ∀v.P where v doesn't appear free in both P and an active
+    /// assumption.
+    | UniversalIntroduction of (Variable * Formula[] (*assumptions*))
+
     /// Reasons from the general to the specific.
     ///
     /// ∀v.P(v)
@@ -55,7 +61,9 @@ type InferenceRule =
             | Premise -> "Premise"
             | Assumption -> "Assumption"
             | ImplicationIntroduction -> "Implication introduction"
-            | UniversalElimination _ -> "Universal elimination"
+            | UniversalIntroduction _ -> "Universal introduction"
+            | UniversalElimination term ->
+                sprintf "Universal elimination (%A)" term
 
     /// Display string.
     override this.ToString() = this.Name
@@ -228,8 +236,20 @@ module InferenceRule =
             biconditionalElimination
         |]
 
+    /// Tries to introduce a universal quantification.
+    let private tryUniversalIntroduction variable assumptions formula =
+        let isValid =
+            if formula |> Formula.isFree variable then
+                assumptions
+                    |> Seq.forall (
+                        Formula.isFree variable >> not)
+            else true
+        if isValid then
+            ForAll (variable, formula) |> Some
+        else None
+
     /// Tries to instantiate a universal quantification.
-    let tryUniversalElimination term = function
+    let private tryUniversalElimination term = function
         | ForAll (variable, formula)
             when formula |> Formula.isFreeFor term variable ->
                 formula
@@ -239,24 +259,34 @@ module InferenceRule =
 
     /// Finds all possible applications of the given rule to the
     /// given formulas.
-    let apply formulas = function
-        | Assumption
-        | Premise ->
-            [| formulas |]
-        | Ordinary rule ->
-            rule |> OrdinaryInferenceRule.apply formulas
-        | ImplicationIntroduction ->
-            if formulas.Length = 2 then
-                [|
-                    [| Implication (formulas.[0], formulas.[1]) |]
-                |]
-            else Array.empty
-        | UniversalElimination term ->
-            if formulas.Length = 1 then
-                match tryUniversalElimination term formulas.[0] with
-                    | Some formula ->
-                        [|
-                            [| formula |]
-                        |]
-                    | None -> Array.empty
-            else Array.empty
+    let apply formulas rule =
+
+        let wrap formula =
+            [|
+                [| formula |]
+            |]
+
+        match rule with
+            | Assumption
+            | Premise ->
+                [| formulas |]
+            | Ordinary rule ->
+                rule |> OrdinaryInferenceRule.apply formulas
+            | ImplicationIntroduction ->
+                if formulas.Length = 2 then
+                    Implication (formulas.[0], formulas.[1]) |> wrap
+                else Array.empty
+            | UniversalIntroduction (variable, assumptions) ->
+                if formulas.Length = 1 then
+                    formulas.[0]
+                        |> tryUniversalIntroduction variable assumptions
+                        |> Option.map wrap
+                        |> Option.defaultValue Array.empty
+                else Array.empty
+            | UniversalElimination term ->
+                if formulas.Length = 1 then
+                    formulas.[0]
+                        |> tryUniversalElimination term
+                        |> Option.map wrap
+                        |> Option.defaultValue Array.empty
+                else Array.empty

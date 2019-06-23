@@ -137,6 +137,27 @@ type UnitTest() =
         printfn "%A" proof
         Assert.IsTrue(proof |> Proof.isComplete)
 
+    [<TestMethod>]
+    member __.UniversalIntroduction() =
+
+        let x = Variable "x"
+        let p = Formula (Predicate ("p", 1u), [Term x])
+        let q = Formula (Predicate ("q", 1u), [Term x])
+
+        let conclusions =
+            UniversalIntroduction (x, [| p |])
+                |> InferenceRule.apply [| q |]
+        Assert.AreEqual(0, conclusions.Length)
+
+        let conclusions =
+            UniversalIntroduction (x, [| |])
+                |> InferenceRule.apply [| Implication (p, q) |]
+        Assert.AreEqual(1, conclusions.Length)
+        Assert.AreEqual(1, conclusions.[0].Length)
+        Assert.AreEqual(
+            "∀x.(p(x) -> q(x))",
+            conclusions.[0].[0].ToString())
+
     /// http://intrologic.stanford.edu/public/section.php?section=section_08_02
     [<TestMethod>]
     member __.UniversalElimination() =
@@ -156,17 +177,17 @@ type UnitTest() =
             "∀x.∃y.hates(x, y)", formula.ToString())
 
             // "Jane hates somebody": valid
-        let newFormulaOpt =
-            let jane = Variable "jane"
-            formula
-                |> InferenceRule.tryUniversalElimination (Term jane)
+        let conclusions =
+            UniversalElimination (Term (Variable "jane"))
+                |> InferenceRule.apply [| formula |]
+        Assert.AreEqual(1, conclusions.Length)
+        Assert.AreEqual(1, conclusions.[0].Length)
         Assert.AreEqual(
-            Some "∃y.hates(jane, y)",
-            newFormulaOpt |> Option.map (fun nf -> nf.ToString()))
+            "∃y.hates(jane, y)",
+            conclusions.[0].[0].ToString())
 
-            // "somebody hates herself": invalid
-        let newFormulaOpt =
-            let y = Variable "y"
-            formula
-                |> InferenceRule.tryUniversalElimination (Term y)
-        Assert.AreEqual(None, newFormulaOpt)
+            // "somebody hates herself": ∃y.hates(y, y), invalid
+        let conclusions =
+            UniversalElimination (Term (Variable "y"))
+                |> InferenceRule.apply [| formula |]
+        Assert.AreEqual(0, conclusions.Length)
