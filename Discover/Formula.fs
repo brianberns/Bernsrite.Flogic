@@ -29,7 +29,7 @@ type Predicate = Predicate of Name * Arity
 type Formula =
 
     /// Atomic formula (no sub-formulas): P(t1, t2, ...)
-    | Formula of Predicate * List<Term>
+    | Formula of Predicate * Term[]
 
     // Negation: ~P
     | Not of Formula
@@ -115,7 +115,7 @@ module Formula =
             // substitutes within multiple terms
         and substituteTerms oldTerms =
             oldTerms
-                |> List.map substituteTerm
+                |> Array.map substituteTerm
 
             // substitutes within a formula
         let rec loop = function

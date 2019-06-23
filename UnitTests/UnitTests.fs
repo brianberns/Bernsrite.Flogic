@@ -7,7 +7,7 @@ type UnitTest() =
 
     let isMan = Predicate ("Man", 1u)
     let isMortal = Predicate ("Mortal", 1u)
-    let x = [Term (Variable "x")]
+    let x = [| Term (Variable "x") |]
 
     [<TestMethod>]
     member __.ImplicationElimination() =
@@ -125,8 +125,8 @@ type UnitTest() =
     member this.UniversalIntroduction() =
 
         let x = Variable "x"
-        let p = Formula (Predicate ("p", 1u), [Term x])
-        let q = Formula (Predicate ("q", 1u), [Term x])
+        let p = Formula (Predicate ("p", 1u), [| Term x |])
+        let q = Formula (Predicate ("q", 1u), [| Term x |])
 
         let steps =
             [|
@@ -162,7 +162,7 @@ type UnitTest() =
                     y,
                     Formula (
                         Predicate ("hates", 2u),
-                        [Term x; Term y])))
+                        [| Term x; Term y |])))
         Assert.AreEqual(
             "∀x.∃y.hates(x, y)", formula.ToString())
 
@@ -198,7 +198,7 @@ type UnitTest() =
                     y,
                     Exists (
                         z,
-                        Formula (loves, [Term y; Term z])))
+                        Formula (loves, [| Term y; Term z |])))
             |],
             InferenceRule.Premise,
             Array.empty
@@ -212,8 +212,8 @@ type UnitTest() =
                         Implication (
                             Exists (
                                 z,
-                                Formula (loves, [Term y; Term z])),
-                            Formula (loves, [Term x; Term y]))))
+                                Formula (loves, [| Term y; Term z |])),
+                            Formula (loves, [| Term x; Term y |]))))
             |],
             InferenceRule.Premise,
             Array.empty
@@ -222,7 +222,7 @@ type UnitTest() =
             [|
                 Exists (
                     z,
-                    Formula (loves, [Term y; Term z]))
+                    Formula (loves, [| Term y; Term z |]))
             |],
             InferenceRule.UniversalElimination (Term y),
             [|1|]
@@ -234,8 +234,8 @@ type UnitTest() =
                     Implication (
                         Exists (
                             z,
-                            Formula (loves, [Term y; Term z])),
-                        Formula (loves, [Term x; Term y])))
+                            Formula (loves, [| Term y; Term z |])),
+                        Formula (loves, [| Term x; Term y |])))
             |],
             InferenceRule.UniversalElimination (Term x),
             [|2|]
@@ -245,15 +245,15 @@ type UnitTest() =
                 Implication (
                     Exists (
                         z,
-                        Formula (loves, [Term y; Term z])),
-                    Formula (loves, [Term x; Term y]))
+                        Formula (loves, [| Term y; Term z |])),
+                    Formula (loves, [| Term x; Term y |]))
             |],
             InferenceRule.UniversalElimination (Term y),
             [|4|]
 
             (*6*)
             [|
-                Formula (loves, [Term x; Term y])
+                Formula (loves, [| Term x; Term y |])
             |],
             InferenceRule.implicationElimination,
             [|5; 3|]
@@ -262,7 +262,7 @@ type UnitTest() =
             [|
                 ForAll (
                     y,
-                    Formula (loves, [Term x; Term y]))
+                    Formula (loves, [| Term x; Term y |]))
             |],
             InferenceRule.UniversalIntroduction y,
             [|6|]
@@ -273,7 +273,7 @@ type UnitTest() =
                     x,
                     ForAll (
                         y,
-                        Formula (loves, [Term x; Term y])))
+                        Formula (loves, [| Term x; Term y |])))
             |],
             InferenceRule.UniversalIntroduction x,
             [|7|]

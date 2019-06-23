@@ -8,7 +8,9 @@ module MetaVariable =
     /// Creates a metavariable. This is currently implemented as
     /// 0-arity placeholder for a predicate.
     let create name : MetaVariable =
-        Formula (Predicate (name, 0u), [])
+        Formula (
+            Predicate (name, 0u),
+            Array.empty)
 
 /// A schema is a formula that might contain metavariables.
 type Schema = Formula

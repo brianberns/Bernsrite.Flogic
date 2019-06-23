@@ -20,7 +20,7 @@ type Term =
     | Term of Variable
 
     /// Function application: f(t1, t2, ...)
-    | Application of Function * List<Term>
+    | Application of Function * Term[]
 
     /// Display string.
     member this.String =
@@ -70,3 +70,21 @@ module Term =
         term
             |> loop
             |> set
+
+/// http://intrologic.stanford.edu/public/section.php?section=section_08_03
+module Skolem =
+
+    let mutable private counter = 0
+
+    /// Creates a Skolem function for the given variables.
+    let createTerm variables =
+        let name =
+            counter <- counter + 1
+            sprintf "[skolem%d]" counter
+        let arity : Arity =
+            variables
+                |> Array.length
+                |> uint32
+        Application (
+            Function (name, arity),
+            variables |> Array.map Term)
