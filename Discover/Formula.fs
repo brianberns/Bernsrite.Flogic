@@ -98,31 +98,38 @@ type Formula =
 
 module Formula =
 
-    /// Substitutes the given term for the given variable in the
-    /// given formula.
-    let substitute variable term formula =
+    /// Substitutes one term for another in the given formula.
+    let substitute oldTerm newTerm formula =
+
+            // substitutes within a variable
+        let substituteVariable variable =
+            match oldTerm, newTerm with
+                | (Term oldVariable, Term newVariable) ->
+                    if variable = oldVariable then newVariable
+                    else variable
+                | _ -> variable
 
             // substitutes within a term
-        let rec substituteTerm = function
-            | Term var as oldTerm ->
-                if var = variable then term
-                else oldTerm
-            | Application (func, oldTerms) ->
-                Application (
-                    func,
-                    oldTerms |> substituteTerms)
+        let rec substituteTerm term =
+            if term = oldTerm then newTerm
+            else
+                match term with
+                    | Term _ -> term
+                    | Application (func, terms) ->
+                        Application (
+                            func,
+                            terms |> substituteTerms)
 
             // substitutes within multiple terms
-        and substituteTerms oldTerms =
-            oldTerms
-                |> Array.map substituteTerm
+        and substituteTerms terms =
+            terms |> Array.map substituteTerm
 
             // substitutes within a formula
         let rec loop = function
-            | Formula (predicate, oldTerms) ->
+            | Formula (predicate, terms) ->
                 Formula (
                     predicate,
-                    oldTerms |> substituteTerms)
+                    terms |> substituteTerms)
             | Not formula ->
                 Not (
                     formula |> loop)
@@ -144,11 +151,11 @@ module Formula =
                     formula2 |> loop)
             | Exists (variable, formula) ->
                 Exists (
-                    variable,
+                    substituteVariable variable,
                     formula |> loop)
             | ForAll (variable, formula) ->
                 ForAll (
-                    variable,
+                    substituteVariable variable,
                     formula |> loop)
 
         formula |> loop
@@ -267,7 +274,7 @@ module Formula =
         | ForAll (variable, formula)
             when formula |> isFreeFor term variable ->
                 formula
-                    |> substitute variable term
+                    |> substitute (Term variable) term
                     |> Some
         | _ -> None
 
@@ -280,6 +287,6 @@ module Formula =
                     |> Seq.toArray
                     |> Skolem.createTerm
             formula
-                |> substitute variable skolem
+                |> substitute (Term variable) skolem
                 |> Some
         | _ -> None
