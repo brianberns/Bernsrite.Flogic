@@ -98,52 +98,13 @@ type Formula =
 
 module Formula =
 
-    /// Answers the distinct variables contained in the given formula.
-    let getVariables formula =
-
-        let rec loop formula =
-            seq {
-                match formula with
-                    | Formula (_, terms) ->
-                        for term in terms do
-                            yield! term |> Term.getVariables
-                    | Not formula ->
-                        yield! formula |> loop
-                    | And (formula1, formula2) ->
-                        yield! formula1 |> loop
-                        yield! formula2 |> loop
-                    | Or (formula1, formula2) ->
-                        yield! formula1 |> loop
-                        yield! formula2 |> loop
-                    | Implication (formula1, formula2) ->
-                        yield! formula1 |> loop
-                        yield! formula2 |> loop
-                    | Biconditional (formula1, formula2) ->
-                        yield! formula1 |> loop
-                        yield! formula2 |> loop
-                    | Exists (variable, formula) ->
-                        yield variable
-                        yield! formula |> loop
-                    | ForAll (variable, formula) ->
-                        yield variable
-                        yield! formula |> loop
-            }
-
-        formula
-            |> loop
-            |> set
-
-    /// Tries to substitute the given term for the given variable in the
+    /// Substitutes the given term for the given variable in the
     /// given formula.
-    let trySubstitute variable term formula =
-
-            // extract variables from given term
-        let newVariables = term |> Term.getVariables
+    let substitute variable term formula =
 
             // substitutes within a term
         let rec substituteTerm = function
             | Term var as oldTerm ->
-                assert(newVariables.Contains(var) |> not)
                 if var = variable then term
                 else oldTerm
             | Application (func, oldTerms) ->
@@ -157,44 +118,90 @@ module Formula =
                 |> List.map substituteTerm
 
             // substitutes within a formula
-        let rec substitute = function
+        let rec loop = function
             | Formula (predicate, oldTerms) ->
                 Formula (
                     predicate,
                     oldTerms |> substituteTerms)
             | Not formula ->
                 Not (
-                    formula |> substitute)
+                    formula |> loop)
             | And (formula1, formula2) ->
                 And (
-                    formula1 |> substitute,
-                    formula2 |> substitute)
+                    formula1 |> loop,
+                    formula2 |> loop)
             | Or (formula1, formula2) ->
                 Or (
-                    formula1 |> substitute,
-                    formula2 |> substitute)
+                    formula1 |> loop,
+                    formula2 |> loop)
             | Implication (formula1, formula2) ->
                 Implication (
-                    formula1 |> substitute,
-                    formula2 |> substitute)
+                    formula1 |> loop,
+                    formula2 |> loop)
             | Biconditional (formula1, formula2) ->
                 Biconditional (
-                    formula1 |> substitute,
-                    formula2 |> substitute)
+                    formula1 |> loop,
+                    formula2 |> loop)
             | Exists (variable, formula) ->
                 Exists (
                     variable,
-                    formula |> substitute)
+                    formula |> loop)
             | ForAll (variable, formula) ->
                 ForAll (
                     variable,
-                    formula |> substitute)
+                    formula |> loop)
 
-            // ensure substitution is valid before doing it
-        let overlap =
-            let oldVariables = formula |> getVariables
-            Set.intersect newVariables oldVariables
-        if overlap.IsEmpty then
-            formula |> substitute |> Some
-        else
-            None
+        formula |> loop
+
+    /// A term is free for a variable in a formula iff no free occurrence
+    /// of the νariable occurs within the scope of a quantifier of some
+    /// variable in the term.
+    /// http://intrologic.stanford.edu/public/section.php?section=section_08_02
+    let isFreeFor term variable formula =
+
+        /// Answers the quantified variables in whose scope the given variable
+        /// occurs free in the given formula.
+        let getFreeScopes variable =
+
+            let rec loop activeScopes formula =
+                seq {
+                    match formula with
+                        | Formula (_, terms) ->
+                            let contains =
+                                Term.getVariables >> Set.contains variable
+                            if terms |> Seq.exists contains then
+                                yield! activeScopes
+                        | Not formula ->
+                            yield! formula |> loop activeScopes
+                        | And (formula1, formula2) ->
+                            yield! formula1 |> loop activeScopes
+                            yield! formula2 |> loop activeScopes
+                        | Or (formula1, formula2) ->
+                            yield! formula1 |> loop activeScopes
+                            yield! formula2 |> loop activeScopes
+                        | Implication (formula1, formula2) ->
+                            yield! formula1 |> loop activeScopes
+                            yield! formula2 |> loop activeScopes
+                        | Biconditional (formula1, formula2) ->
+                            yield! formula1 |> loop activeScopes
+                            yield! formula2 |> loop activeScopes
+                        | Exists (var, formula) ->
+                            if var <> variable then
+                                let activeScopes' = var :: activeScopes
+                                yield! formula |> loop activeScopes'
+                        | ForAll (var, formula) ->
+                            if var <> variable then
+                                let activeScopes' = var :: activeScopes
+                                yield! formula |> loop activeScopes'
+                }
+
+            formula
+                |> loop List.empty
+                |> set
+
+        let variableScopes =
+            variable |> getFreeScopes
+        let termVariables =
+            term |> Term.getVariables
+        Set.intersect variableScopes termVariables
+            |> Set.isEmpty

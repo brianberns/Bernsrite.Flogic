@@ -44,7 +44,8 @@ type InferenceRule =
     ///
     /// ∀v.P(v)
     /// --------
-    /// P(t) where term t is substitutable for variable v in P.
+    /// P(t/v) where term t is "free for" variable v in P and P(t/v)
+    /// is the substituion of t for v in P.
     | UniversalElimination of Term
 
     /// Display string.
@@ -229,8 +230,11 @@ module InferenceRule =
 
     /// Tries to instantiate a universal quantification.
     let tryUniversalElimination term = function
-        | ForAll (variable, formula) ->
-            formula |> Formula.trySubstitute variable term
+        | ForAll (variable, formula)
+            when formula |> Formula.isFreeFor term variable ->
+                formula
+                    |> Formula.substitute variable term
+                    |> Some
         | _ -> None
 
     /// Finds all possible applications of the given rule to the
