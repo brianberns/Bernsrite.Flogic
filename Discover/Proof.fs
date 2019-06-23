@@ -142,6 +142,7 @@ module Proof =
                 | Ordinary oir -> oir.Premises.Length
                 | Assumption -> 0
                 | ImplicationIntroduction -> 2
+                | UniversalIntroduction _ -> 1
                 | UniversalElimination _ -> 1
         if nRulePremises = indexes.Length then
 

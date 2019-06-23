@@ -259,14 +259,14 @@ module InferenceRule =
 
     /// Finds all possible applications of the given rule to the
     /// given formulas.
-    let apply formulas rule =
+    let apply formulas =
 
         let wrap formula =
             [|
                 [| formula |]
             |]
 
-        match rule with
+        function
             | Assumption
             | Premise ->
                 [| formulas |]

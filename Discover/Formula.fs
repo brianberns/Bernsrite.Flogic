@@ -55,7 +55,7 @@ type Formula =
     /// Display string.
     member this.String =
 
-        let rec loop isRoot formula =
+        let rec loop isRoot =
 
             let infix symbol formula1 formula2 =
                 sprintf "%s%s %s %s%s"
@@ -65,7 +65,7 @@ type Formula =
                     (formula2 |> loop false)
                     (if isRoot then "" else ")")
 
-            match formula with
+            function
                 | Formula (Predicate (name, arity), terms) ->
                     assert(arity = uint32 terms.Length)
                     if arity = 0u then name
