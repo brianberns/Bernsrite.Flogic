@@ -182,3 +182,91 @@ type UnitTest() =
             UniversalElimination (Term (Variable "y"))
                 |> InferenceRule.apply [| formula |]
         Assert.AreEqual(0, conclusions.Length)
+
+    /// http://intrologic.stanford.edu/public/section.php?section=section_08_05
+    [<TestMethod>]
+    member this.QuantifiedProof() =
+
+        let x = Variable "x"
+        let y = Variable "y"
+        let z = Variable "z"
+        let loves = Predicate ("loves", 2u)
+
+        [|
+            (*1*)
+            [|
+                ForAll (
+                    y,
+                    Exists (
+                        z,
+                        Formula (loves, [Term y; Term z])))
+            |],
+            InferenceRule.Premise,
+            Array.empty
+
+            (*2*)
+            [|
+                ForAll (
+                    x,
+                    ForAll (
+                        y,
+                        Implication (
+                            Exists (
+                                z,
+                                Formula (loves, [Term y; Term z])),
+                            Formula (loves, [Term x; Term y]))))
+            |],
+            InferenceRule.Premise,
+            Array.empty
+
+            (*3*)
+            [|
+                Exists (
+                    z,
+                    Formula (loves, [Term y; Term z]))
+            |],
+            InferenceRule.UniversalElimination (Term y),
+            [|1|]
+
+            (*4*)
+            [|
+                ForAll (
+                    y,
+                    Implication (
+                        Exists (
+                            z,
+                            Formula (loves, [Term y; Term z])),
+                        Formula (loves, [Term x; Term y])))
+            |],
+            InferenceRule.UniversalElimination (Term x),
+            [|2|]
+
+            (*5*)
+            [|
+                Implication (
+                    Exists (
+                        z,
+                        Formula (loves, [Term y; Term z])),
+                    Formula (loves, [Term x; Term y]))
+            |],
+            InferenceRule.UniversalElimination (Term y),
+            [|4|]
+
+            (*6*)
+            [|
+                Formula (loves, [Term x; Term y])
+            |],
+            InferenceRule.implicationElimination,
+            [|5; 3|]
+
+            (*7*)
+            (*
+            [|
+                ForAll (
+                    y,
+                    Formula (loves, [Term x; Term y]))
+            |],
+            InferenceRule.UniversalIntroduction (y, ),
+            [|6|]
+            *)
+        |] |> this.Prove
