@@ -13,7 +13,7 @@ type Variable = Variable of Name
 ///    * Joe: constant (i.e. function of arity 0)
 ///    * Joe's father: function application
 ///    * someone: variable
-[<StructuredFormatDisplay("{String")>]
+[<StructuredFormatDisplay("{String}")>]
 type Term =
 
     /// Atomic term: v

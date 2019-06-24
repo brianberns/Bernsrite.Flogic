@@ -53,6 +53,8 @@ type InferenceRule =
     /// is the substituion of t for v in P.
     | UniversalElimination of Term
 
+    | ExistentialIntroduction of Variable
+
     /// ∃v.P(ν1, ..., νn, ν)
     /// ------------------
     /// P(skolem(ν1, ... ,νn)) where "skolem" is a not an existing function.
@@ -68,6 +70,7 @@ type InferenceRule =
             | UniversalIntroduction _ -> "Universal introduction"
             | UniversalElimination term ->
                 sprintf "Universal elimination (%A)" term
+            | ExistentialIntroduction _ -> "Existential introduction"
             | ExistentialElimination -> "Existential elimination"
 
     /// Display string.
@@ -249,6 +252,15 @@ module InferenceRule =
                 [| formula |]
             |]
 
+            // applies a rule to a single formula
+        let single callback =
+            if formulas |> Array.length = 1 then
+                formulas.[0]
+                    |> callback
+                    |> Option.map wrap
+                    |> Option.defaultValue Array.empty
+            else Array.empty
+
         function
             | Assumption
             | Premise ->
@@ -262,16 +274,8 @@ module InferenceRule =
             | UniversalIntroduction _ ->
                 failwith "Universal introduction requires assumptions"
             | UniversalElimination term ->
-                if formulas.Length = 1 then
-                    formulas.[0]
-                        |> Formula.tryUniversalElimination term
-                        |> Option.map wrap
-                        |> Option.defaultValue Array.empty
-                else Array.empty
+                single (Formula.tryUniversalElimination term)
+            | ExistentialIntroduction _ ->
+                single (fun _ -> None)
             | ExistentialElimination ->
-                if formulas.Length = 1 then
-                    formulas.[0]
-                        |> Formula.tryExistentialElimination
-                        |> Option.map wrap
-                        |> Option.defaultValue Array.empty
-                else Array.empty
+                single Formula.tryExistentialElimination

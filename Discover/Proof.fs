@@ -175,13 +175,14 @@ module Proof =
             else indexes
         let nRulePremises =
             match rule with
-                | Premise -> 0
-                | Ordinary oir -> oir.Premises.Length
+                | Premise
                 | Assumption -> 0
-                | ImplicationIntroduction -> 2
-                | UniversalIntroduction _ -> 1
-                | UniversalElimination _ -> 1
+                | UniversalIntroduction _
+                | UniversalElimination _
+                | ExistentialIntroduction _
                 | ExistentialElimination -> 1
+                | ImplicationIntroduction -> 2
+                | Ordinary oir -> oir.Premises.Length
         if nRulePremises = indexes.Length then
 
                 // find antecedent formulas
