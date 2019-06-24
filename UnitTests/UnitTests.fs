@@ -184,7 +184,7 @@ type UnitTest() =
 
     /// http://intrologic.stanford.edu/public/section.php?section=section_08_05
     [<TestMethod>]
-    member this.QuantifiedProof() =
+    member this.QuantifiedProof1() =
 
         let x = Variable "x"
         let y = Variable "y"
@@ -328,3 +328,125 @@ type UnitTest() =
             formula
                 |> Formula.tryExistentialIntroduction fx y
         Assert.AreEqual(None, formulaOpt)   // ∃y.∀x.hates(x, y) is invalid
+
+    /// http://intrologic.stanford.edu/public/section.php?section=section_08_07
+    [<TestMethod>]
+    member this.QuantifiedProof2() =
+
+        let x = Variable "x"
+        let y = Variable "y"
+        let p = Predicate ("p", 2u)
+        let q = Predicate ("q", 1u)
+        let skolem =
+            Application (
+                Function ("[skolem1]", 1u),   // fix: caller must guess name of skolem function
+                [| Term x |])
+
+        [|
+            (*1*)
+            [|
+                ForAll (
+                    x,
+                    ForAll (
+                        y,
+                        Implication (
+                            Formula (
+                                p,
+                                [| Term x; Term y |]),
+                            Formula (
+                                q,
+                                [| Term x |]))))
+            |],
+            InferenceRule.Premise,
+            Array.empty
+
+            (*2*)
+            [|
+                Exists (
+                    y,
+                    Formula (
+                        p,
+                        [| Term x; Term y |]))
+            |],
+            InferenceRule.Assumption,
+            Array.empty
+
+            (*3*)
+            [|
+                Formula (
+                    p,
+                    [| Term x; skolem |])
+            |],
+            InferenceRule.ExistentialElimination,
+            [| 2 |]
+
+            (*4*)
+            [|
+                ForAll (
+                    y,
+                    Implication (
+                        Formula (
+                            p,
+                            [| Term x; Term y |]),
+                        Formula (
+                            q,
+                            [| Term x |])))
+            |],
+            InferenceRule.UniversalElimination (Term x),
+            [| 1 |]
+
+            (*5*)
+            [|
+                Implication (
+                    Formula (
+                        p,
+                        [| Term x; skolem |]),
+                    Formula (
+                        q,
+                        [| Term x |]))
+            |],
+            InferenceRule.UniversalElimination skolem,
+            [| 4 |]
+
+            (*6*)
+            [|
+                Formula (
+                    q,
+                    [| Term x |])
+            |],
+            InferenceRule.implicationElimination,
+            [| 3; 5 |]
+
+            (*7*)
+            [|
+                Implication (
+                    Exists (
+                        y,
+                        Formula (
+                            p,
+                            [| Term x; Term y |])),
+                    Formula (
+                        q,
+                        [| Term x |]))
+            |],
+            InferenceRule.ImplicationIntroduction,
+            [| 2; 6 |]
+
+            (*8*)
+            [|
+                ForAll (
+                    x,
+                    Implication (
+                        Exists (
+                            y,
+                            Formula (
+                                p,
+                                [| Term x; Term y |])),
+                        Formula (
+                            q,
+                            [| Term x |])))
+            |],
+            InferenceRule.UniversalIntroduction x,
+            [| 7 |]
+
+        |] |> this.Prove
