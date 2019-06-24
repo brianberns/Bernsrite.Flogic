@@ -283,19 +283,48 @@ type UnitTest() =
     /// Elliott Mendelson, Introduction to Mathematical Logic: Existential Rule E4
     [<TestMethod>]
     member __.ExistentialIntroduction() =
+
         let jill = Term.constant "jill"
         let hates = Predicate ("hates", 2u)
-        let formula = Formula (hates, [| jill; jill |])
         let x = Variable "x"
 
+        // hates(jill, jill)
         let formulaOpt =
-            formula |> Formula.tryExistentialIntroduction jill x
+            Formula (hates, [| jill; jill |])
+                |> Formula.tryExistentialIntroduction jill x
         Assert.AreEqual(
             Some "∃x.hates(x, x)",
             formulaOpt
                 |> Option.map (fun formula ->
                     formula.ToString()))
-        /// But what about:
-        ///    ∃y.hates(jill,y)
-        ///    ∃x.hates(x,jill)
-        ///    ∃x.∃y.hates(x,y)
+        // But what about:
+        //    ∃y.hates(jill, y)
+        //    ∃x.hates(x, jill)
+        //    ∃x.∃y.hates(x, y)
+
+        // introduce x for jill in ∃x.hates(jill, x)
+        let formulaOpt =
+            Exists (
+                x,
+                Formula (
+                    hates,
+                    [| jill; Term x |]))
+                |> Formula.tryExistentialIntroduction jill x
+        Assert.AreEqual(None, formulaOpt)   // ∃x.∃x.hates(x, x)) is invalid
+
+        // introduce y for f(x) in ∀x.hates(x, f(x))
+        let fx =
+            Application (
+                Function ("f", 1u),
+                [| Term x |])
+        let y = Variable "y"
+        let formula =
+            ForAll (
+                x,
+                Formula (
+                    hates,
+                    [| Term x; fx |]))
+        let formulaOpt =
+            formula
+                |> Formula.tryExistentialIntroduction fx y
+        Assert.AreEqual(None, formulaOpt)   // ∃y.∀x.hates(x, y) is invalid

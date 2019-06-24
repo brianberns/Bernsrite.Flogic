@@ -55,7 +55,8 @@ type InferenceRule =
 
     /// P(t)
     /// ---
-    /// ∃v.P(v/t) where term t is replaced by variable v.
+    /// ∃v.P(v/t) where P(v/t) is the subsitition of v for t in P. (Stanford
+    /// is fuzzy on the restrictions.)
     | ExistentialIntroduction of (Term * Variable)
 
     /// ∃v.P(ν1, ..., νn, ν)

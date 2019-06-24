@@ -38,14 +38,14 @@ type Term =
 
 module Term =
 
-    /// Creates a constant with the given name. A constant is a function
-    /// of arity 0.
+    /// Creates a constant term with the given name. A constant is a
+    /// function of arity 0.
     let constant name =
         Application (
             (Function (name, 0u)),
             Array.empty)
 
-    /// Active pattern for a constant.
+    /// Active pattern for a constant term.
     let (|Constant|_|) = function
         | Term (Variable _) -> None
         | Application ((Function (name, arity)), terms) ->
