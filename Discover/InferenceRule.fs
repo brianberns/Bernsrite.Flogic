@@ -47,16 +47,14 @@ type InferenceRule =
 
     /// Reasons from the general to the specific.
     ///
-    /// ∀v.P(v)
+    /// ∀v.P[v]
     /// --------
-    /// P(t/v) where term t is "free for" variable v in P and P(t/v)
-    /// is the substituion of t for v in P.
+    /// P[t/v] where P[t/v] is the capture-free substituion of t for v in P.
     | UniversalElimination of Term
 
-    /// P(t)
+    /// P[t/v]
     /// ---
-    /// ∃v.P(v/t) where P(v/t) is the subsitition of v for t in P. (Stanford
-    /// is fuzzy on the restrictions.)
+    /// ∃v.P[v]
     | ExistentialIntroduction of (Term * Variable)
 
     /// ∃v.P(ν1, ..., νn, ν)

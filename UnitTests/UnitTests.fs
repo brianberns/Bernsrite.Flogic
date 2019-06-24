@@ -280,7 +280,6 @@ type UnitTest() =
         |] |> this.Prove
 
     /// http://intrologic.stanford.edu/public/section.php?section=section_08_03
-    /// Elliott Mendelson, Introduction to Mathematical Logic: Existential Rule E4
     [<TestMethod>]
     member __.ExistentialIntroduction() =
 

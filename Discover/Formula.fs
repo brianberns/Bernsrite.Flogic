@@ -98,7 +98,92 @@ type Formula =
 
 module Formula =
 
-    /// Substitutes one term for another in the given formula.
+    /// https://stackoverflow.com/questions/7818277/is-there-a-standard-option-workflow-in-f
+    type OptionBuilder() =
+        member __.Bind(v, f) = Option.bind f v
+        member __.Return(v) = Some v
+        member __.ReturnFrom(o) = o
+        member __.Zero() = None
+
+    let option = OptionBuilder()
+
+    /// Tries to substitute the given term for the given variable in the given
+    /// formula. Fails if this would capture any of the variables in the given
+    /// term.
+    /// See https://math.stackexchange.com/questions/3272333/restrictions-on-existential-introduction-in-first-order-logic
+    let trySubstitute variable term formula =
+
+            // variables that must avoid capture
+        let termVariables =
+            term |> Term.getVariables
+
+            // substitutes within a term
+        let rec substituteTerm = function
+            | Term var as oldTerm ->
+                if var = variable then term
+                else oldTerm
+            | Application (func, oldTerms) ->
+                Application (
+                    func,
+                    oldTerms |> substituteTerms)
+
+            // substitutes within multiple terms
+        and substituteTerms oldTerms =
+            oldTerms |> Array.map substituteTerm
+
+            // substitutes within a formula
+        let rec loop = function
+            | Formula (predicate, oldTerms) ->
+                Formula (
+                    predicate,
+                    oldTerms |> substituteTerms)
+                    |> Some
+            | Not formula ->
+                Not |> unary formula
+            | And (formula1, formula2) ->
+                And |> binary formula1 formula2
+            | Or (formula1, formula2) ->
+                Or |> binary formula1 formula2
+            | Implication (formula1, formula2) ->
+                Implication |> binary formula1 formula2
+            | Biconditional (formula1, formula2) ->
+                Biconditional |> binary formula1 formula2
+            | Exists (oldVariable, formula) ->
+                Exists |> quantified oldVariable formula
+            | ForAll (oldVariable, formula) ->
+                ForAll |> quantified oldVariable formula
+
+            // substitutes within a unary formula
+        and unary formula constructor =
+            option {
+                let! formula' = loop formula
+                return constructor formula'
+            }
+
+            // substitutes within a binary formula
+        and binary formula1 formula2 constructor =
+            option {
+                let! formula1' = loop formula1
+                let! formula2' = loop formula2
+                return constructor (formula1', formula2')
+            }
+
+            // substitutes within a quantified formula
+        and quantified oldVariable formula constructor =
+            if termVariables.Contains(oldVariable) then
+                None
+            else option {
+                if variable = oldVariable then
+                    return constructor (oldVariable, formula)
+                else
+                    return! unary formula (fun formula' ->
+                        constructor (oldVariable, formula'))
+            }
+
+        formula |> loop
+
+    /// Substitutes one term for another in the given formula. Does not attempt
+    /// to avoid variable capture.
     let substitute oldTerm newTerm formula =
 
             // substitutes within a variable
@@ -204,59 +289,6 @@ module Formula =
             |> getFreeVariables
             |> Set.contains variable
 
-    /// A term is free for a variable in a formula iff no free occurrence
-    /// of the νariable occurs within the scope of a quantifier of some
-    /// variable in the term.
-    /// http://intrologic.stanford.edu/public/section.php?section=section_08_02
-    let isFreeFor term variable formula =
-
-        /// Answers the quantified variables in whose scope the given variable
-        /// occurs free in the given formula.
-        let getFreeScopes variable =
-
-            let rec loop activeScopes formula =
-                seq {
-                    match formula with
-                        | Formula (_, terms) ->
-                            let contains =
-                                Term.getVariables >> Set.contains variable
-                            if terms |> Seq.exists contains then
-                                yield! activeScopes
-                        | Not formula ->
-                            yield! formula |> loop activeScopes
-                        | And (formula1, formula2) ->
-                            yield! formula1 |> loop activeScopes
-                            yield! formula2 |> loop activeScopes
-                        | Or (formula1, formula2) ->
-                            yield! formula1 |> loop activeScopes
-                            yield! formula2 |> loop activeScopes
-                        | Implication (formula1, formula2) ->
-                            yield! formula1 |> loop activeScopes
-                            yield! formula2 |> loop activeScopes
-                        | Biconditional (formula1, formula2) ->
-                            yield! formula1 |> loop activeScopes
-                            yield! formula2 |> loop activeScopes
-                        | Exists (var, formula) ->
-                            if var <> variable then
-                                let activeScopes' = var :: activeScopes
-                                yield! formula |> loop activeScopes'
-                        | ForAll (var, formula) ->
-                            if var <> variable then
-                                let activeScopes' = var :: activeScopes
-                                yield! formula |> loop activeScopes'
-                }
-
-            formula
-                |> loop List.empty
-                |> set
-
-        let variableScopes =
-            variable |> getFreeScopes
-        let termVariables =
-            term |> Term.getVariables
-        Set.intersect variableScopes termVariables
-            |> Set.isEmpty
-
     /// Tries to introduce a universal quantification of the given formula.
     let tryUniversalIntroduction variable assumptions formula =
         let isValid =
@@ -271,20 +303,20 @@ module Formula =
 
     /// Tries to instantiate a universal quantification.
     let tryUniversalElimination term = function
-        | ForAll (variable, formula)
-            when formula |> isFreeFor term variable ->
-                formula
-                    |> substitute (Term variable) term
-                    |> Some
+        | ForAll (variable, formula) ->
+            formula |> trySubstitute variable term
         | _ -> None
 
     /// Tries to introduce an existential quantification of the given formula.
     let tryExistentialIntroduction term variable formula =
-        Exists (
-            variable,
-            formula
-                |> substitute term (Term variable))
-            |> Some
+        option {
+            let formula' =
+                formula |> substitute term (Term variable)
+            let! formula'' =
+                formula' |> trySubstitute variable term
+            if formula'' = formula then
+                return Exists (variable, formula')
+        }
 
     /// Tries to eliminate an existential quantification.
     let tryExistentialElimination = function
@@ -295,6 +327,5 @@ module Formula =
                     |> Seq.toArray
                     |> Skolem.createTerm
             inner
-                |> substitute (Term variable) skolem
-                |> Some
+                |> trySubstitute variable skolem
         | _ -> None
