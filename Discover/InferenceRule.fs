@@ -53,7 +53,10 @@ type InferenceRule =
     /// is the substituion of t for v in P.
     | UniversalElimination of Term
 
-    | ExistentialIntroduction of Variable
+    /// P(t)
+    /// ---
+    /// ∃v.P(v/t) where term t is replaced by variable v.
+    | ExistentialIntroduction of (Term * Variable)
 
     /// ∃v.P(ν1, ..., νn, ν)
     /// ------------------
@@ -275,7 +278,7 @@ module InferenceRule =
                 failwith "Universal introduction requires assumptions"
             | UniversalElimination term ->
                 single (Formula.tryUniversalElimination term)
-            | ExistentialIntroduction _ ->
-                single (fun _ -> None)
+            | ExistentialIntroduction (term, variable) ->
+                single (Formula.tryExistentialIntroduction term variable)
             | ExistentialElimination ->
                 single Formula.tryExistentialElimination

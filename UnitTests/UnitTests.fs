@@ -278,3 +278,24 @@ type UnitTest() =
             InferenceRule.UniversalIntroduction x,
             [|7|]
         |] |> this.Prove
+
+    /// http://intrologic.stanford.edu/public/section.php?section=section_08_03
+    /// Elliott Mendelson, Introduction to Mathematical Logic: Existential Rule E4
+    [<TestMethod>]
+    member __.ExistentialIntroduction() =
+        let jill = Term.constant "jill"
+        let hates = Predicate ("hates", 2u)
+        let formula = Formula (hates, [| jill; jill |])
+        let x = Variable "x"
+
+        let formulaOpt =
+            formula |> Formula.tryExistentialIntroduction jill x
+        Assert.AreEqual(
+            Some "∃x.hates(x, x)",
+            formulaOpt
+                |> Option.map (fun formula ->
+                    formula.ToString()))
+        /// But what about:
+        ///    ∃y.hates(jill,y)
+        ///    ∃x.hates(x,jill)
+        ///    ∃x.∃y.hates(x,y)

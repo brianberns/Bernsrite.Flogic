@@ -278,6 +278,14 @@ module Formula =
                     |> Some
         | _ -> None
 
+    /// Tries to introduce an existential quantification of the given formula.
+    let tryExistentialIntroduction term variable formula =
+        Exists (
+            variable,
+            formula
+                |> substitute term (Term variable))
+            |> Some
+
     /// Tries to eliminate an existential quantification.
     let tryExistentialElimination = function
         | Exists (variable, formula) ->
