@@ -2,21 +2,27 @@
 
 open System
 
+/// The number of arguments a function or predicate takes.
 type Arity = uint32
+
+/// The name of something.
 type Name = string
 
+/// A function that takes some number of arguments.
 type Function = Function of Name * Arity
+
+/// A variable that represents an object in the world.
 type Variable = Variable of Name
 
 /// A term typically denotes an object that exists in the world.
 /// E.g.
-///    * Joe: constant (i.e. function of arity 0)
-///    * Joe's father: function application
+///    * Joe: constant
+///    * Joe's father: function application (i.e. father(joe))
 ///    * someone: variable
 [<StructuredFormatDisplay("{String}")>]
 type Term =
 
-    /// Atomic term: v
+    /// An atomic term.
     | Term of Variable
 
     /// Function application: f(t1, t2, ...)
@@ -26,11 +32,11 @@ type Term =
     member this.String =
         match this with
             | Term (Variable name) -> name
-            | Application ((Function (name, arity)), terms) ->
+            | Application (Function (name, arity), terms) ->
                 assert(arity = uint32 terms.Length)
                 if arity = 0u then name
                 else
-                    sprintf "%s(%s)" name <| String.Join(", ", terms)
+                    sprintf "%s(%s)" name <| String.Join(",", terms)
 
     /// Display string.
     override this.ToString() =
@@ -83,15 +89,9 @@ module Skolem =
 
     let mutable private counter = 0
 
-    /// Creates a Skolem function for the given variables.
-    let createTerm variables =
+    /// Creates a Skolem function of the given arity.
+    let createFunction arity =
         let name =
             counter <- counter + 1
             sprintf "[skolem%d]" counter
-        let arity : Arity =
-            variables
-                |> Array.length
-                |> uint32
-        Application (
-            Function (name, arity),
-            variables |> Array.map Term)
+        Function (name, arity)

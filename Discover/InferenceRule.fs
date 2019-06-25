@@ -60,7 +60,7 @@ type InferenceRule =
     /// ∃v.P(ν1, ..., νn, ν)
     /// ------------------
     /// P(skolem(ν1, ... ,νn)) where "skolem" is a not an existing function.
-    | ExistentialElimination
+    | ExistentialElimination of Function (*Skolem function*)
 
     /// Display string.
     member this.Name =
@@ -73,7 +73,7 @@ type InferenceRule =
             | UniversalElimination term ->
                 sprintf "Universal elimination (%A)" term
             | ExistentialIntroduction _ -> "Existential introduction"
-            | ExistentialElimination -> "Existential elimination"
+            | ExistentialElimination _ -> "Existential elimination"
 
     /// Display string.
     override this.ToString() = this.Name
@@ -279,5 +279,14 @@ module InferenceRule =
                 single (Formula.tryUniversalElimination term)
             | ExistentialIntroduction (term, variable) ->
                 single (Formula.tryExistentialIntroduction term variable)
-            | ExistentialElimination ->
-                single Formula.tryExistentialElimination
+            | ExistentialElimination skolem ->
+                single (fun formula ->
+                    let term =
+                        Application (
+                            skolem,
+                            formula
+                                |> Formula.getFreeVariables
+                                |> Seq.map Term
+                                |> Seq.toArray)
+                    formula
+                        |> Formula.tryExistentialElimination term)

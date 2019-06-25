@@ -318,14 +318,9 @@ module Formula =
                 return Exists (variable, formula')
         }
 
-    /// Tries to eliminate an existential quantification.
-    let tryExistentialElimination = function
-        | Exists (variable, inner) as formula ->
-            let skolem =
-                formula
-                    |> getFreeVariables
-                    |> Seq.toArray
-                    |> Skolem.createTerm
-            inner
-                |> trySubstitute variable skolem
+    /// Tries to eliminate an existential quantification using the given
+    /// Skolem function.
+    let tryExistentialElimination skolem = function
+        | Exists (variable, inner) ->
+            inner |> trySubstitute variable skolem
         | _ -> None

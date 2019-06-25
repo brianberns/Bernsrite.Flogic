@@ -287,7 +287,7 @@ type UnitTest() =
         let hates = Predicate ("hates", 2u)
         let x = Variable "x"
 
-        // hates(jill, jill)
+        // try to introduce x for jill in hates(jill, jill)
         let formulaOpt =
             Formula (hates, [| jill; jill |])
                 |> Formula.tryExistentialIntroduction jill x
@@ -301,7 +301,7 @@ type UnitTest() =
         //    ∃x.hates(x, jill)
         //    ∃x.∃y.hates(x, y)
 
-        // introduce x for jill in ∃x.hates(jill, x)
+        // try to introduce x for jill in ∃x.hates(jill, x)
         let formulaOpt =
             Exists (
                 x,
@@ -311,7 +311,7 @@ type UnitTest() =
                 |> Formula.tryExistentialIntroduction jill x
         Assert.AreEqual(None, formulaOpt)   // ∃x.∃x.hates(x, x)) is invalid
 
-        // introduce y for f(x) in ∀x.hates(x, f(x))
+        // try to introduce y for f(x) in ∀x.hates(x, f(x))
         let fx =
             Application (
                 Function ("f", 1u),
@@ -336,10 +336,10 @@ type UnitTest() =
         let y = Variable "y"
         let p = Predicate ("p", 2u)
         let q = Predicate ("q", 1u)
-        let skolem =
-            Application (
-                Function ("[skolem1]", 1u),   // fix: caller must guess name of skolem function
-                [| Term x |])
+        let skolemFunction =
+            Skolem.createFunction 1u
+        let skolemTerm =
+            Application (skolemFunction, [| Term x |])
 
         [|
             (*1*)
@@ -374,9 +374,9 @@ type UnitTest() =
             [|
                 Formula (
                     p,
-                    [| Term x; skolem |])
+                    [| Term x; skolemTerm |])
             |],
-            InferenceRule.ExistentialElimination,
+            InferenceRule.ExistentialElimination skolemFunction,
             [| 2 |]
 
             (*4*)
@@ -399,12 +399,12 @@ type UnitTest() =
                 Implication (
                     Formula (
                         p,
-                        [| Term x; skolem |]),
+                        [| Term x; skolemTerm |]),
                     Formula (
                         q,
                         [| Term x |]))
             |],
-            InferenceRule.UniversalElimination skolem,
+            InferenceRule.UniversalElimination skolemTerm,
             [| 4 |]
 
             (*6*)

@@ -180,7 +180,7 @@ module Proof =
                 | UniversalIntroduction _
                 | UniversalElimination _
                 | ExistentialIntroduction _
-                | ExistentialElimination -> 1
+                | ExistentialElimination _ -> 1
                 | ImplicationIntroduction -> 2
                 | Ordinary oir -> oir.Premises.Length
         if nRulePremises = indexes.Length then
