@@ -280,13 +280,4 @@ module InferenceRule =
             | ExistentialIntroduction (term, variable) ->
                 single (Formula.tryExistentialIntroduction term variable)
             | ExistentialElimination skolem ->
-                single (fun formula ->
-                    let term =
-                        Application (
-                            skolem,
-                            formula
-                                |> Formula.getFreeVariables
-                                |> Seq.map Term
-                                |> Seq.toArray)
-                    formula
-                        |> Formula.tryExistentialElimination term)
+                single (Formula.tryExistentialElimination skolem)
