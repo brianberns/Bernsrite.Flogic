@@ -20,6 +20,14 @@ type Binding = Map<MetaVariable, Formula>
 
 module Schema =
 
+    /// Active pattern for a metavariable.
+    let (|MetaVariable|_|) = function
+        | Formula ((Predicate (name, arity)), terms)
+            when arity = 0 ->
+                assert(terms.Length = arity)
+                Some name
+        | _ -> None
+
     /// Finds possible mappings for the given formula using the given
     /// schema (including potentially contradictory ones).
     let private findMappingOpts formula schema =
@@ -29,8 +37,7 @@ module Schema =
                 match (formula, schema) with
 
                         // bind metavariable
-                    | _, Formula (Predicate (_, 0), terms) ->
-                        assert(terms.Length = 0)
+                    | _, MetaVariable _ ->
                         yield Some ((schema : MetaVariable), formula)
 
                         // recurse
@@ -104,9 +111,7 @@ module Schema =
         match schema with
 
                 // bind with metavariable
-            | Formula (Predicate (name, 0), terms) ->
-                assert(terms.Length = 0)
-                let metaVariable : MetaVariable = schema
+            | MetaVariable name as metaVariable ->
                 match binding |> Map.tryFind metaVariable with
                     | Some formula -> formula
                     | None -> failwithf "No binding for metavariable %s" name

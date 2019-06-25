@@ -47,12 +47,11 @@ module Term =
 
     /// Active pattern for a constant term.
     let (|Constant|_|) = function
-        | Term (Variable _) -> None
-        | Application ((Function (name, arity)), terms) ->
-            assert(arity = terms.Length)
-            if arity = 0 then
+        | Application ((Function (name, arity)), terms)
+            when arity = 0 ->
+                assert(terms.Length = arity)
                 Some name
-            else None
+        | _ -> None
 
     /// Indicates whether the given term is "ground" (i.e. contains no
     /// variables).
