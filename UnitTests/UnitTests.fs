@@ -449,3 +449,120 @@ type UnitTest() =
             [| 7 |]
 
         |] |> this.Prove
+
+    [<TestMethod>]
+    member this.QuantifiedProof3() =
+
+        let x = Variable "x"
+        let y = Variable "y"
+        let p = Predicate ("p", 2u)
+        let q = Predicate ("q", 1u)
+
+        [|
+            (*1*)
+            [|
+                ForAll (
+                    x,
+                    Implication (
+                        Exists (
+                            y,
+                            Formula (
+                                p,
+                                [| Term x; Term y |])),
+                        Formula (
+                            q,
+                            [| Term x |])))
+            |],
+            InferenceRule.Premise,
+            Array.empty
+
+            (*2*)
+            [|
+                Formula (
+                    p,
+                    [| Term x; Term y |])
+            |],
+            InferenceRule.Assumption,
+            Array.empty
+
+            (*3*)
+            [|
+                Exists (
+                    y,
+                    Formula (
+                        p,
+                        [| Term x; Term y |]))
+            |],
+            InferenceRule.ExistentialIntroduction (Term y, y),
+            [| 2 |]
+
+            (*4*)
+            [|
+                Implication (
+                    Exists (
+                        y,
+                        Formula (
+                            p,
+                            [| Term x; Term y |])),
+                    Formula (
+                        q,
+                        [| Term x |]))
+            |],
+            InferenceRule.UniversalElimination (Term x),
+            [| 1 |]
+
+            (*5*)
+            [|
+                Formula (
+                    q,
+                    [| Term x |])
+            |],
+            InferenceRule.implicationElimination,
+            [| 4; 3 |]
+
+            (*6*)
+            [|
+                Implication (
+                    Formula (
+                        p,
+                        [| Term x; Term y |]),
+                    Formula (
+                        q,
+                        [| Term x |]))
+            |],
+            InferenceRule.ImplicationIntroduction,
+            [| 2; 5 |]
+
+            (*7*)
+            [|
+                ForAll (
+                    y,
+                    Implication (
+                        Formula (
+                            p,
+                            [| Term x; Term y |]),
+                        Formula (
+                            q,
+                            [| Term x |])))
+            |],
+            InferenceRule.UniversalIntroduction y,
+            [| 6 |]
+
+            (*8*)
+            [|
+                ForAll (
+                    x,
+                    ForAll (
+                        y,
+                        Implication (
+                            Formula (
+                                p,
+                                [| Term x; Term y |]),
+                            Formula (
+                                q,
+                                [| Term x |]))))
+            |],
+            InferenceRule.UniversalIntroduction x,
+            [| 7 |]
+
+        |] |> this.Prove
