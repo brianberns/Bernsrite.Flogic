@@ -246,6 +246,49 @@ module InferenceRule =
             biconditionalElimination
         |]
 
+    /// Tries to introduce a universal quantification of the given formula.
+    let tryUniversalIntroduction variable assumptions formula =
+        let isValid =
+            if formula |> Formula.isFree variable then
+                assumptions
+                    |> Seq.forall (
+                        Formula.isFree variable >> not)
+            else true
+        if isValid then
+            ForAll (variable, formula) |> Some
+        else None
+
+    /// Tries to instantiate a universal quantification.
+    let tryUniversalElimination term = function
+        | ForAll (variable, formula) ->
+            formula |> Formula.trySubstitute variable term
+        | _ -> None
+
+    /// Tries to introduce an existential quantification of the given formula.
+    let tryExistentialIntroduction term variable formula =
+        opt {
+            let formula' =
+                formula |> Formula.substitute term (Term variable)
+            let! formula'' =
+                formula' |> Formula.trySubstitute variable term
+            if formula'' = formula then
+                return Exists (variable, formula')
+        }
+
+    /// Tries to eliminate an existential quantification using the given
+    /// Skolem function.
+    let tryExistentialElimination skolem = function
+        | Exists (variable, inner) as formula ->
+            let term =
+                Application (
+                    skolem,
+                    formula
+                        |> Formula.getFreeVariables
+                        |> Seq.map Term
+                        |> Seq.toArray)
+            inner |> Formula.trySubstitute variable term
+        | _ -> None
+
     /// Finds all possible applications of the given rule to the given formulas.
     let apply formulas =
 
@@ -276,8 +319,8 @@ module InferenceRule =
             | UniversalIntroduction _ ->
                 failwith "Universal introduction requires assumptions"
             | UniversalElimination term ->
-                single (Formula.tryUniversalElimination term)
+                single (tryUniversalElimination term)
             | ExistentialIntroduction (term, variable) ->
-                single (Formula.tryExistentialIntroduction term variable)
+                single (tryExistentialIntroduction term variable)
             | ExistentialElimination skolem ->
-                single (Formula.tryExistentialElimination skolem)
+                single (tryExistentialElimination skolem)

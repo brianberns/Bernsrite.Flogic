@@ -87,6 +87,7 @@ module Term =
 /// http://intrologic.stanford.edu/public/section.php?section=section_08_03
 module Skolem =
 
+    /// Number of Skolem functions created so far.
     let mutable private counter = 0
 
     /// Creates a Skolem function of the given arity.

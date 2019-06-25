@@ -148,7 +148,7 @@ module Proof =
                 if formulas |> Array.length = 1 then
                     let assumptions = proof |> activeAssumptions
                     formulas.[0]
-                        |> Formula.tryUniversalIntroduction variable assumptions
+                        |> InferenceRule.tryUniversalIntroduction variable assumptions
                         |> Option.map wrap
                         |> Option.defaultValue Array.empty
                 else Array.empty

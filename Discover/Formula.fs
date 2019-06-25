@@ -98,15 +98,6 @@ type Formula =
 
 module Formula =
 
-    /// https://stackoverflow.com/questions/7818277/is-there-a-standard-option-workflow-in-f
-    type OptionBuilder() =
-        member __.Bind(v, f) = Option.bind f v
-        member __.Return(v) = Some v
-        member __.ReturnFrom(o) = o
-        member __.Zero() = None
-
-    let option = OptionBuilder()
-
     /// Tries to substitute the given term for the given variable in the given
     /// formula. Fails if this would capture any of the variables in the given
     /// term.
@@ -155,14 +146,14 @@ module Formula =
 
             // substitutes within a unary formula
         and unary formula constructor =
-            option {
+            opt {
                 let! formula' = loop formula
                 return constructor formula'
             }
 
             // substitutes within a binary formula
         and binary formula1 formula2 constructor =
-            option {
+            opt {
                 let! formula1' = loop formula1
                 let! formula2' = loop formula2
                 return constructor (formula1', formula2')
@@ -172,7 +163,7 @@ module Formula =
         and quantified oldVariable formula constructor =
             if termVariables.Contains(oldVariable) then
                 None
-            else option {
+            else opt {
                 if variable = oldVariable then
                     return constructor (oldVariable, formula)
                 else
@@ -288,46 +279,3 @@ module Formula =
         formula
             |> getFreeVariables
             |> Set.contains variable
-
-    /// Tries to introduce a universal quantification of the given formula.
-    let tryUniversalIntroduction variable assumptions formula =
-        let isValid =
-            if formula |> isFree variable then
-                assumptions
-                    |> Seq.forall (
-                        isFree variable >> not)
-            else true
-        if isValid then
-            ForAll (variable, formula) |> Some
-        else None
-
-    /// Tries to instantiate a universal quantification.
-    let tryUniversalElimination term = function
-        | ForAll (variable, formula) ->
-            formula |> trySubstitute variable term
-        | _ -> None
-
-    /// Tries to introduce an existential quantification of the given formula.
-    let tryExistentialIntroduction term variable formula =
-        option {
-            let formula' =
-                formula |> substitute term (Term variable)
-            let! formula'' =
-                formula' |> trySubstitute variable term
-            if formula'' = formula then
-                return Exists (variable, formula')
-        }
-
-    /// Tries to eliminate an existential quantification using the given
-    /// Skolem function.
-    let tryExistentialElimination skolem = function
-        | Exists (variable, inner) as formula ->
-            let term =
-                Application (
-                    skolem,
-                    formula
-                        |> getFreeVariables
-                        |> Seq.map Term
-                        |> Seq.toArray)
-            inner |> trySubstitute variable term
-        | _ -> None

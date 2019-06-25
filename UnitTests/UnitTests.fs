@@ -290,7 +290,7 @@ type UnitTest() =
         // try to introduce x for jill in hates(jill, jill)
         let formulaOpt =
             Formula (hates, [| jill; jill |])
-                |> Formula.tryExistentialIntroduction jill x
+                |> InferenceRule.tryExistentialIntroduction jill x
         Assert.AreEqual(
             Some "∃x.hates(x, x)",
             formulaOpt
@@ -308,7 +308,7 @@ type UnitTest() =
                 Formula (
                     hates,
                     [| jill; Term x |]))
-                |> Formula.tryExistentialIntroduction jill x
+                |> InferenceRule.tryExistentialIntroduction jill x
         Assert.AreEqual(None, formulaOpt)   // ∃x.∃x.hates(x, x)) is invalid
 
         // try to introduce y for f(x) in ∀x.hates(x, f(x))
@@ -325,7 +325,7 @@ type UnitTest() =
                     [| Term x; fx |]))
         let formulaOpt =
             formula
-                |> Formula.tryExistentialIntroduction fx y
+                |> InferenceRule.tryExistentialIntroduction fx y
         Assert.AreEqual(None, formulaOpt)   // ∃y.∀x.hates(x, y) is invalid
 
     /// http://intrologic.stanford.edu/public/section.php?section=section_08_07
