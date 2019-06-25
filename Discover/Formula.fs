@@ -250,9 +250,11 @@ module Formula =
                         yield constructor (variable', formula')
             }
 
-        formula
-            |> loop
-            |> Seq.toArray
+        [|
+            for formula' in loop formula do
+                if newTerm = oldTerm || formula' <> formula then
+                    yield formula'
+        |]
 
     /// Answers the free variables in the given formula.
     let getFreeVariables formula =

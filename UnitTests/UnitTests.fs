@@ -298,7 +298,6 @@ type UnitTest() =
                 "∃x.hates(x, x)"
                 "∃x.hates(jill, x)"
                 "∃x.hates(x, jill)"
-                "∃x.hates(jill, jill)"
             ],
             formulaStrs)
 
@@ -311,8 +310,7 @@ type UnitTest() =
                     [| jill; Term x |]))
                 |> InferenceRule.existentialIntroduction jill x
                 |> Array.map (fun formula -> formula.ToString())
-        Assert.AreEqual(1, formulaStrs.Length)
-        Assert.AreEqual("∃x.∃x.hates(jill, x)", formulaStrs.[0])   // ∃x.∃x.hates(x, x)) is invalid
+        Assert.AreEqual(0, formulaStrs.Length)   // ∃x.∃x.hates(x, x)) is invalid
 
         // introduce y for f(x) in ∀x.hates(x, f(x))
         let fx =
@@ -329,7 +327,7 @@ type UnitTest() =
         let formulas =
             formula
                 |> InferenceRule.existentialIntroduction fx y
-        Assert.AreEqual(1, formulas.Length)   // ∃y.∀x.hates(x, y) is invalid
+        Assert.AreEqual(0, formulas.Length)   // ∃y.∀x.hates(x, y) is invalid
 
     /// http://intrologic.stanford.edu/public/section.php?section=section_08_07
     [<TestMethod>]
