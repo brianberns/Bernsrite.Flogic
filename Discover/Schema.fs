@@ -9,7 +9,7 @@ module MetaVariable =
     /// 0-arity placeholder for a predicate.
     let create name : MetaVariable =
         Formula (
-            Predicate (name, 0u),
+            Predicate (name, arity = 0),
             Array.empty)
 
 /// A schema is a formula that might contain metavariables.
@@ -29,7 +29,7 @@ module Schema =
                 match (formula, schema) with
 
                         // bind metavariable
-                    | _, Formula (Predicate (_, 0u), terms) ->
+                    | _, Formula (Predicate (_, 0), terms) ->
                         assert(terms.Length = 0)
                         yield Some ((schema : MetaVariable), formula)
 
@@ -104,7 +104,7 @@ module Schema =
         match schema with
 
                 // bind with metavariable
-            | Formula (Predicate (name, 0u), terms) ->
+            | Formula (Predicate (name, 0), terms) ->
                 assert(terms.Length = 0)
                 let metaVariable : MetaVariable = schema
                 match binding |> Map.tryFind metaVariable with

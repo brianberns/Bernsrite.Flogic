@@ -5,8 +5,8 @@ open Microsoft.VisualStudio.TestTools.UnitTesting
 [<TestClass>]
 type UnitTest() =
 
-    let isMan = Predicate ("Man", 1u)
-    let isMortal = Predicate ("Mortal", 1u)
+    let isMan = Predicate ("Man", 1)
+    let isMortal = Predicate ("Mortal", 1)
     let x = [| Term (Variable "x") |]
 
     [<TestMethod>]
@@ -125,8 +125,8 @@ type UnitTest() =
     member this.UniversalIntroduction() =
 
         let x = Variable "x"
-        let p = Formula (Predicate ("p", 1u), [| Term x |])
-        let q = Formula (Predicate ("q", 1u), [| Term x |])
+        let p = Formula (Predicate ("p", 1), [| Term x |])
+        let q = Formula (Predicate ("q", 1), [| Term x |])
 
         let steps =
             [|
@@ -161,7 +161,7 @@ type UnitTest() =
                 Exists (
                     y,
                     Formula (
-                        Predicate ("hates", 2u),
+                        Predicate ("hates", 2),
                         [| Term x; Term y |])))
         Assert.AreEqual(
             "∀x.∃y.hates(x, y)", formula.ToString())
@@ -189,7 +189,7 @@ type UnitTest() =
         let x = Variable "x"
         let y = Variable "y"
         let z = Variable "z"
-        let loves = Predicate ("loves", 2u)
+        let loves = Predicate ("loves", 2)
 
         [|
             (*1*)
@@ -284,7 +284,7 @@ type UnitTest() =
     member __.ExistentialIntroduction() =
 
         let jill = Term.constant "jill"
-        let hates = Predicate ("hates", 2u)
+        let hates = Predicate ("hates", 2)
         let x = Variable "x"
 
         // try to introduce x for jill in hates(jill, jill)
@@ -314,7 +314,7 @@ type UnitTest() =
         // try to introduce y for f(x) in ∀x.hates(x, f(x))
         let fx =
             Application (
-                Function ("f", 1u),
+                Function ("f", 1),
                 [| Term x |])
         let y = Variable "y"
         let formula =
@@ -334,10 +334,10 @@ type UnitTest() =
 
         let x = Variable "x"
         let y = Variable "y"
-        let p = Predicate ("p", 2u)
-        let q = Predicate ("q", 1u)
+        let p = Predicate ("p", 2)
+        let q = Predicate ("q", 1)
         let skolemFunction =
-            Skolem.createFunction 1u
+            Skolem.createFunction 1
         let skolemTerm =
             Application (skolemFunction, [| Term x |])
 
@@ -455,8 +455,8 @@ type UnitTest() =
 
         let x = Variable "x"
         let y = Variable "y"
-        let p = Predicate ("p", 2u)
-        let q = Predicate ("q", 1u)
+        let p = Predicate ("p", 2)
+        let q = Predicate ("q", 1)
 
         [|
             (*1*)

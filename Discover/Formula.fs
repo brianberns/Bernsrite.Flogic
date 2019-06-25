@@ -22,7 +22,7 @@ open System
 /// See http://intrologic.stanford.edu/public/index.php
 
 /// E.g. Mortal(x) is a predicate of arity 1.
-type Predicate = Predicate of Name * Arity
+type Predicate = Predicate of name : string * arity : int
 
 /// E.g. Man(Socrates) -> Mortal(Socrates).
 [<StructuredFormatDisplay("{String}")>]
@@ -67,8 +67,8 @@ type Formula =
 
             function
                 | Formula (Predicate (name, arity), terms) ->
-                    assert(arity = uint32 terms.Length)
-                    if arity = 0u then name
+                    assert(arity = terms.Length)
+                    if arity = 0 then name
                     else
                         sprintf "%s(%s)" name <| String.Join(", ", terms)
                 | Not formula ->

@@ -8,7 +8,7 @@ type ProofStep =
     {
         Formula : Formula
         Rule : InferenceRule
-        AntecedentIndexes : int[] (*1-based indexes from end of list*)
+        AntecedentIndexes : int[]   (*1-based indexes from end of list*)
     }
 
     /// Display string.

@@ -2,17 +2,11 @@
 
 open System
 
-/// The number of arguments a function or predicate takes.
-type Arity = uint32
-
-/// The name of something.
-type Name = string
-
 /// A function that takes some number of arguments.
-type Function = Function of Name * Arity
+type Function = Function of name : string * arity : int
 
 /// A variable that represents an object in the world.
-type Variable = Variable of Name
+type Variable = Variable of name : string
 
 /// A term typically denotes an object that exists in the world.
 /// E.g.
@@ -33,8 +27,8 @@ type Term =
         match this with
             | Term (Variable name) -> name
             | Application (Function (name, arity), terms) ->
-                assert(arity = uint32 terms.Length)
-                if arity = 0u then name
+                assert(arity = terms.Length)
+                if arity = 0 then name
                 else
                     sprintf "%s(%s)" name <| String.Join(",", terms)
 
@@ -48,15 +42,15 @@ module Term =
     /// function of arity 0.
     let constant name =
         Application (
-            (Function (name, 0u)),
+            (Function (name, arity = 0)),
             Array.empty)
 
     /// Active pattern for a constant term.
     let (|Constant|_|) = function
         | Term (Variable _) -> None
         | Application ((Function (name, arity)), terms) ->
-            assert(arity = uint32 terms.Length)
-            if arity = 0u then
+            assert(arity = terms.Length)
+            if arity = 0 then
                 Some name
             else None
 

@@ -60,7 +60,7 @@ type InferenceRule =
     /// ∃v.P(ν1, ..., νn, ν)
     /// ------------------
     /// P(skolem(ν1, ... ,νn)) where "skolem" is a not an existing function.
-    | ExistentialElimination of Function (*Skolem function*)
+    | ExistentialElimination of skolem : Function
 
     /// Display string.
     member this.Name =
