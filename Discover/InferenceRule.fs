@@ -264,16 +264,19 @@ module InferenceRule =
             formula |> Formula.trySubstitute variable term
         | _ -> None
 
-    /// Tries to introduce an existential quantification of the given formula.
-    let tryExistentialIntroduction term variable formula =
-        opt {
-            let formula' =
-                formula |> Formula.substitute term (Term variable)
-            let! formula'' =
-                formula' |> Formula.trySubstitute variable term
-            if formula'' = formula then
-                return Exists (variable, formula')
-        }
+    /// Introduces all possible existential quantifications of the given formula.
+    let existentialIntroduction term variable formula =
+        formula
+            |> Formula.substitute term (Term variable)
+            |> Seq.choose (fun formula' ->
+                opt {
+                    let! formula'' =
+                        formula'
+                            |> Formula.trySubstitute variable term
+                    if formula'' = formula then
+                        return Exists (variable, formula')
+                })
+            |> Seq.toArray
 
     /// Tries to eliminate an existential quantification using the given
     /// Skolem function.
@@ -321,6 +324,11 @@ module InferenceRule =
             | UniversalElimination term ->
                 single (tryUniversalElimination term)
             | ExistentialIntroduction (term, variable) ->
-                single (tryExistentialIntroduction term variable)
+                if formulas |> Array.length = 1 then
+                    [|
+                        formulas.[0]
+                            |> existentialIntroduction term variable
+                    |]
+                else Array.empty
             | ExistentialElimination skolem ->
                 single (tryExistentialElimination skolem)

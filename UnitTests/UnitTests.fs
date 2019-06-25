@@ -287,31 +287,34 @@ type UnitTest() =
         let hates = Predicate ("hates", 2)
         let x = Variable "x"
 
-        // try to introduce x for jill in hates(jill, jill)
-        let formulaOpt =
+        // introduce x for jill in hates(jill, jill)
+        let formulaStrs =
             Formula (hates, [| jill; jill |])
-                |> InferenceRule.tryExistentialIntroduction jill x
+                |> InferenceRule.existentialIntroduction jill x
+                |> Seq.map (fun formula -> formula.ToString())
+                |> set
         Assert.AreEqual(
-            Some "∃x.hates(x, x)",
-            formulaOpt
-                |> Option.map (fun formula ->
-                    formula.ToString()))
-        // But what about:
-        //    ∃y.hates(jill, y)
-        //    ∃x.hates(x, jill)
-        //    ∃x.∃y.hates(x, y)
+            set [
+                "∃x.hates(x, x)"
+                "∃x.hates(jill, x)"
+                "∃x.hates(x, jill)"
+                "∃x.hates(jill, jill)"
+            ],
+            formulaStrs)
 
-        // try to introduce x for jill in ∃x.hates(jill, x)
-        let formulaOpt =
+        // introduce x for jill in ∃x.hates(jill, x)
+        let formulaStrs =
             Exists (
                 x,
                 Formula (
                     hates,
                     [| jill; Term x |]))
-                |> InferenceRule.tryExistentialIntroduction jill x
-        Assert.AreEqual(None, formulaOpt)   // ∃x.∃x.hates(x, x)) is invalid
+                |> InferenceRule.existentialIntroduction jill x
+                |> Array.map (fun formula -> formula.ToString())
+        Assert.AreEqual(1, formulaStrs.Length)
+        Assert.AreEqual("∃x.∃x.hates(jill, x)", formulaStrs.[0])   // ∃x.∃x.hates(x, x)) is invalid
 
-        // try to introduce y for f(x) in ∀x.hates(x, f(x))
+        // introduce y for f(x) in ∀x.hates(x, f(x))
         let fx =
             Application (
                 Function ("f", 1),
@@ -323,10 +326,10 @@ type UnitTest() =
                 Formula (
                     hates,
                     [| Term x; fx |]))
-        let formulaOpt =
+        let formulas =
             formula
-                |> InferenceRule.tryExistentialIntroduction fx y
-        Assert.AreEqual(None, formulaOpt)   // ∃y.∀x.hates(x, y) is invalid
+                |> InferenceRule.existentialIntroduction fx y
+        Assert.AreEqual(1, formulas.Length)   // ∃y.∀x.hates(x, y) is invalid
 
     /// http://intrologic.stanford.edu/public/section.php?section=section_08_07
     [<TestMethod>]

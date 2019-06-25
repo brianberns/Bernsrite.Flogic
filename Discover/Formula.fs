@@ -173,67 +173,86 @@ module Formula =
 
         formula |> loop
 
-    /// Substitutes one term for another in the given formula. Does not attempt
-    /// to avoid variable capture.
+    /// Substitutes one term for another in the given formula in all possible ways.
+    /// Does not attempt to avoid variable capture.
     let substitute oldTerm newTerm formula =
 
             // substitutes within a variable
         let substituteVariable variable =
-            match oldTerm, newTerm with
-                | (Term oldVariable, Term newVariable) ->
-                    if variable = oldVariable then newVariable
-                    else variable
-                | _ -> variable
+            seq {
+                match oldTerm, newTerm with
+                    | (Term oldVariable, Term newVariable) ->
+                        if variable = oldVariable then
+                            yield newVariable
+                    | _ -> ()
+                yield variable
+            }
 
             // substitutes within a term
         let rec substituteTerm term =
-            if term = oldTerm then newTerm
-            else
-                match term with
-                    | Term _ -> term
-                    | Application (func, terms) ->
-                        Application (
-                            func,
-                            terms |> substituteTerms)
+            seq {
+                if term = oldTerm then
+                    yield newTerm
+                else
+                    match term with
+                        | Application (func, terms) ->
+                            for newTerms in terms |> substituteTerms do
+                                yield Application (func, newTerms)
+                        | _ -> ()
+                yield term
+            }
 
             // substitutes within multiple terms
         and substituteTerms terms =
-            terms |> Array.map substituteTerm
+            terms
+                |> Seq.map (substituteTerm >> Seq.toList)
+                |> Seq.toList
+                |> List.cartesian
+                |> Seq.map Seq.toArray
 
             // substitutes within a formula
-        let rec loop = function
-            | Formula (predicate, terms) ->
-                Formula (
-                    predicate,
-                    terms |> substituteTerms)
-            | Not formula ->
-                Not (formula |> loop)
-            | And (formula1, formula2) ->
-                And |> binary formula1 formula2
-            | Or (formula1, formula2) ->
-                Or |> binary formula1 formula2
-            | Implication (formula1, formula2) ->
-                Implication |> binary formula1 formula2
-            | Biconditional (formula1, formula2) ->
-                Biconditional |> binary formula1 formula2
-            | Exists (variable, formula) ->
-                Exists |> quantified variable formula
-            | ForAll (variable, formula) ->
-                ForAll |> quantified variable formula
+        let rec loop formula =
+            seq {
+                match formula with
+                    | Formula (predicate, terms) ->
+                        for newTerms in terms |> substituteTerms do
+                            yield Formula (predicate, newTerms)
+                    | Not formula ->
+                        for formula' in loop formula do
+                            yield Not formula'
+                    | And (formula1, formula2) ->
+                        yield! And |> binary formula1 formula2
+                    | Or (formula1, formula2) ->
+                        yield! Or |> binary formula1 formula2
+                    | Implication (formula1, formula2) ->
+                        yield! Implication |> binary formula1 formula2
+                    | Biconditional (formula1, formula2) ->
+                        yield! Biconditional |> binary formula1 formula2
+                    | Exists (variable, formula) ->
+                        yield! Exists |> quantified variable formula
+                    | ForAll (variable, formula) ->
+                        yield! ForAll |> quantified variable formula
+            }
 
             // substitutes within a binary formula
         and binary formula1 formula2 constructor =
-            constructor (
-                formula1 |> loop,
-                formula2 |> loop)
+            seq {
+                for formula1' in loop formula1 do
+                    for formula2' in loop formula2 do
+                        yield constructor (formula1', formula2')
+            }
 
             // substitutes within a quantified formula
         and quantified variable formula constructor =
-            constructor (
-                substituteVariable variable,
-                formula |> loop)
+            seq {
+                for variable' in substituteVariable variable do
+                    for formula' in loop formula do
+                        yield constructor (variable', formula')
+            }
 
-        formula |> loop
+        formula
+            |> loop
+            |> Seq.toArray
 
     /// Answers the free variables in the given formula.
     let getFreeVariables formula =
