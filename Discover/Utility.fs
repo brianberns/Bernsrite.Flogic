@@ -68,3 +68,27 @@ module List =
                 (List.fold (fun acc elem -> (elem::celem)::acc) [] h) @ cacc
                 ) [] (cartesian t)
         | _ -> []
+
+/// https://stackoverflow.com/questions/7818277/is-there-a-standard-option-workflow-in-f
+type OptionBuilder() =
+    member __.Bind(v, f) = Option.bind f v
+    member __.Return(v) = Some v
+    member __.ReturnFrom(o) = o
+    member __.Zero() = None
+
+[<AutoOpen>]
+module OptionAutoOpen =
+
+    /// Build for option monad.
+    let opt = OptionBuilder()
+
+module Seq =
+
+    /// Applies a function to each item in a sequence, short-circuiting
+    /// if the function fails.
+    let tryFold folder state source =
+        let folder' stateOpt item =
+            stateOpt
+                |> Option.bind (fun state ->
+                    folder state item)
+        Seq.fold folder' (Some state) source

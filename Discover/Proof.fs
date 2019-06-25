@@ -154,17 +154,6 @@ module Proof =
                 else Array.empty
             | _ -> rule |> InferenceRule.apply formulas
 
-    module Seq =
-
-        /// Applies a function to each item in a sequence, short-circuiting
-        /// if the function fails.
-        let tryFold folder state source =
-            let folder' stateOpt item =
-                stateOpt
-                    |> Option.bind (fun state ->
-                        folder state item)
-            Seq.fold folder' (Some state) source
-
     /// Tries to add steps to the given proof.
     let tryAddSteps formulas rule (indexes : _[]) proof =
 

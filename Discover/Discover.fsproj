@@ -49,8 +49,7 @@
     <None Include="App.config" />
     <Content Include="packages.config" />
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="List.fs" />
-    <Compile Include="Option.fs" />
+    <Compile Include="Utility.fs" />
     <Compile Include="Term.fs" />
     <Compile Include="Formula.fs" />
     <Compile Include="Schema.fs" />
