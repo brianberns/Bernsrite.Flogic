@@ -207,32 +207,31 @@ module Formula =
                     predicate,
                     terms |> substituteTerms)
             | Not formula ->
-                Not (
-                    formula |> loop)
+                Not (formula |> loop)
             | And (formula1, formula2) ->
-                And (
-                    formula1 |> loop,
-                    formula2 |> loop)
+                And |> binary formula1 formula2
             | Or (formula1, formula2) ->
-                Or (
-                    formula1 |> loop,
-                    formula2 |> loop)
+                Or |> binary formula1 formula2
             | Implication (formula1, formula2) ->
-                Implication (
-                    formula1 |> loop,
-                    formula2 |> loop)
+                Implication |> binary formula1 formula2
             | Biconditional (formula1, formula2) ->
-                Biconditional (
-                    formula1 |> loop,
-                    formula2 |> loop)
+                Biconditional |> binary formula1 formula2
             | Exists (variable, formula) ->
-                Exists (
-                    substituteVariable variable,
-                    formula |> loop)
+                Exists |> quantified variable formula
             | ForAll (variable, formula) ->
-                ForAll (
-                    substituteVariable variable,
-                    formula |> loop)
+                ForAll |> quantified variable formula
+
+            // substitutes within a binary formula
+        and binary formula1 formula2 constructor =
+            constructor (
+                formula1 |> loop,
+                formula2 |> loop)
+
+            // substitutes within a quantified formula
+        and quantified variable formula constructor =
+            constructor (
+                substituteVariable variable,
+                formula |> loop)
 
         formula |> loop
 
