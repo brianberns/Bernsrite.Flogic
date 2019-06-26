@@ -646,3 +646,9 @@ type UnitTest() =
         Assert.AreEqual(
             expected,
             "∀x.(¬same(0,s(x)) ∧ ¬same(s(x),0))" |> Parser.run parser)
+
+    [<TestMethod>]
+    member __.Peano() =
+
+        for axiom in Peano.axioms do
+            printfn "%A" axiom

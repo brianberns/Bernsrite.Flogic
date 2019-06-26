@@ -79,9 +79,9 @@ type Formula =
                 | Or (formula1, formula2) ->
                     infix "|" formula1 formula2
                 | Implication (formula1, formula2) ->
-                    infix "->" formula1 formula2
+                    infix "⇒" formula1 formula2
                 | Biconditional (formula1, formula2) ->
-                    infix "<->" formula1 formula2
+                    infix "⇔" formula1 formula2
                 | Exists (Variable variable, formula) ->
                     sprintf "∃%s.%s"
                         variable

@@ -95,8 +95,8 @@ module Parser =
             [
                 ["&"; "∧"], And
                 ["|"; "∨"], Or
-                ["->"; "=>"], Implication
-                ["<->"; "<=>"], Biconditional
+                ["->"; "=>"; "⇒"], Implication
+                ["<->"; "<=>"; "⇔"], Biconditional
             ]
                 |> Seq.map (fun (ops, constructor) ->
                     attempt (pipe3
@@ -122,6 +122,7 @@ module Parser =
                             constructor (variable, formula))))
                 |> choice
 
+        // https://stackoverflow.com/questions/56779430/parser-combinator-for-propositional-logic
         let parseComplex =
             choice [
                 attempt parseNot
