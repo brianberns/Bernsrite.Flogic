@@ -575,19 +575,16 @@ type UnitTest() =
 
         let parser = Parser.makeParser ["0"]
 
-        let p = "P" |> Parser.run parser
         Assert.AreEqual(
             MetaVariable.create "P",
-            p)
+            "P" |> Parser.run parser)
 
-        let p_x = "P(x)" |> Parser.run parser
         Assert.AreEqual(
             Formula (
                 Predicate ("P", 1),
                 [| Term (Variable "x") |]),
-            p_x)
+            "P(x)" |> Parser.run parser)
 
-        let p_s_x = "P(s(x))" |> Parser.run parser
         Assert.AreEqual(
             Formula (
                 Predicate ("P", 1),
@@ -596,9 +593,8 @@ type UnitTest() =
                         Function ("s", 1),
                         [| Term (Variable "x") |])
                 |]),
-            p_s_x)
+            "P(s(x))" |> Parser.run parser)
 
-        let s_0 = "P(s(0))" |> Parser.run parser
         Assert.AreEqual(
             Formula (
                 Predicate ("P", 1),
@@ -607,9 +603,8 @@ type UnitTest() =
                         Function ("s", 1),
                         [| Term.constant "0" |])
                 |]),
-            s_0)
+            "P(s(0))" |> Parser.run parser)
 
-        let binary_x_0 = "Binary(x, 0)" |> Parser.run parser
         Assert.AreEqual(
             Formula (
                 Predicate ("Binary", 2),
@@ -617,15 +612,37 @@ type UnitTest() =
                     Term (Variable "x")
                     Term.constant "0"
                 |]),
-            binary_x_0)
+            "Binary(x, 0)" |> Parser.run parser)
 
-        let not_p = "~P" |> Parser.run parser
         Assert.AreEqual(
             Not (MetaVariable.create "P"),
-            not_p)
+            "~P" |> Parser.run parser)
 
-        let formula = "A & B" |> Parser.run parser
-        printfn "%A" formula
+        Assert.AreEqual(
+            And (
+                MetaVariable.create "A",
+                MetaVariable.create "B"),
+            "(A & B)" |> Parser.run parser)
 
-        let formula = "∀x.(¬same(0,s(x)))" |> Parser.run parser
-        printfn "%A" formula
+        let expected =
+            let same = Predicate ("same", 2)
+            let x = Variable "x"
+            let s_x =
+                Application (
+                    Function ("s", 1),
+                    [| Term x |])
+            let zero = Term.constant "0"
+            ForAll (
+                x,
+                And (
+                    Not (
+                        Formula (
+                            same,
+                            [| zero; s_x |])),
+                    Not (
+                        Formula (
+                            same,
+                            [| s_x; zero |]))))
+        Assert.AreEqual(
+            expected,
+            "∀x.(¬same(0,s(x)) ∧ ¬same(s(x),0))" |> Parser.run parser)

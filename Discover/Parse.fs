@@ -59,6 +59,11 @@ module Parser =
             |> Seq.toList
             |> choice
 
+    let parseParenthesized parser =
+        skipChar '('
+            >>. parser
+            .>> skipChar ')'
+
     let makeParser constants : Parser<_> =
 
         let parseConstant =
@@ -80,26 +85,19 @@ module Parser =
             pipe2 parseName (parseTerms true)
                 (fun name (terms : _[]) ->
                     Formula (Predicate (name, terms.Length), terms))
-
-        let parseParenthesized =
-            skipChar '('
-                >>. parseFormula
-                .>> skipChar ')'
                         
         let parseNot =
-            skipAnyOf ['~'; '¬']
+            skipAnyOf ['~'; '¬'; '!']
                 >>. parseFormula
                 |>> Not
 
         let parseBinary : Parser<_> =
-            let pairs =
-                [
-                    ["&"; "∧"], And
-                    ["|"], Or
-                    ["->"], Implication
-                    ["<->"], Biconditional
-                ]
-            pairs
+            [
+                ["&"; "∧"], And
+                ["|"; "∨"], Or
+                ["->"; "=>"], Implication
+                ["<->"; "<=>"], Biconditional
+            ]
                 |> Seq.map (fun (ops, constructor) ->
                     attempt (pipe3
                         parseFormula
@@ -110,12 +108,10 @@ module Parser =
                 |> choice
 
         let parseQuantified =
-            let pairs =
-                [
-                    '∃', Exists
-                    '∀', ForAll
-                ]
-            pairs
+            [
+                '∃', Exists
+                '∀', ForAll
+            ]
                 |> Seq.map (fun (op, constructor) ->
                     attempt (pipe4
                         (skipChar op)
@@ -128,9 +124,8 @@ module Parser =
 
         let parseComplex =
             choice [
-                attempt parseParenthesized
                 attempt parseNot
-                attempt parseBinary
+                attempt (parseParenthesized parseBinary)
                 attempt parseQuantified
             ]
 
