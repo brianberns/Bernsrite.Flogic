@@ -575,6 +575,11 @@ type UnitTest() =
 
         let parser = Parser.makeParser ["0"]
 
+        let p = "P" |> Parser.run parser
+        Assert.AreEqual(
+            MetaVariable.create "P",
+            p)
+
         let p_x = "P(x)" |> Parser.run parser
         Assert.AreEqual(
             Formula (
@@ -618,3 +623,9 @@ type UnitTest() =
         Assert.AreEqual(
             Not (MetaVariable.create "P"),
             not_p)
+
+        let formula = "A & B" |> Parser.run parser
+        printfn "%A" formula
+
+        let formula = "∀x.(¬same(0,s(x)))" |> Parser.run parser
+        printfn "%A" formula

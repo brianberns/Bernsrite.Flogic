@@ -8,7 +8,16 @@ type Parser<'t> = Parser<'t, unit>
 
 module Parser =
 
-    let special = set "(,)~&|<->∃∀."
+#if DEBUG
+    let (<!>) (p: Parser<_,_>) label : Parser<_,_> =
+        fun stream ->
+            printfn "%A: Entering %s" stream.Position label
+            let reply = p stream
+            printfn "%A: Leaving %s (%A)" stream.Position label reply.Status
+            reply
+#endif
+
+    let special = set "(,)~&|<->∃∀.∧¬"
 
     let isSpecial c =
         special.Contains(c)
@@ -44,6 +53,12 @@ module Parser =
     let parseFormula, parseFormulaRef =
         createParserForwardedToRef<Formula, unit>()
 
+    let skipAnyOfStr strs =
+        strs
+            |> Seq.map skipString
+            |> Seq.toList
+            |> choice
+
     let makeParser constants : Parser<_> =
 
         let parseConstant =
@@ -66,24 +81,64 @@ module Parser =
                 (fun name (terms : _[]) ->
                     Formula (Predicate (name, terms.Length), terms))
 
-        let parseUnary =
-            skipChar '~'
+        let parseParenthesized =
+            skipChar '('
+                >>. parseFormula
+                .>> skipChar ')'
+                        
+        let parseNot =
+            skipAnyOf ['~'; '¬']
                 >>. parseFormula
                 |>> Not
 
-        let parseFormulaRaw =
+        let parseBinary : Parser<_> =
+            let pairs =
+                [
+                    ["&"; "∧"], And
+                    ["|"], Or
+                    ["->"], Implication
+                    ["<->"], Biconditional
+                ]
+            pairs
+                |> Seq.map (fun (ops, constructor) ->
+                    attempt (pipe3
+                        parseFormula
+                        (spaces >>. skipAnyOfStr ops .>> spaces)
+                        parseFormula
+                        (fun formula1 _ formula2 ->
+                            constructor (formula1, formula2))))
+                |> choice
+
+        let parseQuantified =
+            let pairs =
+                [
+                    '∃', Exists
+                    '∀', ForAll
+                ]
+            pairs
+                |> Seq.map (fun (op, constructor) ->
+                    attempt (pipe4
+                        (skipChar op)
+                        parseVariable
+                        (skipChar '.')
+                        parseFormula
+                        (fun _ variable _ formula ->
+                            constructor (variable, formula))))
+                |> choice
+
+        let parseComplex =
             choice [
-                attempt parseUnary
-                parseAtomic
+                attempt parseParenthesized
+                attempt parseNot
+                attempt parseBinary
+                attempt parseQuantified
             ]
 
         let parseFormulaActual =
-            let parseParenthesized =
-                skipChar '('
-                    >>. parseFormulaRaw
-                    .>> skipChar ')'
-            attempt parseParenthesized
-                <|> parseFormulaRaw
+            choice [
+                attempt parseAtomic
+                attempt parseComplex
+            ]
 
         parseFormulaRef := parseFormulaActual
         parseFormulaActual
