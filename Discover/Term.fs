@@ -27,7 +27,8 @@ type Term =
         match this with
             | Term (Variable name) -> name
             | Application (Function (name, arity), terms) ->
-                assert(arity = terms.Length)
+                if (arity <> terms.Length) then
+                    failwith "Arity mismatch"
                 if arity = 0 then name
                 else
                     sprintf "%s(%s)" name <| String.Join(",", terms)
@@ -49,7 +50,8 @@ module Term =
     let (|Constant|_|) = function
         | Application ((Function (name, arity)), terms)
             when arity = 0 ->
-                assert(terms.Length = arity)
+                if (terms.Length > 0) then
+                    failwith "Arity mismatch"
                 Some name
         | _ -> None
 

@@ -5,12 +5,11 @@ open Microsoft.VisualStudio.TestTools.UnitTesting
 [<TestClass>]
 type UnitTest() =
 
-    let isMan = Predicate ("Man", 1)
-    let isMortal = Predicate ("Mortal", 1)
-    let x = [| Term (Variable "x") |]
-
     [<TestMethod>]
     member __.ImplicationElimination() =
+        let isMan = Predicate ("Man", 1)
+        let isMortal = Predicate ("Mortal", 1)
+        let x = [| Term (Variable "x") |]
         let conclusions =
             InferenceRule.implicationElimination
                 |> InferenceRule.apply
@@ -26,6 +25,9 @@ type UnitTest() =
 
     [<TestMethod>]
     member __.ImplicationCreation() =
+        let isMan = Predicate ("Man", 1)
+        let isMortal = Predicate ("Mortal", 1)
+        let x = [| Term (Variable "x") |]
         let implicationCreation =
             let p = MetaVariable.create "P"
             let q = MetaVariable.create "Q"
@@ -571,21 +573,43 @@ type UnitTest() =
     [<TestMethod>]
     member __.Parse() =
 
-        let parser = Parser.Term.makeParser ["0"]
+        let parser = Parser.makeParser ["0"]
 
-        let x = "x" |> Parser.run parser
-        Assert.AreEqual(Term (Variable "x"), x)
-
-        let s_x = "s(x)" |> Parser.run parser
+        let p_x = "P(x)" |> Parser.run parser
         Assert.AreEqual(
-            Application (
-                Function ("s", 1),
-                [| x |]),
-            s_x)
+            Formula (
+                Predicate ("P", 1),
+                [| Term (Variable "x") |]),
+            p_x)
 
-        let s_0 = "s(0)" |> Parser.run parser
+        let p_s_x = "P(s(x))" |> Parser.run parser
         Assert.AreEqual(
-            Application (
-                Function ("s", 1),
-                [| Term.constant "0" |]),
+            Formula (
+                Predicate ("P", 1),
+                [|
+                    Application (
+                        Function ("s", 1),
+                        [| Term (Variable "x") |])
+                |]),
+            p_s_x)
+
+        let s_0 = "P(s(0))" |> Parser.run parser
+        Assert.AreEqual(
+            Formula (
+                Predicate ("P", 1),
+                [|
+                    Application (
+                        Function ("s", 1),
+                        [| Term.constant "0" |])
+                |]),
             s_0)
+
+        let binary_x_0 = "Binary(x, 0)" |> Parser.run parser
+        Assert.AreEqual(
+            Formula (
+                Predicate ("Binary", 2),
+                [|
+                    Term (Variable "x")
+                    Term.constant "0"
+                |]),
+            binary_x_0)

@@ -24,7 +24,8 @@ module Schema =
     let (|MetaVariable|_|) = function
         | Formula ((Predicate (name, arity)), terms)
             when arity = 0 ->
-                assert(terms.Length = arity)
+                if (terms.Length > 0) then
+                    failwith "Arity mismatch"
                 Some name
         | _ -> None
 

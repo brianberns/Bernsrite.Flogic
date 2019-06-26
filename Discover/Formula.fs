@@ -67,7 +67,8 @@ type Formula =
 
             function
                 | Formula (Predicate (name, arity), terms) ->
-                    assert(arity = terms.Length)
+                    if (arity <> terms.Length) then
+                        failwith "Arity mismatch"
                     if arity = 0 then name
                     else
                         sprintf "%s(%s)" name <| String.Join(", ", terms)
