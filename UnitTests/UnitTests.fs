@@ -567,3 +567,16 @@ type UnitTest() =
             [| 7 |]
 
         |] |> this.Prove
+
+    [<TestMethod>]
+    member __.Parse() =
+
+        let x = "x" |> Parser.run Parser.parseTerm
+        Assert.AreEqual(Term (Variable "x"), x)
+
+        let s_x = "s(x)" |> Parser.run Parser.parseTerm
+        Assert.AreEqual(
+            Application (
+                Function ("s", 1),
+                [| x |]),
+            s_x)
