@@ -23,15 +23,21 @@ module Parser =
     let parseTerm, parseTermRef =
         createParserForwardedToRef<Term, unit>()
 
-    let parseTerms =
-        spaces
-            >>. skipChar '('
-            >>. sepBy1 parseTerm (skipChar ',' .>> spaces)
-            .>> skipChar ')'
-            |>> Seq.toArray
+    let parseTerms allowEmpty =
+        let parsePresent =
+            spaces
+                >>. skipChar '('
+                >>. sepBy1 parseTerm (skipChar ',' .>> spaces)
+                .>> skipChar ')'
+                |>> Seq.toArray
+        if allowEmpty then
+            attempt parsePresent
+                <|> preturn Array.empty
+        else
+            parsePresent
 
     let parseApplication =
-        pipe2 parseName parseTerms
+        pipe2 parseName (parseTerms false)
             (fun name (terms : _[]) ->
                 Application (Function (name, terms.Length), terms))
 
@@ -56,14 +62,28 @@ module Parser =
         parseTermRef := parseTermActual
 
         let parseAtomic =
-            pipe2 parseName parseTerms
+            pipe2 parseName (parseTerms true)
                 (fun name (terms : _[]) ->
                     Formula (Predicate (name, terms.Length), terms))
 
-        let parseFormulaActual =
+        let parseUnary =
+            skipChar '~'
+                >>. parseFormula
+                |>> Not
+
+        let parseFormulaRaw =
             choice [
+                attempt parseUnary
                 parseAtomic
             ]
+
+        let parseFormulaActual =
+            let parseParenthesized =
+                skipChar '('
+                    >>. parseFormulaRaw
+                    .>> skipChar ')'
+            attempt parseParenthesized
+                <|> parseFormulaRaw
 
         parseFormulaRef := parseFormulaActual
         parseFormulaActual

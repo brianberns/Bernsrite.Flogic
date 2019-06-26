@@ -613,3 +613,8 @@ type UnitTest() =
                     Term.constant "0"
                 |]),
             binary_x_0)
+
+        let not_p = "~P" |> Parser.run parser
+        Assert.AreEqual(
+            Not (MetaVariable.create "P"),
+            not_p)
