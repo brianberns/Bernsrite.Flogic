@@ -17,27 +17,43 @@ module Parser =
     let parseName =
         many1Satisfy (isSpecial >> not)
 
-    let parseVariable =
-        parseName |>> Variable
+    module Term =
 
-    let parseTerm, parseTermRef =
-        createParserForwardedToRef<Term, unit>()
+        let parseVariable =
+            parseName |>> Variable
 
-    let parseTerms =
-        spaces
-            >>. skipChar '('
-            >>. sepBy1 parseTerm (skipChar ',' .>> spaces)
-            .>> skipChar ')'
-            |>> Seq.toArray
+        let parseTerm, parseTermRef =
+            createParserForwardedToRef<Term, unit>()
 
-    let parseApplication =
-        pipe2 parseName parseTerms
-            (fun name (terms : _[]) ->
-                Application (Function (name, terms.Length), terms))
+        let parseTerms =
+            spaces
+                >>. skipChar '('
+                >>. sepBy1 parseTerm (skipChar ',' .>> spaces)
+                .>> skipChar ')'
+                |>> Seq.toArray
 
-    let parseTermActual =
-        attempt parseApplication
-            <|> (parseVariable |>> Term)
+        let parseApplication =
+            pipe2 parseName parseTerms
+                (fun name (terms : _[]) ->
+                    Application (Function (name, terms.Length), terms))
+
+        let makeParser constants =
+
+            let parseConstant =
+                let constantsSet = set constants
+                parse {
+                    let! name = parseName
+                    if constantsSet.Contains(name) then
+                        return Term.constant name
+                }
+
+            let parseTermActual =
+                attempt parseApplication
+                    <|> attempt parseConstant
+                    <|> (parseVariable |>> Term)
+
+            parseTermRef := parseTermActual
+            parseTermActual
 
     /// Runs the given parser on the given string.
     let run parser str =
@@ -45,6 +61,3 @@ module Parser =
         match run parser str with
             | Success (result, _, _) -> result
             | Failure (msg, _, _) -> failwith msg
-
-    do
-        parseTermRef := parseTermActual

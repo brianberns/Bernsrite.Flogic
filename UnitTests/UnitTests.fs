@@ -571,12 +571,21 @@ type UnitTest() =
     [<TestMethod>]
     member __.Parse() =
 
-        let x = "x" |> Parser.run Parser.parseTerm
+        let parser = Parser.Term.makeParser ["0"]
+
+        let x = "x" |> Parser.run parser
         Assert.AreEqual(Term (Variable "x"), x)
 
-        let s_x = "s(x)" |> Parser.run Parser.parseTerm
+        let s_x = "s(x)" |> Parser.run parser
         Assert.AreEqual(
             Application (
                 Function ("s", 1),
                 [| x |]),
             s_x)
+
+        let s_0 = "s(0)" |> Parser.run parser
+        Assert.AreEqual(
+            Application (
+                Function ("s", 1),
+                [| Term.constant "0" |]),
+            s_0)
