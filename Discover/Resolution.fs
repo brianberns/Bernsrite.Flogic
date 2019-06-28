@@ -5,72 +5,6 @@ type Clause = Set<Formula>
 /// http://intrologic.stanford.edu/public/section.php?section=section_05_02
 module Resolution =
 
-    (*
-    let isAtomic = function
-        | Formula ((Predicate _), _) -> true
-        | _ -> false
-
-    let isLiteral = function
-        | formula when isAtomic formula -> true
-        | Not formula when isAtomic formula -> true
-        | _ -> false
-
-    let private validate (clause : Clause) =
-        if clause |> Set.forall isLiteral |> not then
-            failwith "Invalid clause"
-
-    let create formulas : Clause =
-        let clause = set formulas
-        validate clause
-        clause
-
-    let toClauses formula : Set<Clause> =
-
-        let rec loop = function
-            | formula when isLiteral formula ->
-                formula
-
-                // Implications
-            | Implication (formula1, formula2) ->
-                Or (
-                    (Not formula1),
-                    formula2)
-                    |> toClause
-            | Biconditional (formula1, formula2) ->
-                And (
-                    Or (
-                        Not formula1,
-                        formula2),
-                    Or (
-                        formula1,
-                        Not formula2))
-                        |> toClause
-
-                // Negations
-            | Not (Not formula) ->
-                formula |> toClause
-            | Not (And (formula1, formula2)) ->
-                Or (
-                    Not formula1,
-                    Not formula2)
-                    |> toClause
-            | Not (Or (formula1, formula2)) ->
-                And (
-                    Not formula1,
-                    Not formula2)
-                    |> toClause
-
-                // Distribution
-            | And (formula1, Or (formula2, formula3)) ->
-                And (
-                    Or (formula1, formula2),
-                    Or (formula1, formula3))
-            | Or (And (formula1, formula2), formula3) ->
-                And (
-                    Or (formula1, formula3),
-                    Or (formula2, formula3))
-    *)
-
     let rec private eliminateBiconditionals formula =
         let (!) = eliminateBiconditionals
         match formula with
@@ -108,7 +42,8 @@ module Resolution =
                 Exists (variable, !!formula)
             | Implication _
             | Biconditional _ -> failwith "Unexpected"
-            | _ as formula -> formula |> Formula.transform (!)
+            | _ as formula ->
+                formula |> Formula.transform (!)
 
     /// https://en.wikipedia.org/wiki/Negation_normal_form
     let toNegationNormalForm formula =
@@ -116,3 +51,82 @@ module Resolution =
             |> eliminateBiconditionals
             |> eliminateImplications
             |> pushNegationsIn
+
+    /// https://en.wikipedia.org/wiki/Conjunctive_normal_form
+    let standardizeVariables formula =
+
+        let standardizeVariable variableMap variable =
+            variableMap
+                |> Map.tryFind variable
+                |> Option.defaultValue variable
+
+        let rec standardizeTerm variableMap = function
+            | Term variable ->
+                variable
+                    |> standardizeVariable variableMap
+                    |> Term 
+            | Application (func, terms) ->
+                Application (
+                    func,
+                    terms |> standardizeTerms variableMap)
+
+        and standardizeTerms variableMap terms =
+            terms |> Array.map (standardizeTerm variableMap)
+
+        let rec obtainVariable seen ((Variable name) as variable) =
+            if seen |> Set.contains(variable) then
+                Variable (name + "'") |> obtainVariable seen
+            else
+                let seen' = seen |> Set.add variable
+                variable, seen'
+
+        let rec loop variableMap seen =
+
+            let binary formula1 formula2 constructor =
+                let formula1', seen' =
+                    formula1 |> loop variableMap seen
+                let formula2', seen'' =
+                    formula2 |> loop variableMap seen'
+                let result =
+                    constructor (formula1', formula2')
+                result, seen''
+
+            let quantified variable inner constructor =
+                let variable', seen' =
+                    variable |> obtainVariable seen
+                let variableMap' =
+                    assert(variableMap |> Map.containsKey variable |> not)
+                    variableMap |> Map.add variable variable'
+                let inner', seen'' =
+                    inner |> loop variableMap' seen'
+                let result =
+                    constructor (variable', inner')
+                result, seen''
+
+            function
+                | Formula (predicate, terms) ->
+                    let result =
+                        Formula (
+                            predicate,
+                            terms |> standardizeTerms variableMap)
+                    result, seen
+                | Not formula ->
+                    let formula', seen' =
+                        formula |> loop variableMap seen
+                    (Not formula'), seen'
+                | And (formula1, formula2) ->
+                    And |> binary formula1 formula2
+                | Or (formula1, formula2) ->
+                    Or |> binary formula1 formula2
+                | Implication (formula1, formula2) ->
+                    Implication |> binary formula1 formula2
+                | Biconditional (formula1, formula2) ->
+                    Biconditional |> binary formula1 formula2
+                | Exists (variable, inner) ->
+                    Exists |> quantified variable inner
+                | ForAll (variable, inner) ->
+                    ForAll |> quantified variable inner
+
+        let formula', _ =
+            formula |> loop Map.empty Set.empty
+        formula'

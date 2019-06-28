@@ -669,7 +669,7 @@ type UnitTest() =
                 |> Formula.toString)
 
     [<TestMethod>]
-    member __.NegationNormalForm() =
+    member __.Resolution() =
 
         let parser = Parser.makeParser Array.empty
 
@@ -685,4 +685,13 @@ type UnitTest() =
             "~(g & (r -> f))"
                 |> Parser.run parser
                 |> Resolution.toNegationNormalForm
+                |> Formula.toString)
+
+            // Anyone who loves all animals, is in turn loved by someone
+        Assert.AreEqual(
+            "∀x.(∃y.(Animal(y) & ~Loves(x, y)) | ∃y'.Loves(y', x))",
+            "∀x.(∀y.(Animal(y) -> Loves(x, y)) -> ∃y.Loves(y, x))"
+                |> Parser.run parser
+                |> Resolution.toNegationNormalForm
+                |> Resolution.standardizeVariables
                 |> Formula.toString)
