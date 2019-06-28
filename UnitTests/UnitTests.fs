@@ -624,6 +624,15 @@ type UnitTest() =
                 MetaVariable.create "B"),
             "(A & B)" |> Parser.run parser)
 
+        Assert.AreEqual(
+            And (
+                Not (
+                    And (
+                        MetaVariable.create "A",
+                        Not (MetaVariable.create "B"))),
+                MetaVariable.create "C"),
+            "(~(A & ~B) & C)" |> Parser.run parser)
+
         let expected =
             let same = Predicate ("same", 2)
             let x = Variable "x"
@@ -648,7 +657,32 @@ type UnitTest() =
             "∀x.(¬same(0,s(x)) ∧ ¬same(s(x),0))" |> Parser.run parser)
 
     [<TestMethod>]
-    member __.Peano() =
+    member __.DisplayString() =
+        Assert.AreEqual(
+            "~(A & ~B) & C",
+            And (
+                Not (
+                    And (
+                        MetaVariable.create "A",
+                        Not (MetaVariable.create "B"))),
+                MetaVariable.create "C")
+                |> Formula.toString)
 
-        for axiom in Peano.axioms do
-            printfn "%A" axiom
+    [<TestMethod>]
+    member __.NegationNormalForm() =
+
+        let parser = Parser.makeParser Array.empty
+
+        Assert.AreEqual(
+            "(~A | B) & C",
+            "(~(A & ~B) & C)"
+                |> Parser.run parser
+                |> Resolution.toNegationNormalForm
+                |> Formula.toString)
+
+        Assert.AreEqual(
+            "~g | (r & ~f)",
+            "~(g & (r -> f))"
+                |> Parser.run parser
+                |> Resolution.toNegationNormalForm
+                |> Formula.toString)

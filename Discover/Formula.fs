@@ -73,7 +73,7 @@ type Formula =
                     else
                         sprintf "%s(%s)" name <| String.Join(", ", terms)
                 | Not formula ->
-                    sprintf "~%A" formula
+                    sprintf "~%s" (formula |> loop false)
                 | And (formula1, formula2) ->
                     infix "&" formula1 formula2
                 | Or (formula1, formula2) ->
@@ -98,6 +98,10 @@ type Formula =
         this.String
 
 module Formula =
+
+    /// Display string.
+    let toString (formula : Formula) =
+        formula.ToString()
 
     /// Tries to substitute the given term for the given variable in the given
     /// formula. Fails if this would capture any of the variables in the given
