@@ -14,8 +14,7 @@ module Resolution =
                 And (
                     Implication (formula1', formula2'),
                     Implication (formula2', formula1'))
-            | _ as formula ->
-                formula |> Formula.transform (!)
+            | _ -> formula |> Formula.transform (!)
 
     let rec private eliminateImplications formula =
         let (!) = eliminateImplications
@@ -23,8 +22,7 @@ module Resolution =
             | Implication (formula1, formula2) ->
                 Or (Not !formula1, !formula2)
             | Biconditional _ -> failwith "Unexpected"
-            | _ as formula ->
-                formula |> Formula.transform (!)
+            | _ -> formula |> Formula.transform (!)
 
     let rec private pushNegationsIn formula =
         let (!) = pushNegationsIn
@@ -42,8 +40,7 @@ module Resolution =
                 Exists (variable, !!formula)
             | Implication _
             | Biconditional _ -> failwith "Unexpected"
-            | _ as formula ->
-                formula |> Formula.transform (!)
+            | _ -> formula |> Formula.transform (!)
 
     /// https://en.wikipedia.org/wiki/Negation_normal_form
     let toNegationNormalForm formula =
@@ -130,3 +127,24 @@ module Resolution =
         let formula', _ =
             formula |> loop Map.empty Set.empty
         formula'
+
+    let rec pushQuantifiersOut formula =
+        let (!) = pushQuantifiersOut
+        match formula with
+            | And (formula1, ForAll (variable, formula2)) ->
+                ForAll (variable, !(And (!formula1, !formula2)))
+            | And (ForAll (variable, formula1), formula2) ->
+                ForAll (variable, !(And (!formula2, !formula1)))
+            | And (formula1, Exists (variable, formula2)) ->
+                Exists (variable, !(And (!formula1, !formula2)))
+            | And (Exists (variable, formula2), formula1) ->
+                Exists (variable, !(And (!formula2, !formula1)))
+            | Or (formula1, ForAll (variable, formula2)) ->
+                ForAll (variable, !(Or (!formula1, !formula2)))
+            | Or (ForAll (variable, formula1), formula2) ->
+                ForAll (variable, !(Or (!formula2, !formula1)))
+            | Or (formula1, Exists (variable, formula2)) ->
+                Exists (variable, !(Or (!formula1, !formula2)))
+            | Or (Exists (variable, formula2), formula1) ->
+                Exists (variable, !(Or (!formula2, !formula1)))
+            | _ -> formula |> Formula.transform (!)

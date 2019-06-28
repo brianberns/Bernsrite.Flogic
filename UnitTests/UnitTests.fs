@@ -689,9 +689,10 @@ type UnitTest() =
 
             // Anyone who loves all animals, is in turn loved by someone
         Assert.AreEqual(
-            "∀x.(∃y.(Animal(y) & ~Loves(x, y)) | ∃y'.Loves(y', x))",
+            "∀x.∃y'.∃y.((Animal(y) & ~Loves(x, y)) | Loves(y', x))",
             "∀x.(∀y.(Animal(y) -> Loves(x, y)) -> ∃y.Loves(y, x))"
                 |> Parser.run parser
                 |> Resolution.toNegationNormalForm
                 |> Resolution.standardizeVariables
+                |> Resolution.pushQuantifiersOut
                 |> Formula.toString)
