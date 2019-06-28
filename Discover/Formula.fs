@@ -31,7 +31,7 @@ type Formula =
     /// Atomic formula (no sub-formulas): P(t1, t2, ...)
     | Formula of Predicate * Term[]
 
-    // Negation: ~P
+    /// Negation: ~P
     | Not of Formula
 
     /// Conjunction: P & Q

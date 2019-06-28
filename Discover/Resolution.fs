@@ -84,8 +84,8 @@ module Resolution =
             | Exists (variable, fla) -> Exists (variable, !fla)
             | ForAll (variable, fla) -> ForAll (variable, !fla)
 
-    let rec private eliminateBiconditional formula =
-        let (!) = eliminateBiconditional
+    let rec private eliminateBiconditionals formula =
+        let (!) = eliminateBiconditionals
         match formula with
             | Biconditional (formula1, formula2) ->
                 let formula1' = !formula1
@@ -96,8 +96,8 @@ module Resolution =
             | _ as formula ->
                 formula |> transform (!)
 
-    let rec private eliminateImplication formula =
-        let (!) = eliminateImplication
+    let rec private eliminateImplications formula =
+        let (!) = eliminateImplications
         match formula with
             | Implication (formula1, formula2) ->
                 Or (Not !formula1, !formula2)
@@ -126,6 +126,6 @@ module Resolution =
     /// https://en.wikipedia.org/wiki/Negation_normal_form
     let toNegationNormalForm formula =
         formula
-            |> eliminateBiconditional
-            |> eliminateImplication
+            |> eliminateBiconditionals
+            |> eliminateImplications
             |> pushNegationsIn
