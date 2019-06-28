@@ -71,19 +71,6 @@ module Resolution =
                     Or (formula2, formula3))
     *)
 
-    /// http://t0yv0.blogspot.com/2011/09/transforming-large-unions-in-f.html
-    let transform func =
-        let (!) = func
-        function
-            | Formula _ as fla -> fla
-            | Not fla -> Not (!fla)
-            | And (fla1, fla2) -> And (!fla1, !fla2)
-            | Or (fla1, fla2) -> Or (!fla1, !fla2)
-            | Implication (fla1, fla2) -> Implication (!fla1, !fla2)
-            | Biconditional (fla1, fla2) -> Biconditional (!fla1, !fla2)
-            | Exists (variable, fla) -> Exists (variable, !fla)
-            | ForAll (variable, fla) -> ForAll (variable, !fla)
-
     let rec private eliminateBiconditionals formula =
         let (!) = eliminateBiconditionals
         match formula with
@@ -94,7 +81,7 @@ module Resolution =
                     Implication (formula1', formula2'),
                     Implication (formula2', formula1'))
             | _ as formula ->
-                formula |> transform (!)
+                formula |> Formula.transform (!)
 
     let rec private eliminateImplications formula =
         let (!) = eliminateImplications
@@ -103,7 +90,7 @@ module Resolution =
                 Or (Not !formula1, !formula2)
             | Biconditional _ -> failwith "Unexpected"
             | _ as formula ->
-                formula |> transform (!)
+                formula |> Formula.transform (!)
 
     let rec private pushNegationsIn formula =
         let (!) = pushNegationsIn
@@ -121,7 +108,7 @@ module Resolution =
                 Exists (variable, !!formula)
             | Implication _
             | Biconditional _ -> failwith "Unexpected"
-            | _ as formula -> formula |> transform (!)
+            | _ as formula -> formula |> Formula.transform (!)
 
     /// https://en.wikipedia.org/wiki/Negation_normal_form
     let toNegationNormalForm formula =
