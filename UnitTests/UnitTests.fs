@@ -670,7 +670,7 @@ type UnitTest() =
                 |> Formula.toString)
 
     [<TestMethod>]
-    member __.Resolution() =
+    member __.ClausalNormalForm() =
 
         let parser = Parser.makeParser Array.empty
 
