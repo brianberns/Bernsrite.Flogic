@@ -24,8 +24,8 @@ module Resolution =
             | Biconditional _ -> failwith "Unexpected"
             | _ -> formula |> Formula.transform (!)
 
-    let rec private pushNegationsIn formula =
-        let (!) = pushNegationsIn
+    let rec private moveNegationsIn formula =
+        let (!) = moveNegationsIn
         let (!!) formula = !(Not !formula)
         match formula with
             | Not (And (formula1, formula2)) ->
@@ -47,7 +47,7 @@ module Resolution =
         formula
             |> eliminateBiconditionals
             |> eliminateImplications
-            |> pushNegationsIn
+            |> moveNegationsIn
 
     /// https://en.wikipedia.org/wiki/Conjunctive_normal_form
     let standardizeVariables formula =
@@ -128,8 +128,8 @@ module Resolution =
             formula |> loop Map.empty Set.empty
         formula'
 
-    let rec pushQuantifiersOut formula =
-        let (!) = pushQuantifiersOut
+    let rec moveQuantifiersOut formula =
+        let (!) = moveQuantifiersOut
         match formula with
             | And (formula1, ForAll (variable, formula2)) ->
                 ForAll (variable, !(And (!formula1, !formula2)))
@@ -148,3 +148,32 @@ module Resolution =
             | Or (Exists (variable, formula2), formula1) ->
                 Exists (variable, !(Or (!formula2, !formula1)))
             | _ -> formula |> Formula.transform (!)
+
+    let skolemize formula =
+
+        let rec loop scope = function
+            | ForAll (variable, inner) ->
+                assert(scope |> Set.contains variable |> not)
+                let scope' = scope |> Set.add variable
+                inner |> loop scope'
+            | Exists (variable, inner) ->
+                let _, skolem =
+                    scope
+                        |> Seq.map Term
+                        |> Seq.toArray
+                        |> Skolem.create
+                inner
+                    |> Formula.trySubstitute variable skolem
+                    |> Option.defaultWith (fun () ->
+                        failwith "Substitution failed")
+                    |> loop scope
+            | _ as formula ->
+                formula |> Formula.transform (loop scope)
+
+        let formula' =
+            formula
+                |> Formula.getFreeVariables
+                |> Seq.fold (fun acc var ->
+                    ForAll (var, acc)) formula
+        assert(formula' |> Formula.getFreeVariables |> Set.isEmpty)
+        formula' |> loop Set.empty

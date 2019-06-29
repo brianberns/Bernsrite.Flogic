@@ -85,9 +85,13 @@ module Skolem =
     /// Number of Skolem functions created so far.
     let mutable private counter = 0
 
-    /// Creates a Skolem function of the given arity.
-    let createFunction arity =
+    /// Creates a Skolem function for the given terms.
+    let create terms =
         let name =
             counter <- counter + 1
             sprintf "[skolem%d]" counter
-        Function (name, arity)
+        let func =
+            Function (name, terms |> Array.length)
+        let term =
+            Application (func, terms)
+        func, term

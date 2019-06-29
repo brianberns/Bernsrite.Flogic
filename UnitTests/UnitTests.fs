@@ -339,10 +339,8 @@ type UnitTest() =
         let y = Variable "y"
         let p = Predicate ("p", 2)
         let q = Predicate ("q", 1)
-        let skolemFunction =
-            Skolem.createFunction 1
-        let skolemTerm =
-            Application (skolemFunction, [| Term x |])
+        let skolemFunction, skolemTerm =
+            Skolem.create [| Term x |]
 
         [|
             (*1*)
@@ -689,10 +687,11 @@ type UnitTest() =
 
             // Anyone who loves all animals, is in turn loved by someone
         Assert.AreEqual(
-            "∀x.∃y'.∃y.((Animal(y) & ~Loves(x, y)) | Loves(y', x))",
+            "Animal(f(x)) & ~Loves(x, f(x))) | Loves(g(x), x)",
             "∀x.(∀y.(Animal(y) -> Loves(x, y)) -> ∃y.Loves(y, x))"
                 |> Parser.run parser
                 |> Resolution.toNegationNormalForm
                 |> Resolution.standardizeVariables
-                |> Resolution.pushQuantifiersOut
+                |> Resolution.moveQuantifiersOut
+                |> Resolution.skolemize
                 |> Formula.toString)
