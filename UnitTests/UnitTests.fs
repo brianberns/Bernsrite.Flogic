@@ -711,9 +711,9 @@ type UnitTest() =
         Assert.AreEqual(2, groups11.Count)
         Assert.AreEqual(groups00.[1].Value, groups11.[1].Value)
 
-            // http://www.cs.miami.edu/home/geoff/Courses/COMP6210-10M/Content/FOFToCNF.shtml
         let inputs =
             [|
+                    // http://www.cs.miami.edu/home/geoff/Courses/COMP6210-10M/Content/FOFToCNF.shtml
                 "∀Y.(∀X.(taller(Y,X) | wise(X)) => wise(Y))"
                 "~∃X.(s(X) & q(X))"
                 "∀X.(p(X) => (q(X) | r(X)))"
@@ -726,8 +726,11 @@ type UnitTest() =
                 "∃X.(∃Y.(p(X,Y) & q(Y)) => ∃Z.(p(Z,X) & q(Z)))"
                 "∀X.∃Y.((p(X,Y) <= ∀X.∃T.q(Y,X,T)) => r(Y))"
                 "∀X.∀Z.(p(X,Z) => ∃Y.~(q(X,Y) | ~r(Y,Z)))"
+
                 "(g ∧ (r ⇒ f))"
                 "¬(g ∧ (r ⇒ f))"
+                "∃y.(g(y) ∧ ∀z.(r(z) ⇒ f(y, z)))"
+                "¬∃y.(g(y) ∧ ∀z.(r(z) ⇒ f(y, z)))"
             |]
         for input in inputs do
             let clauses =
