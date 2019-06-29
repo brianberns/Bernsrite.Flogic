@@ -55,14 +55,6 @@ module Term =
                 Some name
         | _ -> None
 
-    /// Indicates whether the given term is "ground" (i.e. contains no
-    /// variables).
-    let rec isGround = function
-        | Term (Variable _) -> false
-        | Constant _ -> true
-        | Application (Function _, terms) ->
-            terms |> Seq.forall isGround
-
     /// Answers the distinct variables contained in the given term.
     let getVariables term =
 
@@ -78,6 +70,23 @@ module Term =
         term
             |> loop
             |> set
+
+    /// Substitutes the given new term for the given variable in the given
+    /// old term.
+    let rec substitute variable newTerm oldTerm =
+        match oldTerm with
+            | Term var ->
+                if var = variable then newTerm
+                else oldTerm
+            | Application (func, oldTerms) ->
+                Application (
+                    func,
+                    oldTerms |> substituteTerms variable newTerm)
+
+    /// Substitutes the given new term for the given variable in the given
+    /// old terms.
+    and substituteTerms variable newTerm oldTerms =
+        oldTerms |> Array.map (substitute variable newTerm)
 
 /// http://intrologic.stanford.edu/public/section.php?section=section_08_03
 module Skolem =

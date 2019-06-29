@@ -113,20 +113,6 @@ module Formula =
         let termVariables =
             term |> Term.getVariables
 
-            // substitutes within a term
-        let rec substituteTerm = function
-            | Term var as oldTerm ->
-                if var = variable then term
-                else oldTerm
-            | Application (func, oldTerms) ->
-                Application (
-                    func,
-                    oldTerms |> substituteTerms)
-
-            // substitutes within multiple terms
-        and substituteTerms oldTerms =
-            oldTerms |> Array.map substituteTerm
-
         let rec loop formula =
 
                 // substitutes within a unary formula
@@ -161,7 +147,8 @@ module Formula =
                 | Formula (predicate, oldTerms) ->
                     Formula (
                         predicate,
-                        oldTerms |> substituteTerms)
+                        oldTerms
+                            |> Term.substituteTerms variable term)
                         |> Some
                 | Not formula ->
                     Not |> unary formula
