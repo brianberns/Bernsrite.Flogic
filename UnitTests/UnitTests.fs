@@ -712,7 +712,7 @@ type UnitTest() =
         Assert.AreEqual(groups00.[1].Value, groups11.[1].Value)
 
         let inputs =
-            [|
+            [
                     // http://www.cs.miami.edu/home/geoff/Courses/COMP6210-10M/Content/FOFToCNF.shtml
                 "∀Y.(∀X.(taller(Y,X) | wise(X)) => wise(Y))"
                 "~∃X.(s(X) & q(X))"
@@ -731,7 +731,7 @@ type UnitTest() =
                 "¬(g ∧ (r ⇒ f))"
                 "∃y.(g(y) ∧ ∀z.(r(z) ⇒ f(y, z)))"
                 "¬∃y.(g(y) ∧ ∀z.(r(z) ⇒ f(y, z)))"
-            |]
+            ]
         for input in inputs do
             let clauses =
                 input
@@ -741,3 +741,21 @@ type UnitTest() =
             printfn "%s" input
             for clause in clauses do
                 printfn "%s" <| String.Join(" | ", clause)
+
+    [<TestMethod>]
+    member __.Unification() =
+        
+        let parser = Parser.makeParser Array.empty
+        let inputs =
+            [
+                "P(x, y)", "P(f(z), x)"
+                "p(x, x)", "p(a, y)"
+            ]
+        for input1, input2 in inputs do
+            printfn ""
+            printfn "%s, %s" input1 input2
+            let subsOpt =
+                Resolution.unify
+                    (input1 |> Parser.run parser)
+                    (input2 |> Parser.run parser)
+            printfn "%A" subsOpt

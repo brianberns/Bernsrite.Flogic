@@ -6,7 +6,18 @@ open System
 type Function = Function of name : string * arity : int
 
 /// A variable that represents an object in the world.
-type Variable = Variable of name : string
+[<StructuredFormatDisplay("{Name}")>]
+type Variable =
+    | Variable of name : string
+
+    /// Variable's name.
+    member this.Name =
+        let (Variable name) = this
+        name
+
+    /// Display string.
+    override this.ToString() =
+        this.Name
 
 /// A term typically denotes an object that exists in the world.
 /// E.g.
@@ -25,7 +36,7 @@ type Term =
     /// Display string.
     member this.String =
         match this with
-            | Term (Variable name) -> name
+            | Term variable -> variable.Name
             | Application (Function (name, arity), terms) ->
                 if (arity <> terms.Length) then
                     failwith "Arity mismatch"
@@ -45,15 +56,6 @@ module Term =
         Application (
             (Function (name, arity = 0)),
             Array.empty)
-
-    /// Active pattern for a constant term.
-    let (|Constant|_|) = function
-        | Application ((Function (name, arity)), terms)
-            when arity = 0 ->
-                if (terms.Length > 0) then
-                    failwith "Arity mismatch"
-                Some name
-        | _ -> None
 
     /// Answers the distinct variables contained in the given term.
     let getVariables term =
