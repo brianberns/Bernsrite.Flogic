@@ -183,6 +183,10 @@ module Resolution =
             | Or (And (q, r), p) ->
                 let p' = !p
                 And (!(Or (!q, p')), !(Or (!r, p')))
+            | Or (p, q) ->
+                let formula' = Or (!p, !q)
+                if formula' <> formula then !formula'   // is there a better way?
+                else formula'
             | _ -> formula |> Formula.transform (!)
 
     let toClauses formulaCnf =
