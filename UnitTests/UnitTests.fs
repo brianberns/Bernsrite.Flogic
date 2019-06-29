@@ -694,7 +694,9 @@ type UnitTest() =
                 |> Resolution.standardizeVariables
                 |> Resolution.moveQuantifiersOut
                 |> Resolution.skolemize
+                |> Resolution.distributeDisjunctions
                 |> Formula.toString
+        (*
         let groups =
             Regex
                 .Match(
@@ -704,3 +706,5 @@ type UnitTest() =
         Assert.AreEqual(4, groups.Count)
         Assert.AreEqual(groups.[1].Value, groups.[2].Value)
         Assert.AreNotEqual(groups.[1].Value, groups.[3].Value)
+        *)
+        printfn "%s" str

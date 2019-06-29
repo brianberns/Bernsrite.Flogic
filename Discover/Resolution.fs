@@ -21,7 +21,6 @@ module Resolution =
         match formula with
             | Implication (formula1, formula2) ->
                 Or (Not !formula1, !formula2)
-            | Biconditional _ -> failwith "Unexpected"
             | _ -> formula |> Formula.transform (!)
 
     let rec private moveNegationsIn formula =
@@ -38,8 +37,6 @@ module Resolution =
                 ForAll (variable, !!formula)
             | Not (ForAll (variable, formula)) ->
                 Exists (variable, !!formula)
-            | Implication _
-            | Biconditional _ -> failwith "Unexpected"
             | _ -> formula |> Formula.transform (!)
 
     /// https://en.wikipedia.org/wiki/Negation_normal_form
@@ -177,3 +174,14 @@ module Resolution =
                     ForAll (var, acc)) formula
         assert(formula' |> Formula.getFreeVariables |> Set.isEmpty)
         formula' |> loop Set.empty
+
+    let rec distributeDisjunctions formula =
+        let (!) = distributeDisjunctions
+        match formula with
+            | Or (p, And (q, r)) ->
+                let p' = !p
+                And (!(Or (p', !q)), !(Or (p', !r)))
+            | Or (And (q, r), p) ->
+                let p' = !p
+                And (!(Or (!q, p')), !(Or (!r, p')))
+            | _ -> formula |> Formula.transform (!)
