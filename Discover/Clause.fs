@@ -2,7 +2,8 @@
 
 open System
 
-/// A set of literals that are implicitly ORed together.
+/// A set of literals that are implicitly ORed together. A literal is either an
+/// atomic formula or its negation.
 [<StructuredFormatDisplay("{String}")>]
 type Clause =
     | Clause of Set<Formula>
