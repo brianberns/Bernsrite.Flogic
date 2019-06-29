@@ -687,7 +687,7 @@ type UnitTest() =
                 |> Formula.toString)
 
             // Anyone who loves all animals, is in turn loved by someone
-        let str =
+        let clauses =
             "∀x.(∀y.(Animal(y) -> Loves(x, y)) -> ∃y.Loves(y, x))"
                 |> Parser.run parser
                 |> Resolution.toNegationNormalForm
@@ -695,16 +695,34 @@ type UnitTest() =
                 |> Resolution.moveQuantifiersOut
                 |> Resolution.skolemize
                 |> Resolution.distributeDisjunctions
-                |> Formula.toString
-        (*
-        let groups =
+                |> Resolution.toClauses
+                |> Seq.map (
+                    Seq.map Formula.toString
+                        >> Seq.toArray)
+                |> Seq.toArray
+        Assert.AreEqual(2, clauses.Length)
+        Assert.AreEqual(2, clauses.[0].Length)
+        let groups00 =
             Regex
                 .Match(
-                    str,
-                    "\(Animal\(skolem(\d+)\(x\)\) & ~Loves\(x, skolem(\d+)\(x\)\)\) \| Loves\(skolem(\d+)\(x\), x\)")
+                    clauses.[0].[0],
+                    "Animal\(skolem(\d+)\(x\)\)")
                 .Groups
-        Assert.AreEqual(4, groups.Count)
-        Assert.AreEqual(groups.[1].Value, groups.[2].Value)
-        Assert.AreNotEqual(groups.[1].Value, groups.[3].Value)
-        *)
-        printfn "%s" str
+        Assert.AreEqual(2, groups00.Count)
+        let groups01 =
+            Regex
+                .Match(
+                    clauses.[0].[1],
+                    "Loves\(skolem(\d+)\(x\), x\)")
+                .Groups
+        Assert.AreEqual(2, groups01.Count)
+        Assert.AreNotEqual(groups00.[1].Value, groups01.[1].Value)
+        Assert.AreEqual(clauses.[0].[1], clauses.[1].[0])
+        let groups11 =
+            Regex
+                .Match(
+                    clauses.[1].[1],
+                    "~Loves\(x, skolem(\d+)\(x\)\)")
+                .Groups
+        Assert.AreEqual(2, groups11.Count)
+        Assert.AreEqual(groups00.[1].Value, groups11.[1].Value)

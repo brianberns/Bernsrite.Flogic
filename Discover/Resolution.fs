@@ -185,3 +185,31 @@ module Resolution =
                 let p' = !p
                 And (!(Or (!q, p')), !(Or (!r, p')))
             | _ -> formula |> Formula.transform (!)
+
+    let toClauses formulaCnf =
+
+        let rec removeAnds formulas = function
+            | And (p, q) ->
+                let formulas' = p |> removeAnds formulas
+                q |> removeAnds formulas'
+            | Or _ as formula ->
+                formulas |> Set.add formula
+            | Formula _ as formula ->
+                formulas |> Set.add formula
+            | Not (Formula _) as formula ->
+                formulas |> Set.add formula
+            | _ -> failwith "Not in conjunctive normal form"
+
+        let rec removeOrs formulas = function
+            | Or (p, q) ->
+                let formulas' = p |> removeOrs formulas
+                q |> removeOrs formulas'
+            | Formula _ as formula ->
+                formulas |> Set.add formula
+            | Not (Formula _) as formula ->
+                formulas |> Set.add formula
+            | _ -> failwith "Not in conjunctive normal form"
+
+        formulaCnf
+            |> removeAnds Set.empty
+            |> Set.map (removeOrs Set.empty)
