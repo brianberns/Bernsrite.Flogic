@@ -96,6 +96,7 @@ module Parser =
                 ["&"; "∧"], And
                 ["|"; "∨"], Or
                 ["->"; "=>"; "⇒"], Implication
+                ["<-"; "<="; "⇐"], (fun (q, p) -> Implication (p, q))
                 ["<->"; "<=>"; "⇔"], Biconditional
             ]
                 |> Seq.map (fun (ops, constructor) ->
