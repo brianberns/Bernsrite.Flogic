@@ -1,53 +1,69 @@
 ﻿namespace Discover
 
-type Clause = Set<Formula>
+/// A set of literals that are implicitly ORed together.
+type Clause = Clause of Set<Formula>
 
 /// http://intrologic.stanford.edu/public/section.php?section=section_05_02
-module Resolution =
+/// http://www.cs.miami.edu/home/geoff/Courses/COMP6210-10M/Content/FOFToCNF.shtml
+/// https://en.wikipedia.org/wiki/Conjunctive_normal_form
+module Clause =
 
+    /// Rewrites biconditionals.
     let rec private eliminateBiconditionals formula =
         let (!) = eliminateBiconditionals
         match formula with
+
+                // P <=> Q to (P => Q) & (Q => P).
             | Biconditional (formula1, formula2) ->
                 let formula1' = !formula1
                 let formula2' = !formula2
                 And (
                     Implication (formula1', formula2'),
                     Implication (formula2', formula1'))
+
             | _ -> formula |> Formula.transform (!)
 
+    /// Rewrites implications.
     let rec private eliminateImplications formula =
         let (!) = eliminateImplications
         match formula with
+
+                // P => Q to ~P | Q
             | Implication (formula1, formula2) ->
                 Or (Not !formula1, !formula2)
+
             | _ -> formula |> Formula.transform (!)
 
+    /// Rewrites negations.
     let rec private moveNegationsIn formula =
         let (!) = moveNegationsIn
         let (!!) formula = !(Not !formula)
         match formula with
+
+                // ~(P & Q) to (~P | ~Q)
             | Not (And (formula1, formula2)) ->
                 Or (!!formula1, !!formula2)
+
+                // ~(P | Q) to (~P & ~Q)
             | Not (Or (formula1, formula2)) ->
                 And (!!formula1, !!formula2)
+
+                // ~~P to P
             | Not (Not formula) ->
                 !formula
+
+                // ~∃X.P to ∀X.~P
             | Not (Exists (variable, formula)) ->
                 ForAll (variable, !!formula)
+
+                // ~∀X.P to ∃X.~P
             | Not (ForAll (variable, formula)) ->
                 Exists (variable, !!formula)
+
             | _ -> formula |> Formula.transform (!)
 
-    /// https://en.wikipedia.org/wiki/Negation_normal_form
-    let toNegationNormalForm formula =
-        formula
-            |> eliminateBiconditionals
-            |> eliminateImplications
-            |> moveNegationsIn
-
-    /// https://en.wikipedia.org/wiki/Conjunctive_normal_form
-    let standardizeVariables formula =
+    /// Renames variables to avoid conflicts.
+    let private standardizeVariables formula =
 
         let standardizeVariable variableMap variable =
             variableMap
@@ -124,34 +140,57 @@ module Resolution =
             formula |> loop Map.empty Set.empty
         formula'
 
-    let rec moveQuantifiersOut formula =
+    /// Moves quantifiers out.
+    let rec private moveQuantifiersOut formula =
         let (!) = moveQuantifiersOut
         match formula with
+
+                // Q & ∀X.P to ∀X.(Q & P)
             | And (formula1, ForAll (variable, formula2)) ->
                 ForAll (variable, !(And (!formula1, !formula2)))
+
+                // ∀X.P & Q to ∀X.(P & Q)
             | And (ForAll (variable, formula1), formula2) ->
                 ForAll (variable, !(And (!formula2, !formula1)))
+
+                // Q & ∃X.P to ∃X.(Q & P)
             | And (formula1, Exists (variable, formula2)) ->
                 Exists (variable, !(And (!formula1, !formula2)))
+
+                // ∃X.P & Q to ∃X.(P & Q)
             | And (Exists (variable, formula2), formula1) ->
                 Exists (variable, !(And (!formula2, !formula1)))
+
+                // Q | ∀X.P to ∀X.(Q | P)
             | Or (formula1, ForAll (variable, formula2)) ->
                 ForAll (variable, !(Or (!formula1, !formula2)))
+
+                // ∀X.P | Q to ∀X.(P | Q)
             | Or (ForAll (variable, formula1), formula2) ->
                 ForAll (variable, !(Or (!formula2, !formula1)))
+
+                // Q | ∃X.P to ∃X.(Q | P)
             | Or (formula1, Exists (variable, formula2)) ->
                 Exists (variable, !(Or (!formula1, !formula2)))
+
+                // ∃X.P | Q to ∃X.(P | Q)
             | Or (Exists (variable, formula2), formula1) ->
                 Exists (variable, !(Or (!formula2, !formula1)))
+
             | _ -> formula |> Formula.transform (!)
 
-    let skolemize formula =
+    /// Removes quantifiers.
+    let private removeQuantifiers formula =
 
         let rec loop scope = function
+
+                // add variable to scope and drop universal quantifier
             | ForAll (variable, inner) ->
                 assert(scope |> Set.contains variable |> not)
                 let scope' = scope |> Set.add variable
                 inner |> loop scope'
+
+                // skolemize to remove existential quantifier
             | Exists (variable, inner) ->
                 let _, skolem =
                     scope
@@ -163,33 +202,42 @@ module Resolution =
                     |> Option.defaultWith (fun () ->
                         failwith "Substitution failed")
                     |> loop scope
+
             | _ as formula ->
                 formula |> Formula.transform (loop scope)
 
-        let formula' =
-            formula
-                |> Formula.getFreeVariables
-                |> Seq.fold (fun acc var ->
-                    ForAll (var, acc)) formula
-        assert(formula' |> Formula.getFreeVariables |> Set.isEmpty)
-        formula' |> loop Set.empty
+            // add explicit universal quantifier for any free variables
+        formula
+            |> Formula.getFreeVariables
+            |> Seq.fold (fun acc var ->
+                ForAll (var, acc)) formula
+            |> loop Set.empty
 
-    let rec distributeDisjunctions formula =
+    /// Distributes disjunctions: moves ANDs outside, ORs inside.
+    let rec private distributeDisjunctions formula =
         let (!) = distributeDisjunctions
         match formula with
+
+                // P | (Q & R) to (P | Q) & (P | R)
             | Or (p, And (q, r)) ->
                 let p' = !p
                 And (!(Or (p', !q)), !(Or (p', !r)))
+
+                // (Q & R) | P to (Q | P) & (R | P)
             | Or (And (q, r), p) ->
                 let p' = !p
                 And (!(Or (!q, p')), !(Or (!r, p')))
+
+                // fully process ORs (is there a better way?)
             | Or (p, q) ->
                 let formula' = Or (!p, !q)
-                if formula' <> formula then !formula'   // is there a better way?
+                if formula' <> formula then !formula'
                 else formula'
+
             | _ -> formula |> Formula.transform (!)
 
-    let toClauses formulaCnf =
+    /// Converts a formula in conjunctive normal form to clauses.
+    let private convertToClauses formulaCnf =
 
         let rec removeAnds formulas = function
             | And (p, q) ->
@@ -215,4 +263,15 @@ module Resolution =
 
         formulaCnf
             |> removeAnds Set.empty
-            |> Set.map (removeOrs Set.empty)
+            |> Set.map (removeOrs Set.empty >> Clause)
+
+    /// Converts a formula to clauses.
+    let toClauses =
+        eliminateBiconditionals
+            >> eliminateImplications
+            >> moveNegationsIn
+            >> standardizeVariables
+            >> moveQuantifiersOut
+            >> removeQuantifiers
+            >> distributeDisjunctions
+            >> convertToClauses

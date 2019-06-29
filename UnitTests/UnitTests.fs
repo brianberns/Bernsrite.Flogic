@@ -674,33 +674,15 @@ type UnitTest() =
 
         let parser = Parser.makeParser Array.empty
 
-        Assert.AreEqual(
-            "(~A | B) & C",
-            "(~(A & ~B) & C)"
-                |> Parser.run parser
-                |> Resolution.toNegationNormalForm
-                |> Formula.toString)
-
-        Assert.AreEqual(
-            "~g | (r & ~f)",
-            "~(g & (r -> f))"
-                |> Parser.run parser
-                |> Resolution.toNegationNormalForm
-                |> Formula.toString)
-
             // Anyone who loves all animals, is in turn loved by someone
         let clauses =
             "∀x.(∀y.(Animal(y) -> Loves(x, y)) -> ∃y.Loves(y, x))"
                 |> Parser.run parser
-                |> Resolution.toNegationNormalForm
-                |> Resolution.standardizeVariables
-                |> Resolution.moveQuantifiersOut
-                |> Resolution.skolemize
-                |> Resolution.distributeDisjunctions
-                |> Resolution.toClauses
-                |> Seq.map (
-                    Seq.map Formula.toString
-                        >> Seq.toArray)
+                |> Clause.toClauses
+                |> Seq.map (fun (Clause formulas) ->
+                    formulas
+                        |> Seq.map Formula.toString
+                        |> Seq.toArray)
                 |> Seq.toArray
         Assert.AreEqual(2, clauses.Length)
         Assert.AreEqual(2, clauses.[0].Length)
@@ -739,24 +721,15 @@ type UnitTest() =
                 "∀X.((q(X) | r(X)) => s(X))"
                 "∃X.(p => f(X))"
                 "∃X.(p <=> f(X))"
-                "∀Z.∃Y.∀X.(f(X,Y) <=> (f(X,Z) & ~f(X,X)))"   // doesn't match given answer
+                "∀Z.∃Y.∀X.(f(X,Y) <=> (f(X,Z) & ~f(X,X)))"
                 "∀X.∀Y.(q(X,Y) <=> ∀Z.(f(Z,X) <=> f(Z,Y)))"
             |]
         for input in inputs do
             let clauses =
                 input
                     |> Parser.run parser
-                    |> Resolution.toNegationNormalForm
-                    |> Resolution.standardizeVariables
-                    |> Resolution.moveQuantifiersOut
-                    |> Resolution.skolemize
-                    |> Resolution.distributeDisjunctions
-                    |> Resolution.toClauses
-                    |> Seq.map (
-                        Seq.map Formula.toString
-                            >> Seq.toArray)
-                    |> Seq.toArray
+                    |> Clause.toClauses
             printfn ""
             printfn "%s" input
             for clause in clauses do
-                printfn "%s" <| String.Join(", ", clause)
+                printfn "%s" <| String.Join(" | ", clause)
