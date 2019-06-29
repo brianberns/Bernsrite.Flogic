@@ -723,6 +723,8 @@ type UnitTest() =
                 "∃X.(p <=> f(X))"
                 "∀Z.∃Y.∀X.(f(X,Y) <=> (f(X,Z) & ~f(X,X)))"
                 "∀X.∀Y.(q(X,Y) <=> ∀Z.(f(Z,X) <=> f(Z,Y)))"
+                "(g ∧ (r ⇒ f))"
+                "¬(g ∧ (r ⇒ f))"
             |]
         for input in inputs do
             let clauses =

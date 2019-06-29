@@ -1,7 +1,21 @@
 ﻿namespace Discover
 
+open System
+
 /// A set of literals that are implicitly ORed together.
-type Clause = Clause of Set<Formula>
+[<StructuredFormatDisplay("{String}")>]
+type Clause =
+    | Clause of Set<Formula>
+
+    /// Display string.
+    member this.String =
+        match this with
+            | Clause formulas ->
+                String.Join(" | ", formulas)
+
+    /// Display string.
+    override this.ToString() =
+        this.String
 
 /// http://intrologic.stanford.edu/public/section.php?section=section_05_02
 /// http://www.cs.miami.edu/home/geoff/Courses/COMP6210-10M/Content/FOFToCNF.shtml
