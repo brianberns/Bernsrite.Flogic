@@ -89,7 +89,6 @@ module Resolution =
                 let variable', seen' =
                     variable |> obtainVariable seen
                 let variableMap' =
-                    assert(variableMap |> Map.containsKey variable |> not)
                     variableMap |> Map.add variable variable'
                 let inner', seen'' =
                     inner |> loop variableMap' seen'

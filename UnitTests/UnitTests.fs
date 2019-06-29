@@ -1,6 +1,8 @@
 ﻿namespace Discover
 
+open System
 open System.Text.RegularExpressions
+
 open Microsoft.VisualStudio.TestTools.UnitTesting
 
 [<TestClass>]
@@ -726,3 +728,34 @@ type UnitTest() =
                 .Groups
         Assert.AreEqual(2, groups11.Count)
         Assert.AreEqual(groups00.[1].Value, groups11.[1].Value)
+
+            // http://www.cs.miami.edu/home/geoff/Courses/COMP6210-10M/Content/FOFToCNF.shtml
+        let inputs =
+            [|
+                "∀Y.(∀X.(taller(Y,X) | wise(X)) => wise(Y))"
+                "~∃X.(s(X) & q(X))"
+                "∀X.(p(X) => (q(X) | r(X)))"
+                "~∃X.(p(X) => ∃X.q(X))"
+                "∀X.((q(X) | r(X)) => s(X))"
+                "∃X.(p => f(X))"
+                "∃X.(p <=> f(X))"
+                "∀Z.∃Y.∀X.(f(X,Y) <=> (f(X,Z) & ~f(X,X)))"   // doesn't match given answer
+            |]
+        for input in inputs do
+            let clauses =
+                input
+                    |> Parser.run parser
+                    |> Resolution.toNegationNormalForm
+                    |> Resolution.standardizeVariables
+                    |> Resolution.moveQuantifiersOut
+                    |> Resolution.skolemize
+                    |> Resolution.distributeDisjunctions
+                    |> Resolution.toClauses
+                    |> Seq.map (
+                        Seq.map Formula.toString
+                            >> Seq.toArray)
+                    |> Seq.toArray
+            printfn ""
+            printfn "%s" input
+            for clause in clauses do
+                printfn "%s" <| String.Join(", ", clause)
