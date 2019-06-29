@@ -1,5 +1,6 @@
 ﻿namespace Discover
 
+open System.Text.RegularExpressions
 open Microsoft.VisualStudio.TestTools.UnitTesting
 
 [<TestClass>]
@@ -686,12 +687,20 @@ type UnitTest() =
                 |> Formula.toString)
 
             // Anyone who loves all animals, is in turn loved by someone
-        Assert.AreEqual(
-            "Animal(f(x)) & ~Loves(x, f(x))) | Loves(g(x), x)",
+        let str =
             "∀x.(∀y.(Animal(y) -> Loves(x, y)) -> ∃y.Loves(y, x))"
                 |> Parser.run parser
                 |> Resolution.toNegationNormalForm
                 |> Resolution.standardizeVariables
                 |> Resolution.moveQuantifiersOut
                 |> Resolution.skolemize
-                |> Formula.toString)
+                |> Formula.toString
+        let groups =
+            Regex
+                .Match(
+                    str,
+                    "\(Animal\(skolem(\d+)\(x\)\) & ~Loves\(x, skolem(\d+)\(x\)\)\) \| Loves\(skolem(\d+)\(x\), x\)")
+                .Groups
+        Assert.AreEqual(4, groups.Count)
+        Assert.AreEqual(groups.[1].Value, groups.[2].Value)
+        Assert.AreNotEqual(groups.[1].Value, groups.[3].Value)

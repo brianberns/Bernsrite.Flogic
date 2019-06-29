@@ -89,7 +89,7 @@ module Skolem =
     let create terms =
         let name =
             counter <- counter + 1
-            sprintf "[skolem%d]" counter
+            sprintf "skolem%d" counter
         let func =
             Function (name, terms |> Array.length)
         let term =
