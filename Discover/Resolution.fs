@@ -21,6 +21,12 @@ type Substitution =
 
 module Substitution =
 
+    let create variable term =
+        {
+            Variable = variable
+            Term = term
+        }
+
     let apply term subs =
         (term, subs)
             ||> Seq.fold (fun acc sub ->
@@ -28,13 +34,6 @@ module Substitution =
                     sub.Variable
                     sub.Term
                     acc)
-
-    let add variable term subs =
-        subs
-            |> Set.add {
-                Variable = variable
-                Term = term
-            }
 
 module Resolution =
 
@@ -53,8 +52,8 @@ module Resolution =
                         |> Set.contains variable
                 if occurs then None
                 else
-                    subs
-                        |> Substitution.add variable term
+                    Substitution.create variable term
+                        :: subs
                         |> Some
 
             match (term1', term2') with
@@ -79,5 +78,6 @@ module Resolution =
         match (formula1, formula2) with
             | Formula (predicate1, terms1), Formula (predicate2, terms2)
                 when predicate1 = predicate2 ->
-                    unifyTermArrays terms1 terms2 Set.empty
+                    unifyTermArrays terms1 terms2 List.empty
+                        |> Option.map List.rev
             | _ -> None

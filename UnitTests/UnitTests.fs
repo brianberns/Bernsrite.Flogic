@@ -753,7 +753,7 @@ type UnitTest() =
                 ]
                 "p(x, x)", "p(a, y)", [
                     ("x", "a")
-                    ("y", "a")
+                    ("a", "y")   // can be in either order
                 ]
                 "p(x)", "p(f(x))", [
                 ]
@@ -772,7 +772,7 @@ type UnitTest() =
                             Variable = Variable oldStr
                             Term = newStr |> Parser.run parsers.ParseTerm
                         })
-                    |> Set.ofSeq
+                    |> Seq.toList
             Assert.AreEqual(
                 (if expected.IsEmpty then None else Some expected),
                 actual)
