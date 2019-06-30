@@ -40,22 +40,23 @@ module Resolution =
 
     let rec private unifyTerms term1 term2 subs =
 
-        let add variable term =
-            let occurs =
-                term
-                    |> Term.getVariables
-                    |> Set.contains variable
-            if occurs then None
-            else
-                subs
-                    |> Substitution.add variable term
-                    |> Some
-
         let term1' = subs |> Substitution.apply term1
         let term2' = subs |> Substitution.apply term2
         if term1' = term2' then
             Some subs
         else
+
+            let add variable term =
+                let occurs =
+                    term
+                        |> Term.getVariables
+                        |> Set.contains variable
+                if occurs then None
+                else
+                    subs
+                        |> Substitution.add variable term
+                        |> Some
+
             match (term1', term2') with
 
                     // unify term with variable
@@ -75,13 +76,7 @@ module Resolution =
                 unifyTerms term1'' term2'' acc)
 
     let unify formula1 formula2 =
-
-        let toAtom = function
-            | Formula (_, _) as formula -> formula
-            | Not (Formula (_, _) as formula) -> formula
-            | _ -> failwith "Not a literal"
-
-        match (toAtom formula1, toAtom formula2) with
+        match (formula1, formula2) with
             | Formula (predicate1, terms1), Formula (predicate2, terms2)
                 when predicate1 = predicate2 ->
                     unifyTermArrays terms1 terms2 Set.empty

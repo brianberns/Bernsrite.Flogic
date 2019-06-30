@@ -29,30 +29,6 @@ module Parser =
     let parseVariable =
         parseName |>> Variable
 
-    let parseTerm, parseTermRef =
-        createParserForwardedToRef<Term, unit>()
-
-    let parseTerms allowEmpty =
-        let parsePresent =
-            spaces
-                >>. skipChar '('
-                >>. sepBy1 parseTerm (skipChar ',' .>> spaces)
-                .>> skipChar ')'
-                |>> Seq.toArray
-        if allowEmpty then
-            attempt parsePresent
-                <|> preturn Array.empty
-        else
-            parsePresent
-
-    let parseApplication =
-        pipe2 parseName (parseTerms false)
-            (fun name (terms : _[]) ->
-                Application (Function (name, terms.Length), terms))
-
-    let parseFormula, parseFormulaRef =
-        createParserForwardedToRef<Formula, unit>()
-
     let skipAnyOfStr strs =
         strs
             |> Seq.map skipString
@@ -64,7 +40,7 @@ module Parser =
             >>. parser
             .>> skipChar ')'
 
-    let makeParser constants : Parser<_> =
+    let makeParsers constants =
 
         let parseConstant =
             let constantsSet = set constants
@@ -73,18 +49,41 @@ module Parser =
                 if constantsSet.Contains(name) then
                     return Term.constant name
             }
+    
+        let parseTerm, parseTermRef =
+            createParserForwardedToRef<Term, unit>()
+
+        let parseTerms allowEmpty =
+            let parsePresent =
+                spaces
+                    >>. skipChar '('
+                    >>. sepBy1 parseTerm (skipChar ',' .>> spaces)
+                    .>> skipChar ')'
+                    |>> Seq.toArray
+            if allowEmpty then
+                attempt parsePresent
+                    <|> preturn Array.empty
+            else
+                parsePresent
+
+        let parseApplication =
+            pipe2 parseName (parseTerms false)
+                (fun name (terms : _[]) ->
+                    Application (Function (name, terms.Length), terms))
 
         let parseTermActual =
             attempt parseApplication
                 <|> attempt parseConstant
                 <|> (parseVariable |>> Term)
-
         parseTermRef := parseTermActual
 
         let parseAtomic =
             pipe2 parseName (parseTerms true)
                 (fun name (terms : _[]) ->
                     Formula (Predicate (name, terms.Length), terms))
+
+        let parseFormula, parseFormulaRef =
+            createParserForwardedToRef<Formula, unit>()
                         
         let parseNot =
             skipAnyOf ['~'; '¬'; '!']
@@ -136,9 +135,16 @@ module Parser =
                 attempt parseAtomic
                 attempt parseComplex
             ]
-
         parseFormulaRef := parseFormulaActual
-        parseFormulaActual
+
+        {|
+            ParseTerm = parseTerm
+            ParseFormula = parseFormula
+        |}
+
+    let makeParser constants =
+        let record = makeParsers constants
+        record.ParseFormula
 
     /// Runs the given parser on the given string.
     let run parser str =

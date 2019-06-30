@@ -744,18 +744,35 @@ type UnitTest() =
 
     [<TestMethod>]
     member __.Unification() =
-        
-        let parser = Parser.makeParser Array.empty
+        let parsers = Parser.makeParsers Array.empty
         let inputs =
             [
-                "P(x, y)", "P(f(z), x)"
-                "p(x, x)", "p(a, y)"
+                "P(x, y)", "P(f(z), x)", [
+                    ("x", "f(z)")
+                    ("y", "f(z)")
+                ]
+                "p(x, x)", "p(a, y)", [
+                    ("x", "a")
+                    ("y", "a")
+                ]
+                "p(x)", "p(f(x))", [
+                ]
             ]
-        for input1, input2 in inputs do
+        for input1, input2, expectedStrs in inputs do
             printfn ""
             printfn "%s, %s" input1 input2
-            let subsOpt =
+            let actual =
                 Resolution.unify
-                    (input1 |> Parser.run parser)
-                    (input2 |> Parser.run parser)
-            printfn "%A" subsOpt
+                    (input1 |> Parser.run parsers.ParseFormula)
+                    (input2 |> Parser.run parsers.ParseFormula)
+            let expected =
+                expectedStrs
+                    |> Seq.map (fun (oldStr, newStr) ->
+                        {
+                            Variable = Variable oldStr
+                            Term = newStr |> Parser.run parsers.ParseTerm
+                        })
+                    |> Set.ofSeq
+            Assert.AreEqual(
+                (if expected.IsEmpty then None else Some expected),
+                actual)
