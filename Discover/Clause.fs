@@ -21,9 +21,13 @@ module LiteralAutoOpen =
         override this.ToString() =
             this.String
 
-    /// Active pattern to mimic read-only use of union case.
-    let (|Literal|) = function
-        | Literal formula -> formula
+    /// Active pattern to deconstruct a literal.
+    let (|LiteralAtom|LiteralNot|) = function
+        | Literal (Formula (predicate, terms) as formula) ->
+            LiteralAtom (predicate, terms)
+        | Literal (Not (Formula (predicate, terms)) as formula) ->
+            LiteralNot (predicate, terms)
+        | _ -> failwith "Unexpected"
 
     module Literal =
 

@@ -52,11 +52,10 @@ module Substitution =
                 |> Literal.ofFormula
 
         match literal with
-            | Literal (Formula (predicate, terms)) ->
+            | LiteralAtom (predicate, terms) ->
                 applyTerms predicate terms id
-            | Literal (Not (Formula (predicate, terms))) ->
+            | LiteralNot (predicate, terms) ->
                 applyTerms predicate terms Not
-            | _ -> failwith "Unexpected"
 
 module Unfiy =
 
@@ -115,12 +114,12 @@ module Unfiy =
                 |> Option.map List.rev
 
         match (literal1, literal2) with
-            | Literal (Formula (predicate1, terms1)),
-              Literal (Formula (predicate2, terms2))
+            | LiteralAtom (predicate1, terms1),
+              LiteralAtom (predicate2, terms2)
                 when predicate1 = predicate2 ->
                     tryUnifyRev terms1 terms2
-            | Literal (Not (Formula (predicate1, terms1))),
-              Literal (Not (Formula (predicate2, terms2)))
+            | LiteralNot (predicate1, terms1),
+              LiteralNot (predicate2, terms2)
                 when predicate1 = predicate2 ->
                     tryUnifyRev terms1 terms2
             | _ -> None
