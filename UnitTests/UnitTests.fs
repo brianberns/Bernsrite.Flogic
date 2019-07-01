@@ -776,3 +776,18 @@ type UnitTest() =
             Assert.AreEqual(
                 (if expected.IsEmpty then None else Some expected),
                 actual)
+
+    [<TestMethod>]
+    member __.Factor() =
+        let parser = Parser.makeParser Array.empty
+        let clause =
+            [
+                "p(x)"
+                "p(f(y))"
+                "r(x, y)"
+            ]
+                |> Seq.map (Parser.run parser)
+                |> Set.ofSeq
+                |> Clause
+        let clause' = Resolution.factor clause
+        printfn "%A" clause'
