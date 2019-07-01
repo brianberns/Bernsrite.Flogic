@@ -290,3 +290,10 @@ module Clause =
             >> removeQuantifiers
             >> distributeDisjunctions
             >> convertToClauses
+
+    /// Applies the given mapping to all formulas in the
+    /// given clause.
+    let map mapping (Clause formulas) =
+        formulas
+            |> Set.map mapping
+            |> Clause

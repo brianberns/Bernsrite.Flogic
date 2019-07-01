@@ -57,8 +57,9 @@
     <Compile Include="InferenceRule.fs" />
     <Compile Include="Proof.fs" />
     <Compile Include="Clause.fs" />
-    <Compile Include="Peano.fs" />
     <Compile Include="Unify.fs" />
+    <Compile Include="Peano.fs" />
+    <Compile Include="Resolution.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FParsec">

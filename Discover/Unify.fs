@@ -39,6 +39,21 @@ module Substitution =
                     sub.Term
                     acc)
 
+    /// Tries to apply the given substitutions in order to the
+    /// given literal formula.
+    let rec tryApply literal subs =
+        match literal with
+            | Formula (predicate, terms) ->
+                let terms' =
+                    terms
+                        |> Array.map (fun term ->
+                            apply term subs)
+                Formula (predicate, terms') |> Some
+            | Not formula ->
+                tryApply formula subs
+                    |> Option.map Not
+            | _ -> None
+
 module Unfiy =
 
     /// Tries to unify the given terms by adding to the given
@@ -88,11 +103,13 @@ module Unfiy =
             ||> Seq.tryFold (fun acc (term1'', term2'') ->
                 tryUnifyTerms term1'' term2'' acc)
 
-    /// Tries to unify two atomic formulas.
-    let unify formula1 formula2 =
-        match (formula1, formula2) with
+    /// Tries to unify two literal formulas.
+    let rec tryUnify literal1 literal2 =
+        match (literal1, literal2) with
             | Formula (predicate1, terms1), Formula (predicate2, terms2)
                 when predicate1 = predicate2 ->
                     tryUnifyTermArrays terms1 terms2 List.empty
                         |> Option.map List.rev
+            | Not formula1, Not formula2 ->
+                tryUnify formula1 formula2
             | _ -> None

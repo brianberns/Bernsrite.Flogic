@@ -762,7 +762,7 @@ type UnitTest() =
             printfn ""
             printfn "%s, %s" input1 input2
             let actual =
-                Unfiy.unify
+                Unfiy.tryUnify
                     (input1 |> Parser.run parsers.ParseFormula)
                     (input2 |> Parser.run parsers.ParseFormula)
             let expected =
