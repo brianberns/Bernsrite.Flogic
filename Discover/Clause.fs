@@ -23,9 +23,9 @@ module LiteralAutoOpen =
 
     /// Active pattern to deconstruct a literal.
     let (|LiteralAtom|LiteralNot|) = function
-        | Literal (Formula (predicate, terms) as formula) ->
+        | Literal (Formula (predicate, terms)) ->
             LiteralAtom (predicate, terms)
-        | Literal (Not (Formula (predicate, terms)) as formula) ->
+        | Literal (Not (Formula (predicate, terms))) ->
             LiteralNot (predicate, terms)
         | _ -> failwith "Unexpected"
 
