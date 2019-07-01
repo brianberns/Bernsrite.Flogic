@@ -2,17 +2,56 @@
 
 open System
 
-/// A set of literals that are implicitly ORed together. A literal is either an
-/// atomic formula or its negation.
+/// Make union case private to this module.
+/// https://github.com/dotnet/fsharp/issues/984
+[<AutoOpen>]
+module LiteralAutoOpen =
+
+    /// A literal is either an atomic formula or its negation.
+    [<StructuredFormatDisplay("{String}")>]
+    type Literal =
+        private | Literal of Formula
+
+        /// Display string.
+        member this.String =
+            match this with
+                | Literal formula -> formula.String
+
+        /// Display string.
+        override this.ToString() =
+            this.String
+
+    /// Active pattern to mimic read-only use of union case.
+    let (|Literal|) = function
+        | Literal formula -> formula
+
+    module Literal =
+
+        /// Converts a formula to a literal.
+        let ofFormula = function
+            | Formula _ as formula -> Literal formula
+            | Not (Formula _) as formula -> Literal formula
+            | _ -> failwith "Not a literal"
+
+module Literal =
+
+    /// Display string.
+    let toString (literal : Literal) =
+        literal.ToString()
+
+/// A set of literals that are implicitly ORed together.
 [<StructuredFormatDisplay("{String}")>]
 type Clause =
-    | Clause of Set<Formula>
+    | Clause of Set<Literal>
 
     /// Display string.
     member this.String =
         match this with
-            | Clause formulas ->
-                String.Join(" | ", formulas)
+            | Clause literals ->
+                let strs =
+                    literals
+                        |> Seq.map Literal.toString
+                String.Join(" | ", strs)
 
     /// Display string.
     override this.ToString() =
@@ -266,14 +305,16 @@ module Clause =
                 formulas |> Set.add formula
             | _ -> failwith "Not in conjunctive normal form"
 
-        let rec removeOrs formulas = function
+        let rec removeOrs literals = function
             | Or (p, q) ->
-                let formulas' = p |> removeOrs formulas
+                let formulas' = p |> removeOrs literals
                 q |> removeOrs formulas'
             | Formula _ as formula ->
-                formulas |> Set.add formula
+                literals
+                    |> Set.add (Literal.ofFormula formula)
             | Not (Formula _) as formula ->
-                formulas |> Set.add formula
+                literals
+                    |> Set.add (Literal.ofFormula formula)
             | _ -> failwith "Not in conjunctive normal form"
 
         formulaCnf
@@ -291,9 +332,9 @@ module Clause =
             >> distributeDisjunctions
             >> convertToClauses
 
-    /// Applies the given mapping to all formulas in the
+    /// Applies the given mapping to all literals in the
     /// given clause.
-    let map mapping (Clause formulas) =
-        formulas
+    let map mapping (Clause literals) =
+        literals
             |> Set.map mapping
             |> Clause

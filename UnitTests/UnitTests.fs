@@ -679,9 +679,9 @@ type UnitTest() =
             "∀x.(∀y.(Animal(y) -> Loves(x, y)) -> ∃y.Loves(y, x))"
                 |> Parser.run parser
                 |> Clause.toClauses
-                |> Seq.map (fun (Clause formulas) ->
-                    formulas
-                        |> Seq.map Formula.toString
+                |> Seq.map (fun (Clause literals) ->
+                    literals
+                        |> Seq.map Literal.toString
                         |> Seq.toArray)
                 |> Seq.toArray
         Assert.AreEqual(2, clauses.Length)
@@ -786,7 +786,7 @@ type UnitTest() =
                 "p(f(y))"
                 "r(x, y)"
             ]
-                |> Seq.map (Parser.run parser)
+                |> Seq.map (Parser.run parser >> Literal.ofFormula)
                 |> Set.ofSeq
                 |> Clause
         let clause' = Resolution.factor clause
