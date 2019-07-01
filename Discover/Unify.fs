@@ -21,16 +21,16 @@ type Substitution =
 
 module Substitution =
 
-    /// Creates a substitution of the given term for the
-    /// given variable.
+    /// Creates a substitution of the given term for the given
+    /// variable.
     let create variable term =
         {
             Variable = variable
             Term = term
         }
 
-    /// Applies the given substitutions in order to the
-    /// given term.
+    /// Applies the given substitutions in order to the given
+    /// term.
     let apply term subs =
         (term, subs)
             ||> Seq.fold (fun acc sub ->
@@ -39,20 +39,24 @@ module Substitution =
                     sub.Term
                     acc)
 
-    /// Tries to apply the given substitutions in order to the
-    /// given literal formula.
-    let rec tryApply literal subs =
+    /// Applies the given substitutions in order to the given literal.
+    let rec applyLiteral literal subs =
+
+        let applyTerms predicate terms constructor =
+            let terms' =
+                terms
+                    |> Array.map (fun term ->
+                        apply term subs)
+            Formula (predicate, terms')
+                |> constructor
+                |> Literal.ofFormula
+
         match literal with
-            | Formula (predicate, terms) ->
-                let terms' =
-                    terms
-                        |> Array.map (fun term ->
-                            apply term subs)
-                Formula (predicate, terms') |> Some
-            | Not formula ->
-                tryApply formula subs
-                    |> Option.map Not
-            | _ -> None
+            | Literal (Formula (predicate, terms)) ->
+                applyTerms predicate terms id
+            | Literal (Not (Formula (predicate, terms))) ->
+                applyTerms predicate terms Not
+            | _ -> failwith "Unexpected"
 
 module Unfiy =
 
@@ -103,13 +107,20 @@ module Unfiy =
             ||> Seq.tryFold (fun acc (term1'', term2'') ->
                 tryUnifyTerms term1'' term2'' acc)
 
-    /// Tries to unify two literal formulas.
-    let rec tryUnify literal1 literal2 =
+    /// Tries to unify two literals.
+    let tryUnify literal1 literal2 =
+
+        let tryUnifyRev terms1 terms2 =
+            tryUnifyTermArrays terms1 terms2 List.empty
+                |> Option.map List.rev
+
         match (literal1, literal2) with
-            | Formula (predicate1, terms1), Formula (predicate2, terms2)
+            | Literal (Formula (predicate1, terms1)),
+              Literal (Formula (predicate2, terms2))
                 when predicate1 = predicate2 ->
-                    tryUnifyTermArrays terms1 terms2 List.empty
-                        |> Option.map List.rev
-            | Not formula1, Not formula2 ->
-                tryUnify formula1 formula2
+                    tryUnifyRev terms1 terms2
+            | Literal (Not (Formula (predicate1, terms1))),
+              Literal (Not (Formula (predicate2, terms2)))
+                when predicate1 = predicate2 ->
+                    tryUnifyRev terms1 terms2
             | _ -> None

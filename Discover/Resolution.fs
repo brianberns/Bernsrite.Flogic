@@ -10,18 +10,15 @@ module Resolution =
             |> Seq.tryPick (function
 
                     // try to unify each pair of literals in the clause
-                | ((Literal formula1) :: (Literal formula2) :: []) ->
-                    match Unfiy.tryUnify formula1 formula2 with
+                | (literal1 :: literal2 :: []) ->
+                    match Unfiy.tryUnify literal1 literal2 with
                         | Some subs ->
 
                                 // reduce the entire clause using the successful substitution
                             let clause' =
                                 clause
-                                    |> Clause.map (fun (Literal formula) ->
-                                        Substitution.tryApply formula subs
-                                            |> Option.map Literal.ofFormula
-                                            |> Option.defaultWith (fun () ->
-                                                failwith "Unexpected"))
+                                    |> Clause.map (fun literal ->
+                                        Substitution.applyLiteral literal subs)
 
                                 // recurse to see if further factoring is possible
                             clause'

@@ -307,8 +307,8 @@ module Clause =
 
         let rec removeOrs literals = function
             | Or (p, q) ->
-                let formulas' = p |> removeOrs literals
-                q |> removeOrs formulas'
+                let literals' = p |> removeOrs literals
+                q |> removeOrs literals'
             | Formula _ as formula ->
                 literals
                     |> Set.add (Literal.ofFormula formula)
