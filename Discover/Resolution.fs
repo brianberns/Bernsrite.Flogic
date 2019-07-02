@@ -92,13 +92,13 @@ module Resolution =
 
         seq {
             for literal1 in literals1 do
-                let others1Lazy = lazy (literals1 |> Set.remove literal1)
+                let others1Lazy = lazy literals1.Remove(literal1)
                 for literal2 in literals2 do
                     match extract literal1, extract literal2 with
                         | (lit1, sign1), (lit2, sign2) when sign1 <> sign2 ->
                             match Unfiy.tryUnify lit1 lit2 with
                                 | Some subs ->
-                                    let others2 = literals2.Remove(lit2)
+                                    let others2 = literals2.Remove(literal2)
                                     yield Seq.append others1Lazy.Value others2
                                         |> Seq.map (Substitution.applyLiteral subs)
                                         |> set

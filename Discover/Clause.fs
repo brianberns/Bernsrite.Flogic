@@ -329,6 +329,10 @@ module Clause =
             >> distributeDisjunctions
             >> convertToClauses
 
+    /// The empty clause.
+    let empty =
+        Clause Set.empty
+
     /// Applies the given mapping to all literals in the
     /// given clause.
     let map mapping (Clause literals) =

@@ -787,4 +787,6 @@ type UnitTest() =
             [ "p(x)"; "p(y)" ] |> parseClause
         let clause2 =
             [ "~p(u)"; "~p(v)" ] |> parseClause
-        printfn "%A" <| Resolution.resolve clause1 clause2
+        Assert.AreEqual(
+            set [ Clause.empty ],
+            Resolution.resolve clause1 clause2)
