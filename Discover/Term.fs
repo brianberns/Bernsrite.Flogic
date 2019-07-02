@@ -19,6 +19,17 @@ type Variable =
     override this.ToString() =
         this.Name
 
+module Variable =
+
+    /// Renames the given variable to avoid conflict with the given
+    /// variables.
+    let rec rename seen ((Variable name) as variable) =
+        if seen |> Set.contains(variable) then
+            Variable (name + "'") |> rename seen
+        else
+            let seen' = seen |> Set.add variable
+            variable, seen'
+
 /// A term typically denotes an object that exists in the world.
 /// E.g.
 ///    * Joe: constant

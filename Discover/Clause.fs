@@ -141,13 +141,6 @@ module Clause =
         and standardizeTerms variableMap terms =
             terms |> Array.map (standardizeTerm variableMap)
 
-        let rec obtainVariable seen ((Variable name) as variable) =
-            if seen |> Set.contains(variable) then
-                Variable (name + "'") |> obtainVariable seen
-            else
-                let seen' = seen |> Set.add variable
-                variable, seen'
-
         let rec loop variableMap seen =
 
             let binary formula1 formula2 constructor =
@@ -155,18 +148,18 @@ module Clause =
                     formula1 |> loop variableMap seen
                 let formula2', seen'' =
                     formula2 |> loop variableMap seen'
-                let result =
+                let result : Formula =
                     constructor (formula1', formula2')
                 result, seen''
 
             let quantified variable inner constructor =
                 let variable', seen' =
-                    variable |> obtainVariable seen
+                    variable |> Variable.rename seen
                 let variableMap' =
                     variableMap |> Map.add variable variable'
                 let inner', seen'' =
                     inner |> loop variableMap' seen'
-                let result =
+                let result : Formula =
                     constructor (variable', inner')
                 result, seen''
 
