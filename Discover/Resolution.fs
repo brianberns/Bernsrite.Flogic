@@ -2,11 +2,14 @@
 
 module Resolution =
 
-    let private deconflict (Clause literalsKeep) clauseRename =
+    /// Deconflicts variable names in the given clauses by renaming
+    /// variables in the second clause as needed.
+    let private deconflict (Clause literalsToKeep) clauseToRename =
 
+            // find all variables used in the first clause
         let seen =
             seq {
-                for literal in literalsKeep do
+                for literal in literalsToKeep do
                     match literal with
                         | LiteralAtom (_, terms) ->
                             for term in terms do
@@ -38,7 +41,8 @@ module Resolution =
                 |> constructor
                 |> Literal.ofFormula
 
-        clauseRename
+            // rename variables used in the second clause as needed
+        clauseToRename
             |> Clause.map (function
                 | LiteralAtom (predicate, terms) ->
                     deconflictPredicate predicate terms id
@@ -75,6 +79,8 @@ module Resolution =
 
         clause |> loopDefault
 
+    /// Derives a conclusion from the given clauses using the resolution
+    /// principle.
     let resolve clause1 clause2 =
 
         let (Clause literals1) as clause1' =
