@@ -21,11 +21,11 @@ type Variable =
 
 module Variable =
 
-    /// Renames the given variable to avoid conflict with the given
-    /// variables.
-    let rec rename seen ((Variable name) as variable) =
+    /// Renames the given variable if necessary to avoid conflict
+    /// with the given variables.
+    let rec deconflict seen ((Variable name) as variable) =
         if seen |> Set.contains(variable) then
-            Variable (name + "'") |> rename seen
+            Variable (name + "'") |> deconflict seen
         else
             let seen' = seen |> Set.add variable
             variable, seen'

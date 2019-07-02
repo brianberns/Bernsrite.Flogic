@@ -154,7 +154,7 @@ module Clause =
 
             let quantified variable inner constructor =
                 let variable', seen' =
-                    variable |> Variable.rename seen
+                    variable |> Variable.deconflict seen
                 let variableMap' =
                     variableMap |> Map.add variable variable'
                 let inner', seen'' =
