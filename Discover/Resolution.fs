@@ -1,5 +1,7 @@
 ﻿namespace Discover
 
+open System
+
 module Resolution =
 
     /// Deconflicts variable names in the given clauses by renaming
@@ -112,3 +114,76 @@ module Resolution =
                                 | None -> ()
                         | _ -> ()
         } |> set
+
+/// A resolution derivation.
+/// http://intrologic.stanford.edu/public/section.php?section=section_05_04
+[<StructuredFormatDisplay("{String}")>]
+type Derivation =
+    {
+        Steps : List<Clause>
+    }
+
+    /// Display string.
+    member this.String =
+        let steps =
+            this.Steps
+                |> List.rev
+                |> Seq.mapi (fun index step ->
+                    sprintf "%d. %A" (index + 1) step)
+        String.Join("\r\n", steps)
+
+    /// Display string.
+    override this.ToString() = this.String
+
+module Derivation =
+
+    let extend derivation =
+
+        let combinations =
+            derivation.Steps
+                |> List.combinations 2
+        seq {
+            for combination in combinations do
+                let nextSteps =
+                    match combination with
+                        | stepA :: stepB :: [] ->
+                            Resolution.resolve stepA stepB
+                        | _ -> failwith "Unexpected"
+                for step in nextSteps do
+                    yield {
+                        Steps = step :: derivation.Steps
+                    }
+        }
+
+    let prove premises goal =
+
+        let derivation =
+            {
+                Steps =
+                    seq {
+                        for premise in premises do
+                            yield! premise |> Clause.toClauses
+                        yield! (Not goal) |> Clause.toClauses
+                    }
+                        |> Seq.rev
+                        |> Seq.toList
+            }
+        if derivation.Steps.IsEmpty then
+            failwith "No premises"
+
+        [1 .. 10]
+            |> Seq.tryPick (fun maxDepth ->
+
+                let rec loop depth derivation =
+                    if depth >= maxDepth then None
+                    else
+                        derivation
+                            |> extend
+                            |> Seq.tryPick (fun deriv ->
+                                let (Clause literals) = deriv.Steps.Head
+                                if literals.IsEmpty then
+                                    Some deriv
+                                else
+                                    deriv |> loop (depth + 1))
+
+                derivation |> loop 0)

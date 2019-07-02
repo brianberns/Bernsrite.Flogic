@@ -8,7 +8,7 @@ type ProofStep =
     {
         Formula : Formula
         Rule : InferenceRule
-        AntecedentIndexes : int[]   (*1-based indexes from end of list*)
+        AntecedentIndexes : int[]   // 1-based indexes from end of list
     }
 
     /// Display string.
@@ -27,7 +27,9 @@ type ProofStep =
 [<StructuredFormatDisplay("{String}")>]
 type Proof =
     {
+        /// Steps in the proof, stored in reverse order.
         Steps : List<ProofStep>
+
         ActiveAssumptionIndexes : List<int>
         ValidAntecedentIndexes : Set<int>
     }

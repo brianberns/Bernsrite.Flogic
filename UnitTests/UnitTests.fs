@@ -779,14 +779,16 @@ type UnitTest() =
     [<TestMethod>]
     member __.Resolve() =
         let parser = Parser.makeParser Array.empty
-        let parseClause =
-            Seq.map (Parser.run parser >> Literal.ofFormula)
-                >> set
-                >> Clause
-        let clause1 =
-            [ "p(x)"; "p(y)" ] |> parseClause
-        let clause2 =
-            [ "~p(u)"; "~p(v)" ] |> parseClause
-        Assert.AreEqual(
-            set [ Clause.empty ],
-            Resolution.resolve clause1 clause2)
+        let premises =
+            [
+                "∀x.∀y.((h(x) ∧ d(y)) ⇒ f(x, y))"
+                "∃y.(g(y) ∧ ∀z.(r(z) ⇒ f(y, z)))"
+                "∀y.(g(y) ⇒ d(y))"
+                "∀x.∀y.∀z.((f(x, y) ∧ f(y, z)) ⇒ f(x, z))"
+                "h(harry)"
+                "r(ralph)"
+            ] |> Seq.map (Parser.run parser)
+        printfn "%A" (premises |> Seq.toArray)
+        let goal = "f(harry, ralph)" |> Parser.run parser
+        let proof = Derivation.prove premises goal
+        printfn "%A" proof
