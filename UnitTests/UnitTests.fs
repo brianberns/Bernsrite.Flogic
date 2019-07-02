@@ -777,8 +777,20 @@ type UnitTest() =
                 actual)
 
     [<TestMethod>]
-    member __.Resolve() =
+    member __.Resolve1() =
         let parser = Parser.makeParser Array.empty
+        let premises =
+            [
+                "∀x.∃y.loves(x,y)"
+                "∀u.∀v.∀w.(loves(v,w) ⇒ loves(u,v))"
+            ] |> Seq.map (Parser.run parser)
+        let goal = "∀x.∀y.loves(x,y)" |> Parser.run parser
+        let proof = Derivation.prove premises goal
+        printfn "%A" proof
+
+    [<TestMethod>]
+    member __.Resolve2() =
+        let parser = Parser.makeParser ["harry"; "ralph"]
         let premises =
             [
                 "∀x.∀y.((h(x) ∧ d(y)) ⇒ f(x, y))"
@@ -788,7 +800,6 @@ type UnitTest() =
                 "h(harry)"
                 "r(ralph)"
             ] |> Seq.map (Parser.run parser)
-        printfn "%A" (premises |> Seq.toArray)
         let goal = "f(harry, ralph)" |> Parser.run parser
         let proof = Derivation.prove premises goal
         printfn "%A" proof
