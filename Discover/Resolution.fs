@@ -2,7 +2,8 @@
 
 module Resolution =
 
-    let deconflictClause (Clause literalsKeep) clauseRename =
+    let private deconflict (Clause literalsKeep) clauseRename =
+
         let seen =
             seq {
                 for literal in literalsKeep do
@@ -33,7 +34,7 @@ module Resolution =
         let deconflictPredicate predicate terms constructor =
             let terms' =
                 terms |> Array.map deconflictTerm
-            Formula (predicate, terms)
+            Formula (predicate, terms')
                 |> constructor
                 |> Literal.ofFormula
 
@@ -45,29 +46,63 @@ module Resolution =
                     deconflictPredicate predicate terms Not)
 
     /// Reduces the given clause to its smallest factor.
-    let rec factor (Clause literals as clause) =
-        literals
-            |> Seq.toList
-            |> List.combinations 2
-            |> Seq.tryPick (function
+    let private factor clause =
 
-                    // try to unify each pair of literals in the clause
-                | (literal1 :: literal2 :: []) ->
-                    match Unfiy.tryUnify literal1 literal2 with
-                        | Some subs ->
+        let rec loop (Clause literals as clause) =
+            literals
+                |> Seq.toList
+                |> List.combinations 2
+                |> Seq.tryPick (function
 
-                                // reduce the entire clause using the successful substitution
-                            let clause' =
+                        // try to unify each pair of literals in the clause
+                    | (literal1 :: literal2 :: []) ->
+                        Unfiy.tryUnify literal1 literal2
+                            |> Option.map (fun subs ->
+
+                                    // reduce the entire clause using the successful substitution
+                                    // and recurse to see if further factoring is possible
                                 clause
                                     |> Clause.map (
                                         Substitution.applyLiteral subs)
+                                    |> loopDefault)
 
-                                // recurse to see if further factoring is possible
-                            clause'
-                                |> factor
-                                |> Option.defaultValue clause'
-                                |> Some
+                    | _ -> failwith "Unexpected")
 
-                        | None -> None
+        and loopDefault clause =
+            clause
+                |> loop
+                |> Option.defaultValue clause
 
-                | _ -> failwith "Unexpected")
+        clause |> loopDefault
+
+    let resolve clause1 clause2 =
+
+        let (Clause literals1) as clause1' =
+            clause1 |> factor
+        let (Clause literals2) =
+            clause2
+                |> deconflict clause1'
+                |> factor
+
+        let extract = function
+            | LiteralAtom _ as literal ->
+                literal, 1
+            | LiteralNot predTerms ->
+                Formula predTerms |> Literal.ofFormula, -1
+
+        seq {
+            for literal1 in literals1 do
+                let others1Lazy = lazy (literals1 |> Set.remove literal1)
+                for literal2 in literals2 do
+                    match extract literal1, extract literal2 with
+                        | (lit1, sign1), (lit2, sign2) when sign1 <> sign2 ->
+                            match Unfiy.tryUnify lit1 lit2 with
+                                | Some subs ->
+                                    let others2 = literals2.Remove(lit2)
+                                    yield Seq.append others1Lazy.Value others2
+                                        |> Seq.map (Substitution.applyLiteral subs)
+                                        |> set
+                                        |> Clause
+                                | None -> ()
+                        | _ -> ()
+        } |> set

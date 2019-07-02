@@ -777,16 +777,14 @@ type UnitTest() =
                 actual)
 
     [<TestMethod>]
-    member __.Factor() =
+    member __.Resolve() =
         let parser = Parser.makeParser Array.empty
-        let clause =
-            [
-                "p(x)"
-                "p(f(y))"
-                "r(x, y)"
-            ]
-                |> Seq.map (Parser.run parser >> Literal.ofFormula)
-                |> Set.ofSeq
-                |> Clause
-        let clause' = Resolution.factor clause
-        printfn "%A" clause'
+        let parseClause =
+            Seq.map (Parser.run parser >> Literal.ofFormula)
+                >> set
+                >> Clause
+        let clause1 =
+            [ "p(x)"; "p(y)" ] |> parseClause
+        let clause2 =
+            [ "~p(u)"; "~p(v)" ] |> parseClause
+        printfn "%A" <| Resolution.resolve clause1 clause2
