@@ -31,7 +31,7 @@ module Substitution =
 
     /// Applies the given substitutions in order to the given
     /// term.
-    let apply term subs =
+    let apply subs term =
         (term, subs)
             ||> Seq.fold (fun acc sub ->
                 Term.substitute
@@ -40,13 +40,11 @@ module Substitution =
                     acc)
 
     /// Applies the given substitutions in order to the given literal.
-    let rec applyLiteral literal subs =
+    let rec applyLiteral subs literal =
 
         let applyTerms predicate terms constructor =
             let terms' =
-                terms
-                    |> Array.map (fun term ->
-                        apply term subs)
+                terms |> Array.map (apply subs)
             Formula (predicate, terms')
                 |> constructor
                 |> Literal.ofFormula
@@ -64,8 +62,8 @@ module Unfiy =
     let rec private tryUnifyTerms term1 term2 subs =
 
             // apply substitions found so far
-        let term1' = subs |> Substitution.apply term1
-        let term2' = subs |> Substitution.apply term2
+        let term1' = term1 |> Substitution.apply subs
+        let term2' = term2 |> Substitution.apply subs
 
             // if terms match, we've succeeded
         if term1' = term2' then
@@ -79,10 +77,9 @@ module Unfiy =
                     term
                         |> Term.getVariables
                         |> Set.contains variable
-
-                    // create and remember the new substitution
                 if occurs then None
                 else
+                        // create and record the new substitution
                     Substitution.create variable term
                         :: subs
                         |> Some

@@ -17,8 +17,8 @@ module Resolution =
                                 // reduce the entire clause using the successful substitution
                             let clause' =
                                 clause
-                                    |> Clause.map (fun literal ->
-                                        Substitution.applyLiteral literal subs)
+                                    |> Clause.map (
+                                        Substitution.applyLiteral subs)
 
                                 // recurse to see if further factoring is possible
                             clause'
