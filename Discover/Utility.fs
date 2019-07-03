@@ -1,5 +1,7 @@
 ﻿namespace Discover
 
+open System
+
 /// http://fssnip.net/6C/title/Permutation-and-Combination
 module List =
 
@@ -91,3 +93,10 @@ module Seq =
                 |> Option.bind (fun state ->
                     folder state item)
         Seq.fold folder' (Some state) source
+
+module String =
+
+    /// Concatenates the given items in a string, using the specified
+    /// separator between each one.    
+    let join separator (items : seq<'t>) =
+        String.Join(separator, items)

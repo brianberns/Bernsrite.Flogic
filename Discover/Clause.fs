@@ -52,10 +52,7 @@ type Clause =
     member this.String =
         match this with
             | Clause literals ->
-                let strs =
-                    literals
-                        |> Seq.map Literal.toString
-                String.Join(" | ", strs)
+                literals |> String.join " | "
 
     /// Display string.
     override this.ToString() =

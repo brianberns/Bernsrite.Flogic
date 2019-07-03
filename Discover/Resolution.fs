@@ -120,104 +120,69 @@ module Resolution =
 [<StructuredFormatDisplay("{String}")>]
 type Derivation =
     {
-        Steps : List<Clause>
+        Premises : Clause[]
+        Support : List<Clause>
     }
+
+    /// Steps in this derivation, in order.
+    member this.Steps =
+        [|
+            yield! this.Premises
+            yield! this.Support |> List.rev
+        |]
 
     /// Display string.
     member this.String =
-        let steps =
-            this.Steps
-                |> List.rev
-                |> Seq.mapi (fun index step ->
-                    sprintf "%d. %A" (index + 1) step)
-        String.Join("\r\n", steps)
+        this.Steps
+            |> Seq.mapi (fun index step ->
+                sprintf "%d. %A" (index + 1) step)
+            |> String.join "\r\n"
 
     /// Display string.
     override this.ToString() = this.String
 
 module Derivation =
 
-    let eliminatePureLiterals clauses =
+    let private extend (derivation : Derivation) =
 
-        let extract = function
-            | LiteralAtom (Predicate (name, _), _) ->
-                name, 1
-            | LiteralNot (Predicate (name, _), _) ->
-                name, -1
-
-        let clausePairs =
-            clauses
-                |> Seq.map (fun (Clause literals as clause) ->
-                    let atomPairs =
-                        literals
-                            |> Seq.map extract
-                            |> Seq.toArray
-                    clause, atomPairs)
-                |> Seq.toArray
-
-        let atomPairSet =
-            clausePairs
-                |> Seq.collect snd
-                |> set
-
-        clausePairs
-            |> Seq.choose (fun (clause, atomPairs) ->
-                let hasComplement =
-                    atomPairs
-                        |> Seq.exists (fun (name, sign) ->
-                            atomPairSet.Contains(name, sign * -1))
-                if hasComplement then
-                    Some clause
-                else None)
-            |> Seq.toArray
-
-    let private extend derivation =
-
-        let combinations =
-            derivation.Steps
-                |> List.combinations 2
         seq {
-            for combination in combinations do
-                let nextSteps =
-                    match combination with
-                        | stepA :: stepB :: [] ->
-                            Resolution.resolve stepA stepB
-                        | _ -> failwith "Unexpected"
-                for step in nextSteps do
-                    yield {
-                        Steps = step :: derivation.Steps
-                    }
+            for support in derivation.Support do
+                for any in derivation.Steps do
+                    if support <> any then
+                        for step in Resolution.resolve support any do
+                            yield {
+                                derivation with
+                                    Support = step :: derivation.Support
+                            }
         }
 
     let prove premises goal =
 
-        let clauses =
-            seq {
-                for premise in premises do
-                    yield! premise |> Clause.toClauses
-                yield! (Not goal) |> Clause.toClauses
-            } |> eliminatePureLiterals
+        let derivation =
+            {
+                Premises =
+                    premises
+                        |> Seq.collect Clause.toClauses
+                        |> Seq.toArray
+                Support =
+                    (Not goal)
+                        |> Clause.toClauses
+                        |> Seq.toList
+            }
 
-        if clauses.Length > 0 then
+        [1 .. 10]
+            |> Seq.tryPick (fun maxDepth ->
 
-            let derivation =
-                { Steps = clauses |> Seq.rev |> Seq.toList }
+                let rec loop depth derivation =
+                    if depth >= maxDepth then None
+                    else
+                        derivation
+                            |> extend
+                            |> Seq.tryPick (fun deriv ->
+                                let (Clause literals) = deriv.Support.Head
+                                if literals.IsEmpty then
+                                    Some deriv
+                                else
+                                    deriv |> loop (depth + 1))
 
-            [1 .. 10]
-                |> Seq.tryPick (fun maxDepth ->
-
-                    let rec loop depth derivation =
-                        if depth >= maxDepth then None
-                        else
-                            derivation
-                                |> extend
-                                |> Seq.tryPick (fun deriv ->
-                                    let (Clause literals) = deriv.Steps.Head
-                                    if literals.IsEmpty then
-                                        Some deriv
-                                    else
-                                        deriv |> loop (depth + 1))
-
-                    derivation |> loop 0)
-
-        else None
+                derivation |> loop 0)

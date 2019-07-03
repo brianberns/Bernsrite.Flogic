@@ -44,12 +44,11 @@ type Proof =
 
     /// Display string.
     member this.String =
-        let steps =
-            this.Steps
-                |> List.rev
-                |> Seq.mapi (fun index step ->
-                    sprintf "%d. %A" (index + 1) step)
-        String.Join("\r\n", steps)
+        this.Steps
+            |> List.rev
+            |> Seq.mapi (fun index step ->
+                sprintf "%d. %A" (index + 1) step)
+            |> String.join "\r\n"
 
     /// Display string.
     override this.ToString() = this.String
