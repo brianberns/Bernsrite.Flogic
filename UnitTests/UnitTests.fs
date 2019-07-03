@@ -801,5 +801,10 @@ type UnitTest() =
                 "r(ralph)"
             ] |> Seq.map (Parser.run parser)
         let goal = "f(harry, ralph)" |> Parser.run parser
-        let proof = Derivation.prove premises goal
-        printfn "%A" proof
+        let proofOpt = Derivation.prove premises goal
+        printfn "%A" proofOpt
+        Assert.AreEqual(
+            Some 5,
+            proofOpt
+                |> Option.map (fun proof ->
+                    proof.Steps.Length))

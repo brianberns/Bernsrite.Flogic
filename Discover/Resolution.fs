@@ -137,7 +137,41 @@ type Derivation =
 
 module Derivation =
 
-    let extend derivation =
+    let eliminatePureLiterals clauses =
+
+        let extract = function
+            | LiteralAtom (Predicate (name, _), _) ->
+                name, 1
+            | LiteralNot (Predicate (name, _), _) ->
+                name, -1
+
+        let clausePairs =
+            clauses
+                |> Seq.map (fun (Clause literals as clause) ->
+                    let atomPairs =
+                        literals
+                            |> Seq.map extract
+                            |> Seq.toArray
+                    clause, atomPairs)
+                |> Seq.toArray
+
+        let atomPairSet =
+            clausePairs
+                |> Seq.collect snd
+                |> set
+
+        clausePairs
+            |> Seq.choose (fun (clause, atomPairs) ->
+                let hasComplement =
+                    atomPairs
+                        |> Seq.exists (fun (name, sign) ->
+                            atomPairSet.Contains(name, sign * -1))
+                if hasComplement then
+                    Some clause
+                else None)
+            |> Seq.toArray
+
+    let private extend derivation =
 
         let combinations =
             derivation.Steps
@@ -157,33 +191,33 @@ module Derivation =
 
     let prove premises goal =
 
-        let derivation =
-            {
-                Steps =
-                    seq {
-                        for premise in premises do
-                            yield! premise |> Clause.toClauses
-                        yield! (Not goal) |> Clause.toClauses
-                    }
-                        |> Seq.rev
-                        |> Seq.toList
-            }
-        if derivation.Steps.IsEmpty then
-            failwith "No premises"
+        let clauses =
+            seq {
+                for premise in premises do
+                    yield! premise |> Clause.toClauses
+                yield! (Not goal) |> Clause.toClauses
+            } |> eliminatePureLiterals
 
-        [1 .. 10]
-            |> Seq.tryPick (fun maxDepth ->
+        if clauses.Length > 0 then
 
-                let rec loop depth derivation =
-                    if depth >= maxDepth then None
-                    else
-                        derivation
-                            |> extend
-                            |> Seq.tryPick (fun deriv ->
-                                let (Clause literals) = deriv.Steps.Head
-                                if literals.IsEmpty then
-                                    Some deriv
-                                else
-                                    deriv |> loop (depth + 1))
+            let derivation =
+                { Steps = clauses |> Seq.rev |> Seq.toList }
 
-                derivation |> loop 0)
+            [1 .. 10]
+                |> Seq.tryPick (fun maxDepth ->
+
+                    let rec loop depth derivation =
+                        if depth >= maxDepth then None
+                        else
+                            derivation
+                                |> extend
+                                |> Seq.tryPick (fun deriv ->
+                                    let (Clause literals) = deriv.Steps.Head
+                                    if literals.IsEmpty then
+                                        Some deriv
+                                    else
+                                        deriv |> loop (depth + 1))
+
+                    derivation |> loop 0)
+
+        else None
