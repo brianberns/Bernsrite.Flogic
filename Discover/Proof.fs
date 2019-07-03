@@ -6,9 +6,14 @@ open System
 [<StructuredFormatDisplay("{String}")>]
 type ProofStep =
     {
+        /// Statement asserted by this step.
         Formula : Formula
+
+        /// Inference rule used to create this step.
         Rule : InferenceRule
-        AntecedentIndexes : int[]   // 1-based indexes from end of list
+
+        /// Indexes of previous steps referenced by this step (1-based from end of list).
+        AntecedentIndexes : int[]
     }
 
     /// Display string.
@@ -30,7 +35,10 @@ type Proof =
         /// Steps in the proof, stored in reverse order.
         Steps : List<ProofStep>
 
+        /// Indexes of all undischarged assumptions (1-based from end of list).
         ActiveAssumptionIndexes : List<int>
+
+        /// Indexes of all previous steps that can be validly referenced (1-based from end of list).
         ValidAntecedentIndexes : Set<int>
     }
 
