@@ -765,16 +765,18 @@ type UnitTest() =
                 let parse = Parser.run parseFormula >> Literal.ofFormula
                 Unfiy.tryUnify (parse input1) (parse input2)
             let expected =
-                expectedStrs
-                    |> Seq.map (fun (oldStr, newStr) ->
-                        {
-                            Variable = Variable oldStr
-                            Term = newStr |> Parser.run parseTerm
-                        })
-                    |> Seq.toList
-            Assert.AreEqual(
-                (if expected.IsEmpty then None else Some expected),
-                actual)
+                if expectedStrs.IsEmpty then
+                    None
+                else
+                    expectedStrs
+                        |> Seq.map (fun (oldStr, newStr) ->
+                            let variable = Variable oldStr
+                            let term = newStr |> Parser.run parseTerm
+                            variable, term)
+                        |> Map.ofSeq
+                        |> Substitution
+                        |> Some
+            Assert.AreEqual(expected, actual)
 
     [<TestMethod>]
     member __.Resolve1() =

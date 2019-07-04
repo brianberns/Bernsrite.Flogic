@@ -94,7 +94,8 @@ module Term =
             | Application (func, oldTerms) ->
                 Application (
                     func,
-                    oldTerms |> substituteTerms variable newTerm)
+                    oldTerms
+                        |> substituteTerms variable newTerm)
 
     /// Substitutes the given new term for the given variable in the given
     /// old terms.
