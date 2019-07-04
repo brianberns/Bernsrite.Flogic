@@ -3,14 +3,16 @@
 /// Substitution of the given variables with the given terms.
 [<StructuredFormatDisplay("{String}")>]
 type Substitution =
-    | Substitution of Map<Variable, Term>
+    {
+        SubstMap : Map<Variable, Term>
+    }
 
     /// Display string.
     member this.String =
-        let (Substitution substMap) = this
-        substMap
+        this.SubstMap
             |> Map.toSeq
-            |> Seq.map (fun variable term ->
+            |> Seq.sort
+            |> Seq.map (fun (variable, term) ->
                 sprintf "%A <- %A" variable term)
             |> String.join ", "
 
@@ -22,17 +24,20 @@ module Substitution =
 
     /// The empty substitution.
     let empty =
-        Substitution Map.empty
+        {
+            SubstMap = Map.empty
+        }
 
     /// Creates a substitution containing only the given mapping.
     let create variable term =
-        Map [ variable, term ]
-            |> Substitution
+        {
+            SubstMap = Map [ variable, term ]
+        }
 
     /// Applies the given substitution to the given term.
-    let rec applyTerm (Substitution substMap as subst) = function
+    let rec applyTerm subst = function
         | Term var as term ->
-            substMap
+            subst.SubstMap
                 |> Map.tryFind var
                 |> Option.defaultValue term
         | Application (func, terms) ->
@@ -57,14 +62,14 @@ module Substitution =
             | LiteralNot (predicate, terms) ->
                 applyTerms predicate terms Not
 
-    let getDomainVariables (Substitution substMap) =
-        substMap
+    let getDomainVariables subst =
+        subst.SubstMap
             |> Map.toSeq
             |> Seq.map fst
             |> set
 
-    let getRangeVariables (Substitution substMap) =
-        substMap
+    let getRangeVariables subst =
+        subst.SubstMap
             |> Map.toSeq
             |> Seq.collect (snd >> Term.getVariables)
             |> set
@@ -85,19 +90,20 @@ module Substitution =
 
     /// Creates a new substitution with the same effect as applying
     /// the two given substitutions in order: subst1 >> subst2
-    let compose (Substitution substMap1 as subst1) (Substitution substMap2 as subst2) =
+    let compose subst1 subst2 =
         assert(isPure subst1)
         assert(isPure subst2)
         assert(composable subst1 subst2)
-        seq {
-            for (KeyValue(variable1, term1)) in substMap1 do
-                yield variable1, (term1 |> applyTerm subst2)
-            for (KeyValue(variable2, term2)) in substMap2 do
-                if substMap1.ContainsKey(variable2) |> not then
-                    yield variable2, term2
+        {
+            SubstMap =
+                seq {
+                    for (KeyValue(variable1, term1)) in subst1.SubstMap do
+                        yield variable1, (term1 |> applyTerm subst2)
+                    for (KeyValue(variable2, term2)) in subst2.SubstMap do
+                        if subst1.SubstMap.ContainsKey(variable2) |> not then
+                            yield variable2, term2
+                } |> Map.ofSeq
         }
-            |> Map.ofSeq
-            |> Substitution
 
 module Unfiy =
 
@@ -124,9 +130,11 @@ module Unfiy =
                 if occurs then None
                 else
                         // update the substitution
-                    Substitution.compose
-                        subst
-                        (Substitution.create variable term)
+                    let subst' =
+                        Substitution.compose
+                            subst
+                            (Substitution.create variable term)
+                    subst'
                         |> Some
 
             match (term1', term2') with

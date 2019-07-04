@@ -744,16 +744,20 @@ type UnitTest() =
 
     [<TestMethod>]
     member __.Unification() =
-        let parseTerm, parseFormula = Parser.makeParsers Array.empty
+        let parseTerm, parseFormula = Parser.makeParsers [ "a"; "b" ]
         let inputs =
             [
                 "P(x, y)", "P(f(z), x)", [
-                    ("x", "f(z)")
-                    ("y", "f(z)")
+                    "x", "f(z)"
+                    "y", "f(z)"
+                ]
+                "p(x, b)", "p(a, y)", [
+                    "x", "a"
+                    "y", "b"
                 ]
                 "p(x, x)", "p(a, y)", [
-                    ("x", "a")
-                    ("a", "y")   // can be in either order
+                    "x", "a"
+                    "y", "a"
                 ]
                 "p(x)", "p(f(x))", [
                 ]
@@ -768,14 +772,15 @@ type UnitTest() =
                 if expectedStrs.IsEmpty then
                     None
                 else
-                    expectedStrs
-                        |> Seq.map (fun (oldStr, newStr) ->
-                            let variable = Variable oldStr
-                            let term = newStr |> Parser.run parseTerm
-                            variable, term)
-                        |> Map.ofSeq
-                        |> Substitution
-                        |> Some
+                    Some {
+                        SubstMap =
+                            expectedStrs
+                                |> Seq.map (fun (oldStr, newStr) ->
+                                    let variable = Variable oldStr
+                                    let term = newStr |> Parser.run parseTerm
+                                    variable, term)
+                                |> Map.ofSeq
+                    }
             Assert.AreEqual(expected, actual)
 
     [<TestMethod>]
