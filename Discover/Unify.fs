@@ -130,11 +130,9 @@ module Unfiy =
                 if occurs then None
                 else
                         // update the substitution
-                    let subst' =
-                        Substitution.compose
-                            subst
-                            (Substitution.create variable term)
-                    subst'
+                    Substitution.compose
+                        subst
+                        (Substitution.create variable term)
                         |> Some
 
             match (term1', term2') with
