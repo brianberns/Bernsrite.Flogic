@@ -2,46 +2,56 @@
 
 open System
 
-/// Make union case private to this module.
-/// https://github.com/dotnet/fsharp/issues/984
-[<AutoOpen>]
-module LiteralAutoOpen =
+/// A literal is either an atomic formula or its negation.
+[<StructuredFormatDisplay("{String}")>]
+type Literal =
+    {
+        Predicate : Predicate
+        Terms : Term[]
+        IsPositive : bool
+    }
 
-    /// A literal is either an atomic formula or its negation.
-    [<StructuredFormatDisplay("{String}")>]
-    type Literal =
-        private | Literal of Formula
+    /// Display string.
+    member this.String =
+        let (Predicate (name, arity)) = this.Predicate
+        if (arity <> this.Terms.Length) then
+            failwith "Arity mismatch"
+        if arity = 0 then name
+        else
+            sprintf "%s(%s)" name <| String.Join(", ", this.Terms)
 
-        /// Display string.
-        member this.String =
-            match this with
-                | Literal formula -> formula.String
-
-        /// Display string.
-        override this.ToString() =
-            this.String
-
-    /// Active pattern to deconstruct a literal.
-    let (|LiteralAtom|LiteralNot|) = function
-        | Literal (Formula (predicate, terms)) ->
-            LiteralAtom (predicate, terms)
-        | Literal (Not (Formula (predicate, terms))) ->
-            LiteralNot (predicate, terms)
-        | _ -> failwith "Unexpected"
-
-    module Literal =
-
-        /// Converts a formula to a literal.
-        let ofFormula = function
-            | Formula _ as formula -> Literal formula
-            | Not (Formula _) as formula -> Literal formula
-            | _ -> failwith "Not a literal"
+    /// Display string.
+    override this.ToString() =
+        this.String
 
 module Literal =
 
     /// Display string.
     let toString (literal : Literal) =
         literal.ToString()
+
+    /// Creates a literal.
+    let private create predicate terms isPositive =
+        {
+            Predicate = predicate
+            Terms = terms
+            IsPositive = isPositive
+        }
+
+    /// Converts a formula to a literal.
+    let ofFormula = function
+        | Formula (predicate, terms) ->
+            create predicate terms true
+        | Not (Formula (predicate, terms)) ->
+            create predicate terms false
+        | _ -> failwith "Not a literal"
+
+    /// Applies the given mapping to the given literal's terms.
+    let map mapping literal =
+        {
+            literal with
+                Terms = literal.Terms |> Array.map mapping
+        }
 
 /// A set of literals that are implicitly ORed together.
 [<StructuredFormatDisplay("{String}")>]

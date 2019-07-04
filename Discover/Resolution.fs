@@ -12,13 +12,8 @@ module Resolution =
         let seen =
             seq {
                 for literal in literalsToKeep do
-                    match literal with
-                        | LiteralAtom (_, terms) ->
-                            for term in terms do
-                                yield! term |> Term.getVariables
-                        | LiteralNot (_, terms) ->
-                            for term in terms do
-                                yield! term |> Term.getVariables
+                    for term in literal.Terms do
+                        yield! term |> Term.getVariables
             } |> set
 
         let deconflictVariable variable =
@@ -36,20 +31,9 @@ module Resolution =
                     func,
                     terms |> Array.map deconflictTerm)
 
-        let deconflictPredicate predicate terms constructor =
-            let terms' =
-                terms |> Array.map deconflictTerm
-            Formula (predicate, terms')
-                |> constructor
-                |> Literal.ofFormula
-
             // rename variables used in the second clause as needed
         clauseToRename
-            |> Clause.map (function
-                | LiteralAtom (predicate, terms) ->
-                    deconflictPredicate predicate terms id
-                | LiteralNot (predicate, terms) ->
-                    deconflictPredicate predicate terms Not)
+            |> Clause.map (Literal.map deconflictTerm)
 
     /// Answers all factors of the given clause (including itself).
     let private getFactors clause =
@@ -88,29 +72,20 @@ module Resolution =
                         yield clause1', clause2'
             |]
 
-        let extract = function
-            | LiteralAtom _ as literal ->
-                literal, 1
-            | LiteralNot predTerms ->
-                Formula predTerms |> Literal.ofFormula, -1
-
         clausePairs
             |> Array.Parallel.collect (fun (Clause literals1, Clause literals2) ->
                 [|
                     for literal1 in literals1 do
                         let others1Lazy = lazy literals1.Remove(literal1)
                         for literal2 in literals2 do
-                            match extract literal1, extract literal2 with
-                                | (lit1, sign1), (lit2, sign2) when sign1 <> sign2 ->
-                                    match Unfiy.tryUnify lit1 lit2 with
-                                        | Some subst ->
-                                            let others2 = literals2.Remove(literal2)
-                                            yield Seq.append others1Lazy.Value others2
-                                                |> Seq.map (Substitution.applyLiteral subst)
-                                                |> set
-                                                |> Clause
-                                        | None -> ()
-                                | _ -> ()
+                            match Unfiy.tryUnify literal1 literal2 with
+                                | Some subst ->
+                                    let others2 = literals2.Remove(literal2)
+                                    yield Seq.append others1Lazy.Value others2
+                                        |> Seq.map (Substitution.applyLiteral subst)
+                                        |> set
+                                        |> Clause
+                                | None -> ()
                 |])
             |> set
 

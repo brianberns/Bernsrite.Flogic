@@ -47,20 +47,8 @@ module Substitution =
                     |> Array.map (applyTerm subst))
 
     /// Applies the given substitution to the given literal.
-    let rec applyLiteral subst literal =
-
-        let applyTerms predicate terms constructor =
-            let terms' =
-                terms |> Array.map (applyTerm subst)
-            Formula (predicate, terms')
-                |> constructor
-                |> Literal.ofFormula
-
-        match literal with
-            | LiteralAtom (predicate, terms) ->
-                applyTerms predicate terms id
-            | LiteralNot (predicate, terms) ->
-                applyTerms predicate terms Not
+    let applyLiteral subst literal =
+        literal |> Literal.map (applyTerm subst)
 
     let getDomainVariables subst =
         subst.SubstMap
@@ -156,14 +144,7 @@ module Unfiy =
 
     /// Tries to unify two literals.
     let tryUnify literal1 literal2 =
-
-        match (literal1, literal2) with
-            | LiteralAtom (predicate1, terms1),
-              LiteralAtom (predicate2, terms2)
-                when predicate1 = predicate2 ->
-                    tryUnifyTermArrays terms1 terms2 Substitution.empty
-            | LiteralNot (predicate1, terms1),
-              LiteralNot (predicate2, terms2)
-                when predicate1 = predicate2 ->
-                    tryUnifyTermArrays terms1 terms2 Substitution.empty
-            | _ -> None
+        if literal1.IsPositive = literal2.IsPositive
+            && literal1.Predicate = literal2.Predicate then
+            tryUnifyTermArrays literal1.Terms literal2.Terms Substitution.empty
+        else None

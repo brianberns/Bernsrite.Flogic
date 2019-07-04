@@ -675,6 +675,7 @@ type UnitTest() =
         let parser = Parser.makeParser Array.empty
 
             // Anyone who loves all animals, is in turn loved by someone
+            // https://en.wikipedia.org/wiki/Conjunctive_normal_form
         let clauses =
             "∀x.(∀y.(Animal(y) -> Loves(x, y)) -> ∃y.Loves(y, x))"
                 |> Parser.run parser
