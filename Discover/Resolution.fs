@@ -52,34 +52,41 @@ module Resolution =
                     deconflictPredicate predicate terms Not)
 
     /// Answers all factors of the given clause (including itself).
-    let rec private getFactors (Clause literals as clause) =
-        let combinations =
-            literals
-                |> Seq.toList
-                |> List.combinations 2
-        seq {
-            yield clause
-            for combination in combinations do
-                match combination with
-                    | (literal1 :: literal2 :: []) ->
-                        match Unfiy.tryUnify literal1 literal2 with
-                            | Some subst ->
-                                yield! clause
-                                    |> Clause.map (
-                                        Substitution.applyLiteral subst)
-                                    |> getFactors
-                            | None -> ()
-                    | _ -> failwith "Unexpected"
-        }        
+    let private getFactors clause =
+
+        let rec loop (Clause literals as clause) =
+            seq {
+                yield clause
+                for literal1 in literals do
+                    for literal2 in literals do
+                        if literal1 <> literal2 then
+                            match Unfiy.tryUnify literal1 literal2 with
+                                | Some subst ->
+                                    yield! clause
+                                        |> Clause.map (
+                                            Substitution.applyLiteral subst)
+                                        |> loop
+                                | None -> ()
+            }
+
+        clause
+            |> loop
+            |> Seq.toArray
 
     /// Derives a conclusion from the given clauses using the resolution
     /// principle.
     let resolve clause1 clause2 =
 
-        let clause2 = deconflict clause1 clause2
-
-        let clauses1 = clause1 |> getFactors
-        let clauses2 = clause2 |> getFactors
+        let clauses1 =
+            clause1 |> getFactors
+        let clauses2 =
+            deconflict clause1 clause2 |> getFactors
+        let clausePairs =
+            [|
+                for clause1' in clauses1 do
+                    for clause2' in clauses2 do
+                        yield clause1', clause2'
+            |]
 
         let extract = function
             | LiteralAtom _ as literal ->
@@ -87,9 +94,9 @@ module Resolution =
             | LiteralNot predTerms ->
                 Formula predTerms |> Literal.ofFormula, -1
 
-        seq {
-            for (Clause literals1) in clauses1 do
-                for (Clause literals2) in clauses2 do
+        clausePairs
+            |> Array.Parallel.collect (fun (Clause literals1, Clause literals2) ->
+                [|
                     for literal1 in literals1 do
                         let others1Lazy = lazy literals1.Remove(literal1)
                         for literal2 in literals2 do
@@ -104,7 +111,8 @@ module Resolution =
                                                 |> Clause
                                         | None -> ()
                                 | _ -> ()
-        } |> set
+                |])
+            |> set
 
 /// A resolution derivation.
 /// http://intrologic.stanford.edu/public/section.php?section=section_05_04
@@ -163,7 +171,7 @@ module Derivation =
 
         [1 .. 10]
             |> Seq.tryPick (fun maxDepth ->
-
+                printfn "maxDepth: %A" maxDepth
                 let rec loop depth derivation =
                     if depth >= maxDepth then None
                     else
