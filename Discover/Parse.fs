@@ -137,14 +137,11 @@ module Parser =
             ]
         parseFormulaRef := parseFormulaActual
 
-        {|
-            ParseTerm = parseTerm
-            ParseFormula = parseFormula
-        |}
+        parseTerm, parseFormula
 
     let makeParser constants =
-        let record = makeParsers constants
-        record.ParseFormula
+        let _, parseFormula = makeParsers constants
+        parseFormula
 
     /// Runs the given parser on the given string.
     let run parser str =

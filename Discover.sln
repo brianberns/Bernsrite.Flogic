@@ -7,6 +7,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Discover", "Discover\Discov
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "UnitTests", "UnitTests\UnitTests.fsproj", "{DF68103D-D05A-47EB-877E-42E5B7479C8E}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TestHarness", "TestHarness\TestHarness.fsproj", "{06C71839-9C6B-49BE-9024-E2307109F88C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{DF68103D-D05A-47EB-877E-42E5B7479C8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DF68103D-D05A-47EB-877E-42E5B7479C8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DF68103D-D05A-47EB-877E-42E5B7479C8E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06C71839-9C6B-49BE-9024-E2307109F88C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06C71839-9C6B-49BE-9024-E2307109F88C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06C71839-9C6B-49BE-9024-E2307109F88C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06C71839-9C6B-49BE-9024-E2307109F88C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
