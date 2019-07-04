@@ -702,11 +702,11 @@ type UnitTest() =
                 .Groups
         Assert.AreEqual(2, groups01.Count)
         Assert.AreNotEqual(groups00.[1].Value, groups01.[1].Value)
-        Assert.AreEqual(clauses.[0].[1], clauses.[1].[0])
+        Assert.AreEqual(clauses.[0].[1], clauses.[1].[1])
         let groups11 =
             Regex
                 .Match(
-                    clauses.[1].[1],
+                    clauses.[1].[0],
                     "~Loves\(x, skolem(\d+)\(x\)\)")
                 .Groups
         Assert.AreEqual(2, groups11.Count)

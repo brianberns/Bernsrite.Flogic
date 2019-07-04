@@ -18,7 +18,10 @@ type Literal =
             failwith "Arity mismatch"
         if arity = 0 then name
         else
-            sprintf "%s(%s)" name <| String.Join(", ", this.Terms)
+            sprintf "%s%s(%s)"
+                (if this.IsPositive then "" else "~")
+                name
+                (String.Join(", ", this.Terms))
 
     /// Display string.
     override this.ToString() =
