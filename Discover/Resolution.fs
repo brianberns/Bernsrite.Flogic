@@ -115,16 +115,14 @@ type Derivation =
         Support : List<Clause>
     }
 
-    /// Steps in this derivation, in order.
-    member this.Steps =
-        [|
-            yield! this.Premises
-            yield! this.Support |> List.rev
-        |]
-
     /// Display string.
     member this.String =
-        this.Steps
+
+            // steps in this derivation, in order
+        seq {
+            yield! this.Premises
+            yield! this.Support |> List.rev
+        }
             |> Seq.mapi (fun index step ->
                 sprintf "%d. %A" (index + 1) step)
             |> String.join "\r\n"
@@ -136,11 +134,23 @@ module Derivation =
 
     let private extend (derivation : Derivation) =
 
+        let supportSteps =
+            derivation.Support |> Seq.toArray
+        let allSteps =
+            [|
+                yield! supportSteps
+                yield! derivation.Premises
+            |]
+
         seq {
-            for support in derivation.Support do
-                for any in derivation.Steps do
-                    if support <> any then
-                        for step in Resolution.resolve support any do
+            for iSupport = 0 to supportSteps.Length - 1 do
+                for iAll = 0 to allSteps.Length - 1 do
+                    if iSupport <> iAll then
+                        let steps =
+                            Resolution.resolve
+                                supportSteps.[iSupport]
+                                allSteps.[iAll]
+                        for step in steps do
                             yield {
                                 derivation with
                                     Support = step :: derivation.Support
