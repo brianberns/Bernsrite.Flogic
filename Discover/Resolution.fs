@@ -61,27 +61,46 @@ module Resolution =
     /// principle.
     let resolve clause1 clause2 =
 
-        let clauses1 =
-            clause1 |> getFactors
-        let clauses2 =
-            deconflict clause1 clause2 |> getFactors
-        let clausePairs =
+        let createAllButArray mapping (items : _[]) =
             [|
-                for clause1' in clauses1 do
-                    for clause2' in clauses2 do
-                        yield clause1', clause2'
+                for i = 0 to items.Length - 1 do
+                    let allBut =
+                        [|
+                            for j = 0 to items.Length - 1 do
+                                if i <> j then
+                                    yield items.[j]
+                        |]
+                    let item = mapping items.[i]
+                    yield item, allBut
             |]
 
-        clausePairs
-            |> Array.Parallel.collect (fun (Clause literals1, Clause literals2) ->
+        let allButArrays1 =
+            clause1
+                |> getFactors
+                |> Array.map (fun (Clause literals) ->
+                    literals
+                        |> Seq.toArray
+                        |> createAllButArray id)
+        let allButArrays2 =
+            deconflict clause1 clause2
+                |> getFactors
+                |> Array.map (fun (Clause literals) ->
+                    literals
+                        |> Seq.toArray
+                        |> createAllButArray Literal.negate)
+
+        [|
+            for array1 in allButArrays1 do
+                for array2 in allButArrays2 do
+                    yield array1, array2
+        |]
+            |> Array.Parallel.collect (fun (allButArray1, allButArray2) ->
                 [|
-                    for literal1 in literals1 do
-                        let others1Lazy = lazy literals1.Remove(literal1)
-                        for literal2 in literals2 do
+                    for (literal1, allBut1) in allButArray1 do
+                        for (literal2, allBut2) in allButArray2 do
                             match Unfiy.tryUnify literal1 literal2 with
                                 | Some subst ->
-                                    let others2 = literals2.Remove(literal2)
-                                    yield Seq.append others1Lazy.Value others2
+                                    yield Seq.append allBut1 allBut2
                                         |> Seq.map (Substitution.applyLiteral subst)
                                         |> set
                                         |> Clause
@@ -130,7 +149,7 @@ module Derivation =
                             }
         }
 
-    let prove premises goal =
+    let prove maxDepths premises goal =
 
         let derivation =
             {
@@ -144,7 +163,7 @@ module Derivation =
                         |> Seq.toList
             }
 
-        [1 .. 10]
+        maxDepths
             |> Seq.tryPick (fun maxDepth ->
                 printfn "maxDepth: %A" maxDepth
                 let rec loop depth derivation =

@@ -793,7 +793,7 @@ type UnitTest() =
                 "∀u.∀v.∀w.(loves(v,w) ⇒ loves(u,v))"
             ] |> Seq.map (Parser.run parser)
         let goal = "∀x.∀y.loves(x,y)" |> Parser.run parser
-        let proof = Derivation.prove premises goal
+        let proof = Derivation.prove [1..10] premises goal
         printfn "%A" proof
 
     [<TestMethod>]

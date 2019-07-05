@@ -49,6 +49,13 @@ module Literal =
             create predicate terms false
         | _ -> failwith "Not a literal"
 
+    /// Negates the given literal.
+    let negate literal =
+        {
+            literal with
+                IsPositive = not literal.IsPositive
+        }
+
     /// Applies the given mapping to the given literal's terms.
     let map mapping literal =
         {

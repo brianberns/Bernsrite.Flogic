@@ -1,5 +1,7 @@
 ﻿namespace Discover
 
+open System
+
 module Program =
 
     [<EntryPoint>]
@@ -16,8 +18,11 @@ module Program =
                 "r(ralph)"
             ] |> Seq.map (Parser.run parser)
         let goal = "f(harry, ralph)" |> Parser.run parser
+
+        let dtStart = DateTime.Now
         let proofOpt =
-            Derivation.prove premises goal
+            Derivation.prove [5] premises goal
         printfn "%A" proofOpt
+        printfn "%A" (DateTime.Now - dtStart)
 
         0
