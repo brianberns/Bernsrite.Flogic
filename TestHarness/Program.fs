@@ -7,18 +7,20 @@ module Program =
     [<EntryPoint>]
     let main argv =
 
-        let parser = Parser.makeParser ["a"; "b"]
+        // https://www.cs.utexas.edu/users/novak/reso.html
+        let parser = Parser.makeParser ["John"]
         let premises =
-            [
-                "∀x.∀y.∀z.((p(x,y) ∧ p(y,z)) ⇒ p(x,z))"
-                "∀x.p(x,a)"
-                "∀y.p(a,y)"
-            ] |> Seq.map (Parser.run parser)
-        let goal = "∀x.∀y.p(x,y)" |> Parser.run parser
+            [|
+                "∀x.(HOUND(x) → HOWL(x))"
+                "∀x.∀y.((HAVE (x,y) ∧ CAT (y)) → ¬∃z.(HAVE(x,z) ∧ MOUSE(z)))"
+                "∀x.(LS(x) → ¬∃y.(HAVE (x,y) ∧ HOWL(y)))"
+                "∃x.(HAVE(John,x) ∧ (CAT(x) ∨ HOUND(x)))"
+            |] |> Array.map (Parser.run parser)
+        let goal = "(LS(John) → ¬∃z.(HAVE(John,z) ∧ MOUSE(z)))" |> Parser.run parser
 
         let dtStart = DateTime.Now
         let proofOpt =
-            Derivation.prove [3] premises goal
+            Derivation.prove [8] premises goal
         printfn "%A" proofOpt
         printfn "%A" (DateTime.Now - dtStart)
 

@@ -94,7 +94,7 @@ module Parser =
             [
                 ["&"; "∧"], And
                 ["|"; "∨"], Or
-                ["->"; "=>"; "⇒"], Implication
+                ["->"; "=>"; "→"; "⇒"], Implication
                 ["<-"; "<="; "⇐"], (fun (q, p) -> Implication (p, q))
                 ["<->"; "<=>"; "⇔"], Biconditional
             ]
