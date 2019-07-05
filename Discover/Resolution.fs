@@ -172,6 +172,7 @@ module Derivation =
 
         maxDepths
             |> Seq.tryPick (fun maxDepth ->
+                printfn ""
                 printfn "maxDepth: %A" maxDepth
                 let rec loop depth derivation =
                     if depth >= maxDepth then None
@@ -179,10 +180,12 @@ module Derivation =
                         derivation
                             |> extend
                             |> Seq.tryPick (fun deriv ->
-                                let (Clause literals) = deriv.Support.Head
+                                let (Clause literals as clause) = deriv.Support.Head
                                 if literals.Length = 0 then
                                     Some deriv
                                 else
+                                    if depth <= 3 then
+                                        printfn "%A: %A" depth clause
                                     deriv |> loop (depth + 1))
 
                 derivation |> loop 0)

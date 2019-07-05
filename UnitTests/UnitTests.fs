@@ -787,10 +787,10 @@ type UnitTest() =
     member __.Resolve1() =
         let parser = Parser.makeParser Array.empty
         let premises =
-            [
+            [|
                 "∀x.∃y.loves(x,y)"
                 "∀u.∀v.∀w.(loves(v,w) ⇒ loves(u,v))"
-            ] |> Seq.map (Parser.run parser)
+            |] |> Array.map (Parser.run parser)
         let goal = "∀x.∀y.loves(x,y)" |> Parser.run parser
         let proofOpt = Derivation.prove [1..10] premises goal
         printfn "%A" proofOpt
@@ -800,15 +800,16 @@ type UnitTest() =
     member __.Resolve2() =
         let parser = Parser.makeParser ["harry"; "ralph"]
         let premises =
-            [
-                "∀x.∀y.((h(x) ∧ d(y)) ⇒ f(x, y))"
+            [|
+                // ordered to help the search to succeed
                 "∃y.(g(y) ∧ ∀z.(r(z) ⇒ f(y, z)))"
-                "∀y.(g(y) ⇒ d(y))"
-                "∀x.∀y.∀z.((f(x, y) ∧ f(y, z)) ⇒ f(x, z))"
-                "h(harry)"
                 "r(ralph)"
-            ] |> Seq.map (Parser.run parser)
+                "∀x.∀y.∀z.((f(x, y) ∧ f(y, z)) ⇒ f(x, z))"
+                "∀x.∀y.((h(x) ∧ d(y)) ⇒ f(x, y))"
+                "∀y.(g(y) ⇒ d(y))"
+                "h(harry)"
+            |] |> Array.map (Parser.run parser)
         let goal = "f(harry, ralph)" |> Parser.run parser
-        // let proofOpt = Derivation.prove premises goal
-        // printfn "%A" proofOpt
-        ()
+        let proofOpt = Derivation.prove [7] premises goal
+        printfn "%A" proofOpt
+        Assert.IsTrue(proofOpt.IsSome)
