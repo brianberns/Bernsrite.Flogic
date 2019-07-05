@@ -63,10 +63,10 @@ module Literal =
                 Terms = literal.Terms |> Array.map mapping
         }
 
-/// A set of literals that are implicitly ORed together.
+/// A collection of literals that are implicitly ORed together.
 [<StructuredFormatDisplay("{String}")>]
 type Clause =
-    | Clause of Set<Literal>
+    | Clause of Literal[]
 
     /// Display string.
     member this.String =
@@ -333,7 +333,10 @@ module Clause =
 
         formulaCnf
             |> removeAnds Set.empty
-            |> Set.map (removeOrs Set.empty >> Clause)
+            |> Set.map (
+                (removeOrs Set.empty)
+                    >> Seq.toArray
+                    >> Clause)
 
     /// Converts a formula to clauses.
     let toClauses =
@@ -348,11 +351,12 @@ module Clause =
 
     /// The empty clause.
     let empty =
-        Clause Set.empty
+        Clause Array.empty
 
-    /// Applies the given mapping to all literals in the
-    /// given clause.
+    /// Applies the given mapping to all literals in the given clause.
     let map mapping (Clause literals) =
         literals
-            |> Set.map mapping
+            |> Seq.map mapping
+            |> set
+            |> Seq.toArray
             |> Clause

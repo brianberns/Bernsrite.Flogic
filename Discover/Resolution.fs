@@ -41,10 +41,10 @@ module Resolution =
         let rec loop (Clause literals as clause) =
             seq {
                 yield clause
-                for literal1 in literals do
-                    for literal2 in literals do
-                        if literal1 <> literal2 then
-                            match Unfiy.tryUnify literal1 literal2 with
+                for i = 0 to literals.Length - 1 do
+                    for j = 0 to literals.Length - 1 do
+                        if i <> j then
+                            match Unfiy.tryUnify literals.[i] literals.[j] with
                                 | Some subst ->
                                     yield! clause
                                         |> Clause.map (
@@ -102,7 +102,7 @@ module Resolution =
                                 | Some subst ->
                                     yield Seq.append allBut1 allBut2
                                         |> Seq.map (Substitution.applyLiteral subst)
-                                        |> set
+                                        |> Seq.toArray
                                         |> Clause
                                 | None -> ()
                 |])
@@ -173,7 +173,7 @@ module Derivation =
                             |> extend
                             |> Seq.tryPick (fun deriv ->
                                 let (Clause literals) = deriv.Support.Head
-                                if literals.IsEmpty then
+                                if literals.Length = 0 then
                                     Some deriv
                                 else
                                     deriv |> loop (depth + 1))
