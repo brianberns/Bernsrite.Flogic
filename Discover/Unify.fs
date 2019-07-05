@@ -1,10 +1,10 @@
 ﻿namespace Discover
 
-/// Substitution of the given variables with the given terms.
+/// Substitution of terms for variables.
 [<StructuredFormatDisplay("{String}")>]
 type Substitution =
     {
-        SubstMap : Map<Variable, Term>
+        SubstMap : Map<string (*variable name*), Term>
     }
 
     /// Display string.
@@ -29,16 +29,16 @@ module Substitution =
         }
 
     /// Creates a substitution containing only the given mapping.
-    let create variable term =
+    let create (Variable name) term =
         {
-            SubstMap = Map [ variable, term ]
+            SubstMap = Map [ name, term ]
         }
 
     /// Applies the given substitution to the given term.
     let rec applyTerm subst = function
-        | Term var as term ->
+        | Term (Variable name) as term ->
             subst.SubstMap
-                |> Map.tryFind var
+                |> Map.tryFind name
                 |> Option.defaultValue term
         | Application (func, terms) ->
             Application (
@@ -50,30 +50,35 @@ module Substitution =
     let applyLiteral subst literal =
         literal |> Literal.map (applyTerm subst)
 
-    let getDomainVariables subst =
+    /// Answers names of variables in the domain of the given substitution.
+    let getDomainVariableNames subst =
         subst.SubstMap
             |> Map.toSeq
             |> Seq.map fst
             |> set
 
-    let getRangeVariables subst =
+    /// Answers names of variables in the range of the given substitution.
+    let getRangeVariableNames subst =
         subst.SubstMap
             |> Map.toSeq
-            |> Seq.collect (snd >> Term.getVariables)
+            |> Seq.collect (
+                snd
+                    >> Term.getVariables
+                    >> Seq.map (fun (Variable name) -> name))
             |> set
 
     /// Indicates whether the given subtitution is pure.
     let isPure subst =
         Set.intersect
-            (getDomainVariables subst)
-            (getRangeVariables subst)
+            (getDomainVariableNames subst)
+            (getRangeVariableNames subst)
             |> Set.isEmpty
 
     /// Indicates whether the given substitutions are composable.
     let composable subst1 subst2 =
         Set.intersect
-            (getDomainVariables subst1)
-            (getRangeVariables subst2)
+            (getDomainVariableNames subst1)
+            (getRangeVariableNames subst2)
             |> Set.isEmpty
 
     /// Creates a new substitution with the same effect as applying

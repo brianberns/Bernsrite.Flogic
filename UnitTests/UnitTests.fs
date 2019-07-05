@@ -777,9 +777,8 @@ type UnitTest() =
                         SubstMap =
                             expectedStrs
                                 |> Seq.map (fun (oldStr, newStr) ->
-                                    let variable = Variable oldStr
                                     let term = newStr |> Parser.run parseTerm
-                                    variable, term)
+                                    oldStr, term)
                                 |> Map.ofSeq
                     }
             Assert.AreEqual(expected, actual)
