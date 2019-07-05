@@ -79,14 +79,12 @@ module Resolution =
                 |> getFactors
                 |> Array.map (fun (Clause literals) ->
                     literals
-                        |> Seq.toArray
                         |> createAllButArray id)
         let allButArrays2 =
             deconflict clause1 clause2
                 |> getFactors
                 |> Array.map (fun (Clause literals) ->
                     literals
-                        |> Seq.toArray
                         |> createAllButArray Literal.negate)
 
         [|
