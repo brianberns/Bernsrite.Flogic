@@ -779,7 +779,7 @@ type UnitTest() =
                                 |> Seq.map (fun (oldStr, newStr) ->
                                     let term = newStr |> Parser.run parseTerm
                                     oldStr, term)
-                                |> Map.ofSeq
+                                |> Seq.toArray
                     }
             Assert.AreEqual(expected, actual)
 

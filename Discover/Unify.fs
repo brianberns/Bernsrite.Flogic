@@ -4,13 +4,12 @@
 [<StructuredFormatDisplay("{String}")>]
 type Substitution =
     {
-        SubstMap : Map<string (*variable name*), Term>
+        SubstMap : (string (*variable name*) * Term)[]
     }
 
     /// Display string.
     member this.String =
         this.SubstMap
-            |> Map.toSeq
             |> Seq.sort
             |> Seq.map (fun (variable, term) ->
                 sprintf "%A <- %A" variable term)
@@ -25,24 +24,26 @@ module Substitution =
     /// The empty substitution.
     let empty =
         {
-            SubstMap = Map.empty
+            SubstMap = Array.empty
         }
 
     /// Creates a substitution containing only the given mapping.
     let create (Variable name) term =
         {
-            SubstMap = Map [ name, term ]
+            SubstMap = [| name, term |]
         }
 
     /// Applies the given substitution to the given term.
     let rec applyTerm subst term =
-        if subst.SubstMap.IsEmpty then
+        if subst.SubstMap.Length = 0 then
             term
         else
             match term with
                 | Term (Variable name) as term ->
                     subst.SubstMap
-                        |> Map.tryFind name
+                        |> Array.tryPick (fun (name', term') ->
+                            if name' = name then Some term'
+                            else None)
                         |> Option.defaultValue term
                 | Application (func, terms) ->
                     Application (
@@ -52,7 +53,7 @@ module Substitution =
 
     /// Applies the given substitution to the given literal.
     let applyLiteral subst literal =
-        if subst.SubstMap.IsEmpty then
+        if subst.SubstMap.Length = 0 then
             literal
         else
             literal |> Literal.map (applyTerm subst)
@@ -60,14 +61,12 @@ module Substitution =
     /// Answers names of variables in the domain of the given substitution.
     let getDomainVariableNames subst =
         subst.SubstMap
-            |> Map.toSeq
             |> Seq.map fst
             |> set
 
     /// Answers names of variables in the range of the given substitution.
     let getRangeVariableNames subst =
         subst.SubstMap
-            |> Map.toSeq
             |> Seq.collect (
                 snd
                     >> Term.getVariables
@@ -96,13 +95,17 @@ module Substitution =
         assert(composable subst1 subst2)
         {
             SubstMap =
-                seq {
-                    for (KeyValue(variable1, term1)) in subst1.SubstMap do
-                        yield variable1, (term1 |> applyTerm subst2)
-                    for (KeyValue(variable2, term2)) in subst2.SubstMap do
-                        if subst1.SubstMap.ContainsKey(variable2) |> not then
-                            yield variable2, term2
-                } |> Map.ofSeq
+                [|
+                    for (name1, term1) in subst1.SubstMap do
+                        yield name1, (term1 |> applyTerm subst2)
+                    for (name2, term2) in subst2.SubstMap do
+                        let exists =
+                            subst1.SubstMap
+                                |> Array.exists (fun (name, _) ->
+                                    name = name2)
+                        if not exists then
+                            yield name2, term2
+                |]
         }
 
 module Unfiy =
