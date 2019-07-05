@@ -74,8 +74,7 @@ type Clause =
             | Clause literals ->
                 literals
                     |> Seq.sortBy (fun literal ->
-                        let (Predicate (name, _)) = literal.Predicate
-                        name)
+                        literal.Predicate)
                     |> String.join " | "
 
     /// Display string.
