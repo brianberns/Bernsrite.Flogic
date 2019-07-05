@@ -100,8 +100,7 @@ module Resolution =
                                 | Some subst ->
                                     yield Seq.append allBut1 allBut2
                                         |> Seq.map (Substitution.applyLiteral subst)
-                                        |> Seq.toArray
-                                        |> Clause
+                                        |> Clause.create
                                 | None -> ()
                 |])
             |> set

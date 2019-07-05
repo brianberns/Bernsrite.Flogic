@@ -83,6 +83,13 @@ type Clause =
 /// https://en.wikipedia.org/wiki/Conjunctive_normal_form
 module Clause =
 
+    /// Creates a clause from the given literals.
+    let create literals =
+        literals
+            |> Seq.distinct
+            |> Seq.toArray
+            |> Clause
+
     /// Rewrites biconditionals.
     let rec private eliminateBiconditionals formula =
         let (!) = eliminateBiconditionals
@@ -335,8 +342,7 @@ module Clause =
             |> removeAnds Set.empty
             |> Set.map (
                 (removeOrs Set.empty)
-                    >> Seq.toArray
-                    >> Clause)
+                    >> create)
 
     /// Converts a formula to clauses.
     let toClauses =
@@ -351,12 +357,10 @@ module Clause =
 
     /// The empty clause.
     let empty =
-        Clause Array.empty
+        create Array.empty
 
     /// Applies the given mapping to all literals in the given clause.
     let map mapping (Clause literals) =
         literals
             |> Seq.map mapping
-            |> set
-            |> Seq.toArray
-            |> Clause
+            |> create
