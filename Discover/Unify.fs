@@ -35,20 +35,27 @@ module Substitution =
         }
 
     /// Applies the given substitution to the given term.
-    let rec applyTerm subst = function
-        | Term (Variable name) as term ->
-            subst.SubstMap
-                |> Map.tryFind name
-                |> Option.defaultValue term
-        | Application (func, terms) ->
-            Application (
-                func,
-                terms
-                    |> Array.map (applyTerm subst))
+    let rec applyTerm subst term =
+        if subst.SubstMap.IsEmpty then
+            term
+        else
+            match term with
+                | Term (Variable name) as term ->
+                    subst.SubstMap
+                        |> Map.tryFind name
+                        |> Option.defaultValue term
+                | Application (func, terms) ->
+                    Application (
+                        func,
+                        terms
+                            |> Array.map (applyTerm subst))
 
     /// Applies the given substitution to the given literal.
     let applyLiteral subst literal =
-        literal |> Literal.map (applyTerm subst)
+        if subst.SubstMap.IsEmpty then
+            literal
+        else
+            literal |> Literal.map (applyTerm subst)
 
     /// Answers names of variables in the domain of the given substitution.
     let getDomainVariableNames subst =
