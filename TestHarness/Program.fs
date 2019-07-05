@@ -7,7 +7,7 @@ module Program =
     [<EntryPoint>]
     let main argv =
 
-        let parser = Parser.makeParser ["harry"; "ralph"; "skolem1"]
+        let parser = Parser.makeParser ["harry"; "ralph"]
         let premises =
             [|
                 "∀x.∀y.((h(x) ∧ d(y)) ⇒ f(x, y))"
@@ -21,7 +21,7 @@ module Program =
 
         let dtStart = DateTime.Now
         let proofOpt =
-            Derivation.prove [5] premises goal
+            Derivation.prove [6] premises goal
         printfn "%A" proofOpt
         printfn "%A" (DateTime.Now - dtStart)
 
