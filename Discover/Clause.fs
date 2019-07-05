@@ -103,6 +103,19 @@ module Clause =
             |> Seq.map mapping
             |> create
 
+    /// Indicates whether the given clause is a tautology (because it contains
+    /// at least one pair of complementary literals)
+    let isTautology (Clause literals) =
+        literals
+            |> Seq.exists (fun literal1 ->
+                literals
+                    |> Seq.exists (fun literal2 ->
+                        literal1.IsPositive <> literal2.IsPositive
+                            && literal1.Predicate = literal2.Predicate
+                            && Seq.zip literal1.Terms literal2.Terms
+                                |> Seq.forall (fun (term1, term2) ->
+                                    term1 = term2)))
+
     /// Converts a formula to clauses.
     let toClauses =
 
