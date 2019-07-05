@@ -72,7 +72,11 @@ type Clause =
     member this.String =
         match this with
             | Clause literals ->
-                literals |> String.join " | "
+                literals
+                    |> Seq.sortBy (fun literal ->
+                        let (Predicate (name, _)) = literal.Predicate
+                        name)
+                    |> String.join " | "
 
     /// Display string.
     override this.ToString() =
