@@ -127,6 +127,51 @@ type Derivation =
 /// Proof via resolution.
 module Derivation =
 
+    /// Indicates whether the first clause subsumes the second
+    /// clause.
+    /// http://profs.sci.univr.it/~farinelli/courses/ar/slides/resolution-fol.pdf
+    /// https://archive.org/details/symboliclogicmec00chan/page/94
+    let subsumes clauseC (Clause literalsD as clauseD) =
+
+            // compute substitution θ
+        let substTheta =
+            let variables =
+                literalsD
+                    |> Seq.collect (fun literal ->
+                        literal.Terms |> Seq.collect Term.getVariables)
+                    |> Seq.distinct
+            (Substitution.empty, variables)
+                ||> Seq.fold (fun acc variable ->
+                    let _, term = Skolem.create Array.empty   // create constant term
+                    let sub = Substitution.create variable term
+                    Substitution.compose acc sub)
+
+            // compute clauses W from literals of ~Dθ
+        let clausesW =
+            literalsD
+                |> Array.map (
+                    Substitution.applyLiteral substTheta
+                        >> Literal.negate
+                        >> Seq.singleton
+                        >> Clause.create)
+
+            // compute set of clauses U(k+1) from U(k)
+        let rec loop clausesU =
+            if clausesU |> Set.isEmpty then
+                false
+            elif clausesU |> Set.contains Clause.empty then
+                true
+            else
+                seq {
+                    for clauseU in clausesU do
+                        for clauseW in clausesW do
+                            yield! Resolution.resolve clauseU clauseW
+                }
+                    |> set
+                    |> loop
+
+        set [clauseC] |> loop
+
     /// Generates all possible extensions of the given derivation
     /// via resolution.
     let private extend (derivation : Derivation) =
