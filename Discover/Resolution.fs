@@ -133,15 +133,14 @@ module Derivation =
 
         let supportSteps =
             derivation.Support
-                |> Seq.mapi (fun i step -> i, step)
+                |> Seq.toArray
         let allSteps =
             Seq.append derivation.Support derivation.Premises
-                |> Seq.mapi (fun i step -> i, step)
+                |> Seq.toArray
         [|
-            for (i, supportStep) in supportSteps do
-                for (j, allStep) in allSteps do
-                    if i <> j then
-                        yield supportStep, allStep
+            for iSupport = 0 to supportSteps.Length - 1 do
+                for iAll = iSupport + 1 to allSteps.Length - 1 do
+                    yield supportSteps.[iSupport], allSteps.[iAll]
         |]
             |> Array.Parallel.collect (fun (supportStep, allStep) ->
                 [|
