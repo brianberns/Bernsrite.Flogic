@@ -62,17 +62,16 @@ module Resolution =
 
             // isolates each item in the given array
         let createAllButArray mapping (items : _[]) =
-            [|
-                for i = 0 to items.Length - 1 do
+            items
+                |> Array.mapi (fun i item ->
+                    let item' = mapping item
                     let allBut =
                         lazy [|
                             for j = 0 to items.Length - 1 do
                                 if i <> j then
                                     yield items.[j]
                         |]
-                    let item = mapping items.[i]
-                    yield item, allBut
-            |]
+                    item', allBut)
 
             // deconflict the clauses and find all factors of each one
         let allButArrays1 =
