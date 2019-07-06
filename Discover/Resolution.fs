@@ -124,8 +124,11 @@ type Derivation =
     /// Display string.
     override this.ToString() = this.String
 
+/// Proof via resolution.
 module Derivation =
 
+    /// Generates all possible extensions of the given derivation
+    /// via resolution.
     let private extend (derivation : Derivation) =
 
         let supportSteps =
@@ -150,8 +153,10 @@ module Derivation =
                             }
                 |])
 
+    /// Attempts to prove the given goal from the given premises.
     let prove maxDepths premises goal =
 
+            // initialize derivation
         let derivation =
             {
                 Premises =
@@ -164,15 +169,17 @@ module Derivation =
                         |> Seq.toList
             }
 
+            // iterative deepening
         maxDepths
             |> Seq.tryPick (fun maxDepth ->
+
                 let rec loop depth derivation =
                     if depth >= maxDepth then None
                     else
                         derivation
                             |> extend
                             |> Seq.tryPick (fun deriv ->
-                                let (Clause literals as clause) = deriv.Support.Head
+                                let (Clause literals) = deriv.Support.Head
                                 if literals.Length = 0 then
                                     Some deriv
                                 else
