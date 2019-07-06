@@ -36,10 +36,8 @@ module Resolution =
 
     /// Applies the given substitution to the given literal.
     let private apply subst literal =
-        if subst.SubstMap.Length = 0 then
-            literal
-        else
-            literal |> Literal.map (Substitution.applyTerm subst)
+        literal
+            |> Literal.map (Substitution.applyTerm subst)
 
     /// Answers all factors of the given clause (including itself).
     let private getAllFactors clause =
