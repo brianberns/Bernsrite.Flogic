@@ -132,10 +132,7 @@ module Derivation =
             derivation.Support
                 |> Seq.mapi (fun i step -> i, step)
         let allSteps =
-            seq {
-                yield! derivation.Support
-                yield! derivation.Premises
-            }
+            Seq.append derivation.Support derivation.Premises
                 |> Seq.mapi (fun i step -> i, step)
         [|
             for (i, supportStep) in supportSteps do
