@@ -65,7 +65,7 @@ module Resolution =
             [|
                 for i = 0 to items.Length - 1 do
                     let allBut =
-                        [|
+                        lazy [|
                             for j = 0 to items.Length - 1 do
                                 if i <> j then
                                     yield items.[j]
@@ -95,7 +95,7 @@ module Resolution =
                         for (literal2, allBut2) in allButArray2 do
                             match Unfiy.tryUnify literal1 literal2 with
                                 | Some subst ->
-                                    yield Seq.append allBut1 allBut2
+                                    yield Seq.append allBut1.Value allBut2.Value
                                         |> Seq.map (Substitution.applyLiteral subst)
                                         |> Clause.create
                                 | None -> ()
