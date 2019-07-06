@@ -52,7 +52,7 @@ module Derivation =
                 |])
 
     /// Attempts to prove the given goal from the given premises.
-    let prove maxDepths premises goal =
+    let tryProve maxDepths premises goal =
 
             // initialize derivation
         let derivation =
