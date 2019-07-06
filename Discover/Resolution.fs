@@ -78,15 +78,15 @@ module Resolution =
         let allButArrays1 =
             clause1
                 |> getAllFactors
-                |> Array.map (fun (Clause literals) ->
+                |> Seq.map (fun (Clause literals) ->
                     literals
                         |> createAllButArray id)
         let allButArrays2 =
             deconflict clause1 clause2
                 |> getAllFactors
-                |> Array.map (fun (Clause literals) ->
+                |> Seq.map (fun (Clause literals) ->
                     literals
-                        |> createAllButArray Literal.negate)
+                        |> createAllButArray Literal.negate)   // negate for unification
 
         [|
             for allButArray1 in allButArrays1 do
@@ -130,28 +130,29 @@ module Derivation =
     let private extend (derivation : Derivation) =
 
         let supportSteps =
-            derivation.Support |> Seq.toArray
+            derivation.Support
+                |> Seq.mapi (fun i step -> i, step)
         let allSteps =
-            [|
-                yield! supportSteps
+            seq {
+                yield! derivation.Support
                 yield! derivation.Premises
-            |]
-
-        seq {
-            for iSupport = 0 to supportSteps.Length - 1 do
-                for iAll = 0 to allSteps.Length - 1 do
-                    if iSupport <> iAll then
-                        let steps =
-                            Resolution.resolve
-                                supportSteps.[iSupport]
-                                allSteps.[iAll]
-                        for step in steps do
-                            if step |> Clause.isTautology |> not then
-                                yield {
-                                    derivation with
-                                        Support = step :: derivation.Support
-                                }
-        }
+            }
+                |> Seq.mapi (fun i step -> i, step)
+        [|
+            for (i, supportStep) in supportSteps do
+                for (j, allStep) in allSteps do
+                    if i <> j then
+                        yield supportStep, allStep
+        |]
+            |> Array.Parallel.collect (fun (supportStep, allStep) ->
+                [|
+                    for step in Resolution.resolve supportStep allStep do
+                        if step |> Clause.isTautology |> not then
+                            yield {
+                                derivation with
+                                    Support = step :: derivation.Support
+                            }
+                |])
 
     let prove maxDepths premises goal =
 
