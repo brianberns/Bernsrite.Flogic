@@ -792,9 +792,11 @@ type UnitTest() =
                 "∀u.∀v.∀w.(loves(v,w) ⇒ loves(u,v))"
             |] |> Array.map (Parser.run parser)
         let goal = "∀x.∀y.loves(x,y)" |> Parser.run parser
-        let proofOpt = Derivation.prove [1..10] premises goal
-        printfn "%A" proofOpt
-        Assert.IsTrue(proofOpt.IsSome)
+        match Derivation.prove [1..10] premises goal with
+            | Some proof ->
+                printfn "%A" proof
+                Assert.AreEqual(5, proof.Premises.Length + proof.Support.Length)
+            | None -> Assert.Fail()
 
     [<TestMethod>]
     member __.Resolve2() =
@@ -810,6 +812,8 @@ type UnitTest() =
                 "h(harry)"
             |] |> Array.map (Parser.run parser)
         let goal = "f(harry, ralph)" |> Parser.run parser
-        let proofOpt = Derivation.prove [7] premises goal
-        printfn "%A" proofOpt
-        Assert.IsTrue(proofOpt.IsSome)
+        match Derivation.prove [7] premises goal with
+            | Some proof ->
+                printfn "%A" proof
+                Assert.AreEqual(15, proof.Premises.Length + proof.Support.Length)
+            | None -> Assert.Fail()
