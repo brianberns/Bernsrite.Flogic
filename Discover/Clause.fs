@@ -310,3 +310,106 @@ module Clause =
             >> removeQuantifiers
             >> distributeDisjunctions
             >> convertToClauses
+
+    /// Derives a new clause from the given clauses using the resolution
+    /// principle.
+    let resolve clause1 clause2 =
+
+        /// Deconflicts variable names in the given clauses by renaming
+        /// variables in the second clause as needed.
+        let deconflict clauseToKeep clauseToRename =
+
+                // find all variables used in the first clause
+            let seen =
+                seq {
+                    for literal in clauseToKeep.Literals do
+                        for term in literal.Terms do
+                            yield! term |> Term.getVariables
+                } |> set
+
+            let deconflictVariable variable =
+                variable
+                    |> Variable.deconflict seen
+                    |> fst
+
+            let rec deconflictTerm = function
+                | Term variable ->
+                    variable
+                        |> deconflictVariable
+                        |> Term
+                | Application (func, terms) ->
+                    Application (
+                        func,
+                        terms |> Array.map deconflictTerm)
+
+                // rename variables used in the second clause as needed
+            clauseToRename
+                |> map (Literal.map deconflictTerm)
+
+        /// Applies the given substitution to the given literal.
+        let apply subst literal =
+            literal
+                |> Literal.map (Substitution.applyTerm subst)
+
+        /// Answers all factors of the given clause (including itself).
+        let allFactors clause =
+
+            let rec loop clause =
+                seq {
+                    yield clause
+                    for i = 0 to clause.Literals.Length - 1 do
+                        for j = 0 to clause.Literals.Length - 1 do
+                            if i <> j then
+                                match Literal.tryUnify
+                                    clause.Literals.[i]
+                                    clause.Literals.[j] with
+                                    | Some subst ->
+                                        yield! clause
+                                            |> map (apply subst)
+                                            |> loop
+                                    | None -> ()
+                }
+
+            clause
+                |> loop
+                |> Seq.toArray
+
+            // isolates each item in the given array
+        let createAllButArray mapping (items : _[]) =
+            items
+                |> Array.mapi (fun i item ->
+                    let item' = mapping item
+                    let allBut =
+                        lazy [|
+                            for j = 0 to items.Length - 1 do
+                                if i <> j then
+                                    yield items.[j]
+                        |]
+                    item', allBut)
+
+            // deconflict the clauses and find all factors of each one
+        let allButArrays1 =
+            clause1
+                |> allFactors
+                |> Seq.map (fun clause ->
+                    clause.Literals
+                        |> createAllButArray id)
+        let allButArrays2 =
+            deconflict clause1 clause2
+                |> allFactors
+                |> Seq.map (fun clause ->
+                    clause.Literals
+                        |> createAllButArray Literal.negate)   // negate for unification
+
+        [|
+            for allButArray1 in allButArrays1 do
+                for allButArray2 in allButArrays2 do
+                    for (literal1, allBut1) in allButArray1 do
+                        for (literal2, allBut2) in allButArray2 do
+                            match Literal.tryUnify literal1 literal2 with
+                                | Some subst ->
+                                    yield Seq.append allBut1.Value allBut2.Value
+                                        |> Seq.map (apply subst)
+                                        |> create
+                                | None -> ()
+        |] |> set

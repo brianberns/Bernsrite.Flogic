@@ -59,7 +59,7 @@
     <Compile Include="Substitution.fs" />
     <Compile Include="Literal.fs" />
     <Compile Include="Clause.fs" />
-    <Compile Include="Resolution.fs" />
+    <Compile Include="Derivation.fs" />
     <Compile Include="Peano.fs" />
   </ItemGroup>
   <ItemGroup>
