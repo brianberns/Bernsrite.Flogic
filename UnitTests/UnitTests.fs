@@ -680,8 +680,8 @@ type UnitTest() =
             "∀x.(∀y.(Animal(y) -> Loves(x, y)) -> ∃y.Loves(y, x))"
                 |> Parser.run parser
                 |> Clause.toClauses
-                |> Seq.map (fun (Clause literals) ->
-                    literals
+                |> Seq.map (fun clause ->
+                    clause.Literals
                         |> Seq.map Literal.toString
                         |> Seq.toArray)
                 |> Seq.toArray

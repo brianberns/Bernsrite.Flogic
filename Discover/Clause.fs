@@ -5,16 +5,16 @@ open System
 /// A collection of literals that are implicitly ORed together.
 [<StructuredFormatDisplay("{String}")>]
 type Clause =
-    | Clause of Literal[]
+    {
+        Literals : Literal[]
+    }
 
     /// Display string.
     member this.String =
-        match this with
-            | Clause literals ->
-                literals
-                    |> Seq.sortBy (fun literal ->
-                        literal.Predicate)
-                    |> String.join " | "
+        this.Literals
+            |> Seq.sortBy (fun literal ->
+                literal.Predicate)
+            |> String.join " | "
 
     /// Display string.
     override this.ToString() =
@@ -27,18 +27,20 @@ module Clause =
 
     /// The empty clause.
     let empty =
-        Clause Array.empty
+        { Literals = Array.empty }
 
     /// Creates a clause from the given literals.
     let create literals =
-        literals
-            |> Seq.distinct
-            |> Seq.toArray
-            |> Clause
+        {
+            Literals =
+                literals
+                    |> Seq.distinct
+                    |> Seq.toArray
+        }
 
     /// Applies the given mapping to all literals in the given clause.
-    let map mapping (Clause literals) =
-        literals
+    let map mapping clause =
+        clause.Literals
             |> Seq.map mapping
             |> create
 

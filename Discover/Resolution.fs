@@ -5,12 +5,12 @@ module Resolution =
 
     /// Deconflicts variable names in the given clauses by renaming
     /// variables in the second clause as needed.
-    let private deconflict (Clause literalsToKeep) clauseToRename =
+    let private deconflict clauseToKeep clauseToRename =
 
             // find all variables used in the first clause
         let seen =
             seq {
-                for literal in literalsToKeep do
+                for literal in clauseToKeep.Literals do
                     for term in literal.Terms do
                         yield! term |> Term.getVariables
             } |> set
@@ -42,13 +42,15 @@ module Resolution =
     /// Answers all factors of the given clause (including itself).
     let private getAllFactors clause =
 
-        let rec loop (Clause literals as clause) =
+        let rec loop clause =
             seq {
                 yield clause
-                for i = 0 to literals.Length - 1 do
-                    for j = 0 to literals.Length - 1 do
+                for i = 0 to clause.Literals.Length - 1 do
+                    for j = 0 to clause.Literals.Length - 1 do
                         if i <> j then
-                            match Literal.tryUnify literals.[i] literals.[j] with
+                            match Literal.tryUnify
+                                clause.Literals.[i]
+                                clause.Literals.[j] with
                                 | Some subst ->
                                     yield! clause
                                         |> Clause.map (apply subst)
@@ -81,14 +83,14 @@ module Resolution =
         let allButArrays1 =
             clause1
                 |> getAllFactors
-                |> Seq.map (fun (Clause literals) ->
-                    literals
+                |> Seq.map (fun clause ->
+                    clause.Literals
                         |> createAllButArray id)
         let allButArrays2 =
             deconflict clause1 clause2
                 |> getAllFactors
-                |> Seq.map (fun (Clause literals) ->
-                    literals
+                |> Seq.map (fun clause ->
+                    clause.Literals
                         |> createAllButArray Literal.negate)   // negate for unification
 
         [|
@@ -181,8 +183,7 @@ module Derivation =
                         derivation
                             |> extend
                             |> Seq.tryPick (fun deriv ->
-                                let (Clause literals) = deriv.Support.Head
-                                if literals.Length = 0 then
+                                if deriv.Support.Head.Literals.Length = 0 then
                                     Some deriv
                                 else
                                     deriv |> loop (depth + 1))
