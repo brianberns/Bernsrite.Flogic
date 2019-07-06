@@ -2,67 +2,6 @@
 
 open System
 
-/// A literal is either an atomic formula or its negation.
-[<StructuredFormatDisplay("{String}")>]
-type Literal =
-    {
-        Predicate : Predicate
-        Terms : Term[]
-        IsPositive : bool
-    }
-
-    /// Display string.
-    member this.String =
-        let (Predicate (name, arity)) = this.Predicate
-        if (arity <> this.Terms.Length) then
-            failwith "Arity mismatch"
-        if arity = 0 then name
-        else
-            sprintf "%s%s(%s)"
-                (if this.IsPositive then "" else "~")
-                name
-                (String.Join(", ", this.Terms))
-
-    /// Display string.
-    override this.ToString() =
-        this.String
-
-module Literal =
-
-    /// Display string.
-    let toString (literal : Literal) =
-        literal.ToString()
-
-    /// Creates a literal.
-    let private create predicate terms isPositive =
-        {
-            Predicate = predicate
-            Terms = terms
-            IsPositive = isPositive
-        }
-
-    /// Converts a formula to a literal.
-    let ofFormula = function
-        | Formula (predicate, terms) ->
-            create predicate terms true
-        | Not (Formula (predicate, terms)) ->
-            create predicate terms false
-        | _ -> failwith "Not a literal"
-
-    /// Negates the given literal.
-    let negate literal =
-        {
-            literal with
-                IsPositive = not literal.IsPositive
-        }
-
-    /// Applies the given mapping to the given literal's terms.
-    let map mapping literal =
-        {
-            literal with
-                Terms = literal.Terms |> Array.map mapping
-        }
-
 /// A collection of literals that are implicitly ORed together.
 [<StructuredFormatDisplay("{String}")>]
 type Clause =

@@ -34,6 +34,13 @@ module Resolution =
         clauseToRename
             |> Clause.map (Literal.map deconflictTerm)
 
+    /// Applies the given substitution to the given literal.
+    let private apply subst literal =
+        if subst.SubstMap.Length = 0 then
+            literal
+        else
+            literal |> Literal.map (Substitution.applyTerm subst)
+
     /// Answers all factors of the given clause (including itself).
     let private getAllFactors clause =
 
@@ -43,11 +50,10 @@ module Resolution =
                 for i = 0 to literals.Length - 1 do
                     for j = 0 to literals.Length - 1 do
                         if i <> j then
-                            match Unfiy.tryUnify literals.[i] literals.[j] with
+                            match Literal.tryUnify literals.[i] literals.[j] with
                                 | Some subst ->
                                     yield! clause
-                                        |> Clause.map (
-                                            Substitution.applyLiteral subst)
+                                        |> Clause.map (apply subst)
                                         |> loop
                                 | None -> ()
             }
@@ -92,10 +98,10 @@ module Resolution =
                 for allButArray2 in allButArrays2 do
                     for (literal1, allBut1) in allButArray1 do
                         for (literal2, allBut2) in allButArray2 do
-                            match Unfiy.tryUnify literal1 literal2 with
+                            match Literal.tryUnify literal1 literal2 with
                                 | Some subst ->
                                     yield Seq.append allBut1.Value allBut2.Value
-                                        |> Seq.map (Substitution.applyLiteral subst)
+                                        |> Seq.map (apply subst)
                                         |> Clause.create
                                 | None -> ()
         |] |> set

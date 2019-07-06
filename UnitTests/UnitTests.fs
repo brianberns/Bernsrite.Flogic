@@ -768,7 +768,7 @@ type UnitTest() =
             printfn "%s, %s" input1 input2
             let actual =
                 let parse = Parser.run parseFormula >> Literal.ofFormula
-                Unfiy.tryUnify (parse input1) (parse input2)
+                Literal.tryUnify (parse input1) (parse input2)
             let expected =
                 if expectedStrs.IsEmpty then
                     None

@@ -56,8 +56,9 @@
     <Compile Include="Schema.fs" />
     <Compile Include="InferenceRule.fs" />
     <Compile Include="Proof.fs" />
+    <Compile Include="Substitution.fs" />
+    <Compile Include="Literal.fs" />
     <Compile Include="Clause.fs" />
-    <Compile Include="Unify.fs" />
     <Compile Include="Resolution.fs" />
     <Compile Include="Peano.fs" />
   </ItemGroup>
