@@ -150,10 +150,11 @@ module Derivation =
                                 supportSteps.[iSupport]
                                 allSteps.[iAll]
                         for step in steps do
-                            yield {
-                                derivation with
-                                    Support = step :: derivation.Support
-                            }
+                            if step |> Clause.isTautology |> not then
+                                yield {
+                                    derivation with
+                                        Support = step :: derivation.Support
+                                }
         }
 
     let prove maxDepths premises goal =
