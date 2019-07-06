@@ -1,7 +1,6 @@
 ﻿namespace Discover
 
-open System
-
+/// Inference using the resolution principle.
 module Resolution =
 
     /// Deconflicts variable names in the given clauses by renaming
@@ -36,7 +35,7 @@ module Resolution =
             |> Clause.map (Literal.map deconflictTerm)
 
     /// Answers all factors of the given clause (including itself).
-    let private getFactors clause =
+    let private getAllFactors clause =
 
         let rec loop (Clause literals as clause) =
             seq {
@@ -57,10 +56,11 @@ module Resolution =
             |> loop
             |> Seq.toArray
 
-    /// Derives a conclusion from the given clauses using the resolution
+    /// Derives a new clause from the given clauses using the resolution
     /// principle.
     let resolve clause1 clause2 =
 
+            // isolates each item in the given array
         let createAllButArray mapping (items : _[]) =
             [|
                 for i = 0 to items.Length - 1 do
@@ -74,26 +74,23 @@ module Resolution =
                     yield item, allBut
             |]
 
+            // deconflict the clauses and find all factors of each one
         let allButArrays1 =
             clause1
-                |> getFactors
+                |> getAllFactors
                 |> Array.map (fun (Clause literals) ->
                     literals
                         |> createAllButArray id)
         let allButArrays2 =
             deconflict clause1 clause2
-                |> getFactors
+                |> getAllFactors
                 |> Array.map (fun (Clause literals) ->
                     literals
                         |> createAllButArray Literal.negate)
 
         [|
-            for array1 in allButArrays1 do
-                for array2 in allButArrays2 do
-                    yield array1, array2
-        |]
-            |> Array.Parallel.collect (fun (allButArray1, allButArray2) ->
-                [|
+            for allButArray1 in allButArrays1 do
+                for allButArray2 in allButArrays2 do
                     for (literal1, allBut1) in allButArray1 do
                         for (literal2, allBut2) in allButArray2 do
                             match Unfiy.tryUnify literal1 literal2 with
@@ -102,8 +99,7 @@ module Resolution =
                                         |> Seq.map (Substitution.applyLiteral subst)
                                         |> Clause.create
                                 | None -> ()
-                |])
-            |> set
+        |] |> set
 
 /// A resolution derivation.
 /// http://intrologic.stanford.edu/public/section.php?section=section_05_04
@@ -173,8 +169,6 @@ module Derivation =
 
         maxDepths
             |> Seq.tryPick (fun maxDepth ->
-                printfn ""
-                printfn "maxDepth: %A" maxDepth
                 let rec loop depth derivation =
                     if depth >= maxDepth then None
                     else
@@ -185,8 +179,6 @@ module Derivation =
                                 if literals.Length = 0 then
                                     Some deriv
                                 else
-                                    if depth <= 3 then
-                                        printfn "%A: %A" depth clause
                                     deriv |> loop (depth + 1))
 
                 derivation |> loop 0)

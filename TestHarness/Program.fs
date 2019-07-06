@@ -21,7 +21,7 @@ module Program =
 
         let dtStart = DateTime.Now
         let proofOpt =
-            Derivation.prove [6] premises goal
+            Derivation.prove [5] premises goal
         printfn "%A" proofOpt
         printfn "%A" (DateTime.Now - dtStart)
 
