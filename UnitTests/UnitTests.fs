@@ -817,20 +817,3 @@ type UnitTest() =
                 printfn "%A" proof
                 Assert.AreEqual(15, proof.Premises.Length + proof.Support.Length)
             | None -> Assert.Fail()
-
-    [<TestMethod>]
-    member __.Subsumption() =
-
-        let parser = Parser.makeParser ["a"]
-        let parse =
-            Parser.run parser
-                >> Clause.toClauses
-                >> Seq.exactlyOne
-
-        let clauseC = parse "(~P(x) | Q(f(x), a))"
-        let clauseD = parse "((~P(h(y)) | Q(f(h(y)), a)) | ~P(z))"
-        Assert.IsTrue(Derivation.subsumes clauseC clauseD)
-
-        let clauseC = parse "P(x, x)"
-        let clauseD = parse "(P(f(x), y) | P(y, f(x)))"
-        Assert.IsFalse(Derivation.subsumes clauseC clauseD)

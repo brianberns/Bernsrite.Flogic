@@ -127,51 +127,6 @@ type Derivation =
 /// Proof via resolution.
 module Derivation =
 
-    /// Indicates whether the first clause subsumes the second
-    /// clause.
-    /// http://profs.sci.univr.it/~farinelli/courses/ar/slides/resolution-fol.pdf
-    /// https://archive.org/details/symboliclogicmec00chan/page/94
-    let subsumes clauseC (Clause literalsD as clauseD) =
-
-            // compute substitution θ
-        let substTheta =
-            let variables =
-                literalsD
-                    |> Seq.collect (fun literal ->
-                        literal.Terms |> Seq.collect Term.getVariables)
-                    |> Seq.distinct
-            (Substitution.empty, variables)
-                ||> Seq.fold (fun acc variable ->
-                    let _, term = Skolem.create Array.empty   // create constant term
-                    let sub = Substitution.create variable term
-                    Substitution.compose acc sub)
-
-            // compute clauses W from literals of ~Dθ
-        let clausesW =
-            literalsD
-                |> Array.map (
-                    Substitution.applyLiteral substTheta
-                        >> Literal.negate
-                        >> Seq.singleton
-                        >> Clause.create)
-
-            // compute set of clauses U(k+1) from U(k)
-        let rec loop clausesU =
-            if clausesU |> Set.isEmpty then
-                false
-            elif clausesU |> Set.contains Clause.empty then
-                true
-            else
-                seq {
-                    for clauseU in clausesU do
-                        for clauseW in clausesW do
-                            yield! Resolution.resolve clauseU clauseW
-                }
-                    |> set
-                    |> loop
-
-        set [clauseC] |> loop
-
     /// Generates all possible extensions of the given derivation
     /// via resolution.
     let private extend (derivation : Derivation) =
@@ -189,12 +144,11 @@ module Derivation =
         |]
             |> Array.Parallel.collect (fun (supportStep, allStep) ->
                 [|
-                    for step in Resolution.resolve supportStep allStep do
-                        if step |> Clause.isTautology |> not then
-                            yield {
-                                derivation with
-                                    Support = step :: derivation.Support
-                            }
+                    for nextStep in Resolution.resolve supportStep allStep do
+                        yield {
+                            derivation with
+                                Support = nextStep :: derivation.Support
+                        }
                 |])
 
     /// Attempts to prove the given goal from the given premises.
