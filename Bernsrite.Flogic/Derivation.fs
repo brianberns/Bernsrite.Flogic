@@ -1,4 +1,4 @@
-﻿namespace Flogic
+﻿namespace Bernsrite.Flogic
 
 /// A resolution derivation.
 /// http://intrologic.stanford.edu/public/section.php?section=section_05_04

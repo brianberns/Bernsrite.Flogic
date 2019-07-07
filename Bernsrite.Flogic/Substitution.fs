@@ -1,4 +1,4 @@
-﻿namespace Flogic
+﻿namespace Bernsrite.Flogic
 
 /// Substitution of terms for variables.
 [<StructuredFormatDisplay("{String}")>]

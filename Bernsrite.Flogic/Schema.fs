@@ -1,4 +1,4 @@
-﻿namespace Flogic
+﻿namespace Bernsrite.Flogic
 
 /// Placeholder for a predicate.
 type MetaVariable = Formula

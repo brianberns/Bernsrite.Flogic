@@ -1,4 +1,4 @@
-﻿namespace Flogic
+﻿namespace Bernsrite.Flogic
 
 open System
 open FParsec

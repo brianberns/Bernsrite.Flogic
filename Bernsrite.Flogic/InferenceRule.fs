@@ -1,4 +1,4 @@
-﻿namespace Flogic
+﻿namespace Bernsrite.Flogic
 
 /// Ordinary rule of inference.
 [<StructuredFormatDisplay("{Name}")>]

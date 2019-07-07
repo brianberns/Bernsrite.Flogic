@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29009.5
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Flogic", "Flogic\Flogic.fsproj", "{C277A846-08AE-4674-9EF8-704DF67C7568}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Bernsrite.Flogic", "Bernsrite.Flogic\Bernsrite.Flogic.fsproj", "{C277A846-08AE-4674-9EF8-704DF67C7568}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "UnitTests", "UnitTests\UnitTests.fsproj", "{DF68103D-D05A-47EB-877E-42E5B7479C8E}"
 EndProject
