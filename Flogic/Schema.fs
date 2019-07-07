@@ -1,4 +1,4 @@
-﻿namespace Discover
+﻿namespace Flogic
 
 /// Placeholder for a predicate.
 type MetaVariable = Formula

@@ -1,4 +1,4 @@
-﻿namespace Discover
+﻿namespace Flogic
 
 open System
 open FParsec

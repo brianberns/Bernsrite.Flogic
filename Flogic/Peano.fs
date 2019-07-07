@@ -1,4 +1,4 @@
-﻿namespace Discover
+﻿namespace Flogic
 
 /// http://intrologic.stanford.edu/public/section.php?section=section_09_04
 module Peano =

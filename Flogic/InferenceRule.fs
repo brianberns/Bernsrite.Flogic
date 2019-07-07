@@ -1,4 +1,4 @@
-﻿namespace Discover
+﻿namespace Flogic
 
 /// Ordinary rule of inference.
 [<StructuredFormatDisplay("{Name}")>]

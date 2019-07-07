@@ -75,8 +75,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Discover\Discover.fsproj">
-      <Name>Discover</Name>
+    <ProjectReference Include="..\Flogic\Flogic.fsproj">
+      <Name>Flogic</Name>
       <Project>{c277a846-08ae-4674-9ef8-704df67c7568}</Project>
       <Private>True</Private>
     </ProjectReference>

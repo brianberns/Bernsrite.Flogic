@@ -1,4 +1,4 @@
-﻿namespace Discover
+﻿namespace Flogic
 
 /// Substitution of terms for variables.
 [<StructuredFormatDisplay("{String}")>]

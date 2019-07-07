@@ -1,4 +1,4 @@
-﻿namespace Discover.AssemblyInfo
+﻿namespace Flogic.AssemblyInfo
 
 open System.Reflection
 open System.Runtime.CompilerServices
@@ -7,12 +7,12 @@ open System.Runtime.InteropServices
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[<assembly: AssemblyTitle("Discover")>]
+[<assembly: AssemblyTitle("Flogic")>]
 [<assembly: AssemblyDescription("")>]
 [<assembly: AssemblyConfiguration("")>]
 [<assembly: AssemblyCompany("")>]
-[<assembly: AssemblyProduct("Discover")>]
-[<assembly: AssemblyCopyright("Copyright ©  2019")>]
+[<assembly: AssemblyProduct("Flogic")>]
+[<assembly: AssemblyCopyright("Copyright ©2019 Brian Berns")>]
 [<assembly: AssemblyTrademark("")>]
 [<assembly: AssemblyCulture("")>]
 
