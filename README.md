@@ -9,11 +9,11 @@ As an example, consider this problem from the [Stanford Introduction to Logic co
 
 We write the premises (including implicit ones) in first-order logic as follows:
 
-| Formula                              | Meaning                              |
-| -------------------------------------|--------------------------------------|
-| ∀x.∀y.(h(x) ∧ d(y) ⇒ f(x,y))        | Every horse is faster than every dog |
-| ∃y.(g(y) ∧ ∀z.(r(z) ⇒ f(y,z)))      | There's a greyhound that's faster than every rabbit |
-| ∀y.(g(y) ⇒ d(y))                    | Every greyhound is a dog             |
-| ∀x.∀y.∀z.(f(x,y) ∧ f(y,z) ⇒ f(x,z)) | The *faster than* relationship is transitive |
-| h(harry)                             | Harry is a horse                     |
-| r(ralph)                             | Ralph is a rabbit                    |
+| Formula                                  | Meaning                                             |
+| -----------------------------------------|-----------------------------------------------------|
+| ∀x.∀y.(h(x) ∧ d(y) ⇒ f(x,y))         | Every horse is faster than every dog                |
+| ∃y.(g(y) ∧ ∀z.(r(z) ⇒ f(y,z)))       | There's a greyhound that's faster than every rabbit |
+| ∀y.(g(y) ⇒ d(y))                       | Every greyhound is a dog                            |
+| ∀x.∀y.∀z.(f(x,y) ∧ f(y,z) ⇒ f(x,z)) | The *faster than* relationship is transitive        |
+| h(harry)                                 | Harry is a horse                                    |
+| r(ralph)                                 | Ralph is a rabbit                                   |
