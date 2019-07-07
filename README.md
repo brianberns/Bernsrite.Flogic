@@ -17,3 +17,24 @@ We write the premises (including implicit ones) in first-order logic as follows:
 | ∀x.∀y.∀z.(f(x,y) ∧ f(y,z) ⇒ f(x,z)) | The *faster than* relationship is transitive        |
 | h(harry)                                 | Harry is a horse                                    |
 | r(ralph)                                 | Ralph is a rabbit                                   |
+
+We can code this directly into F# using the Flogic [DSL](https://en.wikipedia.org/wiki/Domain-specific_language). For example, this says every greyhound is a dog:
+
+```F#
+ForAll (
+    Variable "y",
+    Implication (
+        Formula (
+            Predicate ("greyhound", 1),
+            [| Term (Variable "y") |]),
+        Formula (
+            Predicate ("dog", 1),
+            [| Term (Variable "y") |])))
+```
+
+However, rather than write out each premise the long way, we can use a parser instead:
+
+```F#
+let parser = Parser.makeParser ["harry"; "ralph"]     // tell the parser that harry and ralph are named constants
+let formula = Parser.run parser "∀y.(g(y) ⇒ d(y))"   // every greyhound is a dog
+```
