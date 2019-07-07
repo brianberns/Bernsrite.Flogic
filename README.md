@@ -3,7 +3,7 @@ First-order (predicate) logic for F#
 
 ## Overview
  
-As an example, consider this problem from the [Stanford Introduction to Logic course](http://intrologic.stanford.edu/public/):
+As an example, consider this problem from the [Stanford Introduction to Logic course](http://intrologic.stanford.edu/public/section.php?section=section_08_06):
 
 > We know that horses are faster than dogs and that there is a greyhound that is faster than every rabbit. We know that Harry is a horse and that Ralph is a rabbit. Our job is to derive the fact that Harry is faster than Ralph.
 
