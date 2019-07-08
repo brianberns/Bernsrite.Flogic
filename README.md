@@ -51,11 +51,11 @@ This works by negating the goal and deriving a contradiction, as follows:
 |  # | Formula                           | Meaning                                      |
 |---:|-----------------------------------|----------------------------------------------|
 |  1 | `g(skolem1)`                      | Premise: `skolem1` is an arbitrary greyhound |
-|  2 | `f(skolem1, z) or ~r(z)`          | Premise: if `z` is a rabbit, skolem1 is faster than `z` |
+|  2 | `f(skolem1, z) or ~r(z)`          | Premise: If `z` is a rabbit, skolem1 is faster than `z` |
 |  3 | `r(ralph)`                        | Premise: `ralph` is a rabbit                 |
 |  4 | `~f(x, y) or f(x, z) or ~f(y, z)` | Premise: *faster-than* is transitive         |
-|  5 | `~d(y) or f(x, y) or ~h(x)`       | Premise: if `x` is a horse and `y` is a dog, then `x` is faster than `y` |
-|  6 | `d(y) or ~g(y)`                   | Premise: if `y` is a greyhound, then `y` is a dog |
+|  5 | `~d(y) or f(x, y) or ~h(x)`       | Premise: If `x` is a horse and `y` is a dog, then `x` is faster than `y` |
+|  6 | `d(y) or ~g(y)`                   | Premise: If `y` is a greyhound, then `y` is a dog |
 |  7 | `h(harry)`                        | Premise: `harry` is a horse                  |
 |  8 | `~f(harry, ralph)`                | Negated goal: `harry` is not faster than `ralph` |
 |  9 | `~f(harry, y) or ~f(y, ralph)`    | No one slower than `harry` is faster than `ralph` (via 4 and 8) |
