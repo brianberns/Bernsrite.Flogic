@@ -50,7 +50,7 @@ This works by negating the goal and deriving a contradiction. In this case, `pro
 
 |  # | Formula                           | Meaning                                      |
 |---:|-----------------------------------|----------------------------------------------|
-|  1 | `g(skolem1)`                      | Premise: `[skolem1](https://en.wikipedia.org/wiki/Skolem_normal_form)` is an arbitrary greyhound |
+|  1 | `g(skolem1)`                      | Premise: [`skolem1`](https://en.wikipedia.org/wiki/Skolem_normal_form) is an arbitrary greyhound |
 |  2 | `f(skolem1, z) or ~r(z)`          | Premise: If `z` is a rabbit, skolem1 is faster than `z` |
 |  3 | `r(ralph)`                        | Premise: `ralph` is a rabbit                 |
 |  4 | `~f(x, y) or f(x, z) or ~f(y, z)` | Premise: *faster-than* is transitive         |
