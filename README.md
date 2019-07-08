@@ -46,7 +46,7 @@ let goal = Parser.run parser "f(harry, ralph)"
 let proofOpt = Derivation.tryProve [1..10] premises goal
 ```
 
-This works by negating the goal and deriving a contradiction, as follows:
+This works by negating the goal and deriving a contradiction. In this case, `proofOpt` will hold the following steps:
 
 |  # | Formula                           | Meaning                                      |
 |---:|-----------------------------------|----------------------------------------------|
