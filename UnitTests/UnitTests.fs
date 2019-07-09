@@ -795,7 +795,7 @@ type UnitTest() =
         match Derivation.tryProve premises goal with
             | Some proof ->
                 printfn "%A" proof
-                Assert.AreEqual(5, proof.Steps.Length)
+                Assert.AreEqual(2, proof.DerivedClauses.Length)
             | None -> Assert.Fail()
 
     [<TestMethod>]
@@ -814,5 +814,5 @@ type UnitTest() =
         match Derivation.tryProve premises goal with
             | Some proof ->
                 printfn "%A" proof
-                Assert.AreEqual(15, proof.Steps.Length)
+                Assert.AreEqual(7, proof.DerivedClauses.Length)
             | None -> Assert.Fail()

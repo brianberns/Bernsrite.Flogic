@@ -15,22 +15,23 @@ type Derivation =
         DerivedClauses : List<Clause>
     }
 
-    /// Steps in this derivation, in order.
-    member this.Steps =
-        [|
-            yield! this.InputClauses
-                |> Seq.where (fun clause -> clause <> this.TopClause)
-            yield this.TopClause
-            yield! this.DerivedClauses
-                |> List.rev
-        |]
-
     /// Display string.
     member this.String =
-        this.Steps
-            |> Seq.mapi (fun index step ->
-                sprintf "%d. %A" (index + 1) step)
-            |> String.join "\r\n"
+        seq {
+
+            for clause in this.InputClauses do
+                yield clause.ToString()
+
+            yield sprintf "0. %A" this.TopClause
+
+            let pairs =
+                this.DerivedClauses
+                    |> List.rev
+                    |> Seq.mapi (fun i clause -> i, clause)
+            for i, clause in pairs do
+                yield sprintf "%d. %A" (i + 1) clause
+
+        } |> String.join "\r\n"
 
     /// Display string.
     override this.ToString() = this.String
@@ -60,9 +61,9 @@ module Derivation =
                 let rec loop depth derivation =
                     if depth < maxDepth then
                         let centerClause =
-                            match derivation.DerivedClauses with
-                                | head :: _ -> head
-                                | [] -> derivation.TopClause
+                            derivation.DerivedClauses
+                                |> List.tryHead
+                                |> Option.defaultValue derivation.TopClause
                         Seq.append derivation.InputClauses derivation.DerivedClauses
                             |> Seq.tryPick (fun sideClause ->
                                 Clause.resolve centerClause sideClause
