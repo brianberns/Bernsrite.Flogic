@@ -5,7 +5,10 @@
 [<StructuredFormatDisplay("{String}")>]
 type Derivation =
     {
+        /// Starting premises.
         Premises : Clause[]
+
+        /// Support steps derived so far, in reverse order.
         Support : List<Clause>
     }
 
@@ -27,59 +30,50 @@ type Derivation =
 /// Proof via resolution.
 module Derivation =
 
-    /// Generates all possible extensions of the given derivation
-    /// via resolution.
-    let private extend (derivation : Derivation) =
+    /// Searches for a contradiction reachable from the given derivation.
+    let private searchContradiction maxDepth (derivation : Derivation) =
 
-        let supportSteps =
-            derivation.Support
-                |> Seq.toArray
-        let allSteps =
-            Seq.append derivation.Support derivation.Premises
-                |> Seq.toArray
-        [|
-            for iSupport = 0 to supportSteps.Length - 1 do
-                for iAll = iSupport + 1 to allSteps.Length - 1 do
-                    yield supportSteps.[iSupport], allSteps.[iAll]
-        |]
-            |> Array.Parallel.collect (fun (supportStep, allStep) ->
-                [|
-                    for nextStep in Clause.resolve supportStep allStep do
-                        yield {
-                            derivation with
-                                Support = nextStep :: derivation.Support
-                        }
-                |])
+        let rec loop depth derivation =
+            if depth < maxDepth then
+                let pairs =
+                    let supportSteps =
+                        derivation.Support
+                            |> Seq.toArray
+                    seq {
+                        for iSupport = 0 to 0 (*supportSteps.Length - 1*) do
+                            for premise in derivation.Premises do
+                                yield supportSteps.[iSupport], premise
+                            (*
+                            for jSupport = iSupport - 1 downto 0 do
+                                yield supportSteps.[iSupport], supportSteps.[jSupport]
+                            *)
+                    }
+                pairs
+                    |> Seq.tryPick (fun (step1, step2) ->
+                        Clause.resolve step1 step2
+                            |> Seq.tryPick (fun nextStep ->
+                                let nextDerivation =
+                                    {
+                                        derivation with
+                                            Support = nextStep :: derivation.Support
+                                    }
+                                if nextStep.Literals.Length = 0 then   // empty clause is a contradiction
+                                    Some nextDerivation
+                                else
+                                    nextDerivation |> loop (depth + 1)))
+            else None
+
+        derivation |> loop 0
 
     /// Attempts to prove the given goal from the given premises.
-    let tryProve maxDepths premises goal =
-
-            // initialize derivation
-        let derivation =
-            {
-                Premises =
-                    premises
-                        |> Seq.collect Clause.toClauses
-                        |> Seq.toArray
-                Support =
-                    (Not goal)
-                        |> Clause.toClauses
-                        |> Seq.toList
-            }
-
-            // iterative deepening
-        maxDepths
-            |> Seq.tryPick (fun maxDepth ->
-
-                let rec loop depth derivation =
-                    if depth >= maxDepth then None
-                    else
-                        derivation
-                            |> extend
-                            |> Seq.tryPick (fun deriv ->
-                                if deriv.Support.Head.Literals.Length = 0 then
-                                    Some deriv
-                                else
-                                    deriv |> loop (depth + 1))
-
-                derivation |> loop 0)
+    let tryProve premises goal =
+        {
+            Premises =
+                premises
+                    |> Seq.collect Clause.toClauses
+                    |> Seq.toArray
+            Support =
+                (Not goal)
+                    |> Clause.toClauses
+                    |> Seq.toList
+        } |> searchContradiction 10

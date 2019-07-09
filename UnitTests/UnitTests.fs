@@ -792,7 +792,7 @@ type UnitTest() =
                 "∀u.∀v.∀w.(loves(v,w) ⇒ loves(u,v))"
             |] |> Array.map (Parser.run parser)
         let goal = "∀x.∀y.loves(x,y)" |> Parser.run parser
-        match Derivation.tryProve [1..10] premises goal with
+        match Derivation.tryProve premises goal with
             | Some proof ->
                 printfn "%A" proof
                 Assert.AreEqual(5, proof.Premises.Length + proof.Support.Length)
@@ -803,16 +803,15 @@ type UnitTest() =
         let parser = Parser.makeParser ["harry"; "ralph"]
         let premises =
             [|
-                // ordered to help the search to succeed
-                "∃y.(g(y) ∧ ∀z.(r(z) ⇒ f(y, z)))"
-                "r(ralph)"
-                "∀x.∀y.∀z.((f(x, y) ∧ f(y, z)) ⇒ f(x, z))"
                 "∀x.∀y.((h(x) ∧ d(y)) ⇒ f(x, y))"
+                "∃y.(g(y) ∧ ∀z.(r(z) ⇒ f(y, z)))"
                 "∀y.(g(y) ⇒ d(y))"
+                "∀x.∀y.∀z.((f(x, y) ∧ f(y, z)) ⇒ f(x, z))"
                 "h(harry)"
+                "r(ralph)"
             |] |> Array.map (Parser.run parser)
         let goal = "f(harry, ralph)" |> Parser.run parser
-        match Derivation.tryProve [7] premises goal with
+        match Derivation.tryProve premises goal with
             | Some proof ->
                 printfn "%A" proof
                 Assert.AreEqual(15, proof.Premises.Length + proof.Support.Length)

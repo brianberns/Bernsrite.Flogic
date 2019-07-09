@@ -311,7 +311,7 @@ module Clause =
             >> distributeDisjunctions
             >> convertToClauses
 
-    /// Derives a new clause from the given clauses using the resolution
+    /// Derives new clauses from the given clauses using the resolution
     /// principle.
     let resolve clause1 clause2 =
 
@@ -401,7 +401,7 @@ module Clause =
                     clause.Literals
                         |> createAllButArray Literal.negate)   // negate for unification
 
-        [|
+        seq {
             for allButArray1 in allButArrays1 do
                 for allButArray2 in allButArrays2 do
                     for (literal1, allBut1) in allButArray1 do
@@ -412,4 +412,4 @@ module Clause =
                                         |> Seq.map (apply subst)
                                         |> create
                                 | None -> ()
-        |] |> set
+        } |> set
