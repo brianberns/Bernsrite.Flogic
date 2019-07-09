@@ -6,7 +6,7 @@ module Peano =
     let parser =
         Parser.makeParser ["0"]
 
-    let parse = Array.map (Parser.run parser)
+    let private parse = Array.map (Parser.run parser)
 
     let equalsAxioms =
         parse [|
