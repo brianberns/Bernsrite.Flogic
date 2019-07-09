@@ -311,6 +311,11 @@ module Clause =
             >> distributeDisjunctions
             >> convertToClauses
 
+    /// Applies the given substitution to the given literal.
+    let private apply subst literal =
+        literal
+            |> Literal.map (Substitution.applyTerm subst)
+
     /// Derives new clauses from the given clauses using the resolution
     /// principle.
     let resolve clause1 clause2 =
@@ -345,11 +350,6 @@ module Clause =
                 // rename variables used in the second clause as needed
             clauseToRename
                 |> map (Literal.map deconflictTerm)
-
-        /// Applies the given substitution to the given literal.
-        let apply subst literal =
-            literal
-                |> Literal.map (Substitution.applyTerm subst)
 
         /// Answers all factors of the given clause (including itself).
         let allFactors clause =
@@ -413,3 +413,48 @@ module Clause =
                                         |> create
                                 | None -> ()
         } |> set
+
+    /// Indicates whether the first clause subsumes the second
+    /// clause.
+    /// http://profs.sci.univr.it/~farinelli/courses/ar/slides/resolution-fol.pdf
+    /// https://archive.org/details/symboliclogicmec00chan/page/94
+    let subsumes clauseC clauseD =
+
+            // compute substitution θ
+        let substTheta =
+            let variables =
+                clauseD.Literals
+                    |> Seq.collect (fun literal ->
+                        literal.Terms |> Seq.collect Term.getVariables)
+                    |> Seq.distinct
+            (Substitution.empty, variables)
+                ||> Seq.fold (fun acc variable ->
+                    let _, term = Skolem.create Array.empty   // create constant term
+                    let sub = Substitution.create variable term
+                    Substitution.compose acc sub)
+
+            // compute clauses W from literals of ~Dθ
+        let clausesW =
+            clauseD.Literals
+                |> Array.map (
+                    apply substTheta
+                        >> Literal.negate
+                        >> Seq.singleton
+                        >> create)
+
+            // compute set of clauses U(k+1) from U(k)
+        let rec loop clausesU =
+            if clausesU |> Set.isEmpty then
+                false
+            elif clausesU |> Set.contains empty then
+                true
+            else
+                seq {
+                    for clauseU in clausesU do
+                        for clauseW in clausesW do
+                            yield! resolve clauseU clauseW
+                }
+                    |> set
+                    |> loop
+
+        set [clauseC] |> loop
