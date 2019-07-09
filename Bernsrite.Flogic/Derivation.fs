@@ -5,21 +5,29 @@
 [<StructuredFormatDisplay("{String}")>]
 type Derivation =
     {
-        /// Starting premises.
-        Premises : Clause[]
+        /// Input clauses: premises plus negatated goal.
+        InputClauses : Clause[]
 
-        /// Support steps derived so far, in reverse order.
-        Support : List<Clause>
+        /// Top clause (will be one of the negated goal clauses).
+        TopClause : Clause
+
+        /// Clauses derived via linear resolution.
+        DerivedClauses : List<Clause>
     }
+
+    /// Steps in this derivation, in order.
+    member this.Steps =
+        [|
+            yield! this.InputClauses
+                |> Seq.where (fun clause -> clause <> this.TopClause)
+            yield this.TopClause
+            yield! this.DerivedClauses
+                |> List.rev
+        |]
 
     /// Display string.
     member this.String =
-
-            // steps in this derivation, in order
-        seq {
-            yield! this.Premises
-            yield! this.Support |> List.rev
-        }
+        this.Steps
             |> Seq.mapi (fun index step ->
                 sprintf "%d. %A" (index + 1) step)
             |> String.join "\r\n"
@@ -30,50 +38,53 @@ type Derivation =
 /// Proof via resolution.
 module Derivation =
 
-    /// Searches for a contradiction reachable from the given derivation.
-    let private searchContradiction maxDepth (derivation : Derivation) =
-
-        let rec loop depth derivation =
-            if depth < maxDepth then
-                let pairs =
-                    let supportSteps =
-                        derivation.Support
-                            |> Seq.toArray
-                    seq {
-                        for iSupport = 0 to 0 (*supportSteps.Length - 1*) do
-                            for premise in derivation.Premises do
-                                yield supportSteps.[iSupport], premise
-                            (*
-                            for jSupport = iSupport - 1 downto 0 do
-                                yield supportSteps.[iSupport], supportSteps.[jSupport]
-                            *)
-                    }
-                pairs
-                    |> Seq.tryPick (fun (step1, step2) ->
-                        Clause.resolve step1 step2
-                            |> Seq.tryPick (fun nextStep ->
-                                let nextDerivation =
-                                    {
-                                        derivation with
-                                            Support = nextStep :: derivation.Support
-                                    }
-                                if nextStep.Literals.Length = 0 then   // empty clause is a contradiction
-                                    Some nextDerivation
-                                else
-                                    nextDerivation |> loop (depth + 1)))
-            else None
-
-        derivation |> loop 0
-
     /// Attempts to prove the given goal from the given premises.
+    /// http://www.cs.miami.edu/home/geoff/Courses/CSC648-12S/Content/LinearResolution.shtml
     let tryProve premises goal =
-        {
-            Premises =
-                premises
+
+        let goalClauses =
+            (Not goal)
+                |> Clause.toClauses
+                |> Seq.toArray
+        let inputClauses =
+            [|
+                yield! premises
                     |> Seq.collect Clause.toClauses
                     |> Seq.toArray
-            Support =
-                (Not goal)
-                    |> Clause.toClauses
-                    |> Seq.toList
-        } |> searchContradiction 10
+                yield! goalClauses
+            |]
+
+        [4; 10]
+            |> Seq.tryPick (fun maxDepth ->
+
+                let rec loop depth derivation =
+                    if depth < maxDepth then
+                        let centerClause =
+                            match derivation.DerivedClauses with
+                                | head :: _ -> head
+                                | [] -> derivation.TopClause
+                        Seq.append derivation.InputClauses derivation.DerivedClauses
+                            |> Seq.tryPick (fun sideClause ->
+                                Clause.resolve centerClause sideClause
+                                    |> Seq.tryPick (fun nextCenterClause ->
+                                        let nextDerivation =
+                                            {
+                                                derivation with
+                                                    DerivedClauses =
+                                                        nextCenterClause
+                                                            :: derivation.DerivedClauses
+                                            }
+                                        if nextCenterClause.Literals.Length = 0 then   // empty clause is a contradiction
+                                            Some nextDerivation
+                                        else
+                                            nextDerivation |> loop (depth + 1)))
+                    else None
+
+                goalClauses
+                    |> Seq.tryPick (fun topClause ->
+                        {
+                            InputClauses = inputClauses
+                            TopClause = topClause
+                            DerivedClauses = List.empty
+                        }
+                            |> loop 0))
