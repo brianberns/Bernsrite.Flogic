@@ -57,7 +57,6 @@ module Derivation =
                     |> Seq.toArray
                 yield! goalClauses
             |]
-
             
             // depth-first search
         let search maxDepth derivation =
@@ -75,15 +74,15 @@ module Derivation =
                     Seq.append derivation.InputClauses derivation.DerivedClauses
                         |> Seq.tryPick (fun sideClause ->
                             Clause.resolve centerClause sideClause
-                                |> Seq.tryPick (fun nextCenterClause ->
+                                |> Seq.tryPick (fun resolvent ->
                                     let nextDerivation =
                                         {
                                             derivation with
                                                 DerivedClauses =
-                                                    nextCenterClause
+                                                    resolvent
                                                         :: derivation.DerivedClauses
                                         }
-                                    if nextCenterClause.Literals.Length = 0 then   // success: empty clause is a contradiction
+                                    if resolvent.Literals.Length = 0 then   // success: empty clause is a contradiction
                                         Some nextDerivation
                                     else
                                         nextDerivation |> loop (depth + 1)))

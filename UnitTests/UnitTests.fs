@@ -12,7 +12,7 @@ type UnitTest() =
     member __.ImplicationElimination() =
         let isMan = Predicate ("Man", 1)
         let isMortal = Predicate ("Mortal", 1)
-        let x = [| Term (Variable "x") |]
+        let x = [| VariableTerm (Variable "x") |]
         let conclusions =
             InferenceRule.implicationElimination
                 |> InferenceRule.apply
@@ -30,7 +30,7 @@ type UnitTest() =
     member __.ImplicationCreation() =
         let isMan = Predicate ("Man", 1)
         let isMortal = Predicate ("Mortal", 1)
-        let x = [| Term (Variable "x") |]
+        let x = [| VariableTerm (Variable "x") |]
         let implicationCreation =
             let p = MetaVariable.create "P"
             let q = MetaVariable.create "Q"
@@ -130,8 +130,8 @@ type UnitTest() =
     member this.UniversalIntroduction() =
 
         let x = Variable "x"
-        let p = Formula (Predicate ("p", 1), [| Term x |])
-        let q = Formula (Predicate ("q", 1), [| Term x |])
+        let p = Formula (Predicate ("p", 1), [| VariableTerm x |])
+        let q = Formula (Predicate ("q", 1), [| VariableTerm x |])
 
         let steps =
             [|
@@ -167,13 +167,13 @@ type UnitTest() =
                     y,
                     Formula (
                         Predicate ("hates", 2),
-                        [| Term x; Term y |])))
+                        [| VariableTerm x; VariableTerm y |])))
         Assert.AreEqual(
             "∀x.∃y.hates(x, y)", formula.ToString())
 
             // "Jane hates somebody": valid
         let conclusions =
-            UniversalElimination (Term (Variable "jane"))
+            UniversalElimination (VariableTerm (Variable "jane"))
                 |> InferenceRule.apply [| formula |]
         Assert.AreEqual(1, conclusions.Length)
         Assert.AreEqual(1, conclusions.[0].Length)
@@ -183,7 +183,7 @@ type UnitTest() =
 
             // "somebody hates herself": ∃y.hates(y, y), invalid
         let conclusions =
-            UniversalElimination (Term (Variable "y"))
+            UniversalElimination (VariableTerm (Variable "y"))
                 |> InferenceRule.apply [| formula |]
         Assert.AreEqual(0, conclusions.Length)
 
@@ -203,7 +203,7 @@ type UnitTest() =
                     y,
                     Exists (
                         z,
-                        Formula (loves, [| Term y; Term z |])))
+                        Formula (loves, [| VariableTerm y; VariableTerm z |])))
             |],
             InferenceRule.Premise,
             Array.empty
@@ -217,8 +217,8 @@ type UnitTest() =
                         Implication (
                             Exists (
                                 z,
-                                Formula (loves, [| Term y; Term z |])),
-                            Formula (loves, [| Term x; Term y |]))))
+                                Formula (loves, [| VariableTerm y; VariableTerm z |])),
+                            Formula (loves, [| VariableTerm x; VariableTerm y |]))))
             |],
             InferenceRule.Premise,
             Array.empty
@@ -227,9 +227,9 @@ type UnitTest() =
             [|
                 Exists (
                     z,
-                    Formula (loves, [| Term y; Term z |]))
+                    Formula (loves, [| VariableTerm y; VariableTerm z |]))
             |],
-            InferenceRule.UniversalElimination (Term y),
+            InferenceRule.UniversalElimination (VariableTerm y),
             [|1|]
 
             (*4*)
@@ -239,10 +239,10 @@ type UnitTest() =
                     Implication (
                         Exists (
                             z,
-                            Formula (loves, [| Term y; Term z |])),
-                        Formula (loves, [| Term x; Term y |])))
+                            Formula (loves, [| VariableTerm y; VariableTerm z |])),
+                        Formula (loves, [| VariableTerm x; VariableTerm y |])))
             |],
-            InferenceRule.UniversalElimination (Term x),
+            InferenceRule.UniversalElimination (VariableTerm x),
             [|2|]
 
             (*5*)
@@ -250,15 +250,15 @@ type UnitTest() =
                 Implication (
                     Exists (
                         z,
-                        Formula (loves, [| Term y; Term z |])),
-                    Formula (loves, [| Term x; Term y |]))
+                        Formula (loves, [| VariableTerm y; VariableTerm z |])),
+                    Formula (loves, [| VariableTerm x; VariableTerm y |]))
             |],
-            InferenceRule.UniversalElimination (Term y),
+            InferenceRule.UniversalElimination (VariableTerm y),
             [|4|]
 
             (*6*)
             [|
-                Formula (loves, [| Term x; Term y |])
+                Formula (loves, [| VariableTerm x; VariableTerm y |])
             |],
             InferenceRule.implicationElimination,
             [|5; 3|]
@@ -267,7 +267,7 @@ type UnitTest() =
             [|
                 ForAll (
                     y,
-                    Formula (loves, [| Term x; Term y |]))
+                    Formula (loves, [| VariableTerm x; VariableTerm y |]))
             |],
             InferenceRule.UniversalIntroduction y,
             [|6|]
@@ -278,7 +278,7 @@ type UnitTest() =
                     x,
                     ForAll (
                         y,
-                        Formula (loves, [| Term x; Term y |])))
+                        Formula (loves, [| VariableTerm x; VariableTerm y |])))
             |],
             InferenceRule.UniversalIntroduction x,
             [|7|]
@@ -288,7 +288,7 @@ type UnitTest() =
     [<TestMethod>]
     member __.ExistentialIntroduction() =
 
-        let jill = Term.constant "jill"
+        let jill = ConstantTerm (Constant "jill")
         let hates = Predicate ("hates", 2)
         let x = Variable "x"
 
@@ -312,7 +312,7 @@ type UnitTest() =
                 x,
                 Formula (
                     hates,
-                    [| jill; Term x |]))
+                    [| jill; VariableTerm x |]))
                 |> InferenceRule.existentialIntroduction jill x
                 |> Array.map (fun formula -> formula.ToString())
         Assert.AreEqual(0, formulaStrs.Length)   // ∃x.∃x.hates(x, x)) is invalid
@@ -321,14 +321,14 @@ type UnitTest() =
         let fx =
             Application (
                 Function ("f", 1),
-                [| Term x |])
+                [| VariableTerm x |])
         let y = Variable "y"
         let formula =
             ForAll (
                 x,
                 Formula (
                     hates,
-                    [| Term x; fx |]))
+                    [| VariableTerm x; fx |]))
         let formulas =
             formula
                 |> InferenceRule.existentialIntroduction fx y
@@ -342,8 +342,11 @@ type UnitTest() =
         let y = Variable "y"
         let p = Predicate ("p", 2)
         let q = Predicate ("q", 1)
-        let skolemFunction, skolemTerm =
-            Skolem.create [| Term x |]
+        let skolemTerm = Skolem.create [| VariableTerm x |]
+        let skolemFunction =
+            match skolemTerm with
+                | (Application (func, _)) -> func
+                | _ -> failwith "Unexpected"
 
         [|
             (*1*)
@@ -355,10 +358,10 @@ type UnitTest() =
                         Implication (
                             Formula (
                                 p,
-                                [| Term x; Term y |]),
+                                [| VariableTerm x; VariableTerm y |]),
                             Formula (
                                 q,
-                                [| Term x |]))))
+                                [| VariableTerm x |]))))
             |],
             InferenceRule.Premise,
             Array.empty
@@ -369,7 +372,7 @@ type UnitTest() =
                     y,
                     Formula (
                         p,
-                        [| Term x; Term y |]))
+                        [| VariableTerm x; VariableTerm y |]))
             |],
             InferenceRule.Assumption,
             Array.empty
@@ -378,7 +381,7 @@ type UnitTest() =
             [|
                 Formula (
                     p,
-                    [| Term x; skolemTerm |])
+                    [| VariableTerm x; skolemTerm |])
             |],
             InferenceRule.ExistentialElimination skolemFunction,
             [| 2 |]
@@ -390,12 +393,12 @@ type UnitTest() =
                     Implication (
                         Formula (
                             p,
-                            [| Term x; Term y |]),
+                            [| VariableTerm x; VariableTerm y |]),
                         Formula (
                             q,
-                            [| Term x |])))
+                            [| VariableTerm x |])))
             |],
-            InferenceRule.UniversalElimination (Term x),
+            InferenceRule.UniversalElimination (VariableTerm x),
             [| 1 |]
 
             (*5*)
@@ -403,10 +406,10 @@ type UnitTest() =
                 Implication (
                     Formula (
                         p,
-                        [| Term x; skolemTerm |]),
+                        [| VariableTerm x; skolemTerm |]),
                     Formula (
                         q,
-                        [| Term x |]))
+                        [| VariableTerm x |]))
             |],
             InferenceRule.UniversalElimination skolemTerm,
             [| 4 |]
@@ -415,7 +418,7 @@ type UnitTest() =
             [|
                 Formula (
                     q,
-                    [| Term x |])
+                    [| VariableTerm x |])
             |],
             InferenceRule.implicationElimination,
             [| 3; 5 |]
@@ -427,10 +430,10 @@ type UnitTest() =
                         y,
                         Formula (
                             p,
-                            [| Term x; Term y |])),
+                            [| VariableTerm x; VariableTerm y |])),
                     Formula (
                         q,
-                        [| Term x |]))
+                        [| VariableTerm x |]))
             |],
             InferenceRule.ImplicationIntroduction,
             [| 2; 6 |]
@@ -444,10 +447,10 @@ type UnitTest() =
                             y,
                             Formula (
                                 p,
-                                [| Term x; Term y |])),
+                                [| VariableTerm x; VariableTerm y |])),
                         Formula (
                             q,
-                            [| Term x |])))
+                            [| VariableTerm x |])))
             |],
             InferenceRule.UniversalIntroduction x,
             [| 7 |]
@@ -472,10 +475,10 @@ type UnitTest() =
                             y,
                             Formula (
                                 p,
-                                [| Term x; Term y |])),
+                                [| VariableTerm x; VariableTerm y |])),
                         Formula (
                             q,
-                            [| Term x |])))
+                            [| VariableTerm x |])))
             |],
             InferenceRule.Premise,
             Array.empty
@@ -484,7 +487,7 @@ type UnitTest() =
             [|
                 Formula (
                     p,
-                    [| Term x; Term y |])
+                    [| VariableTerm x; VariableTerm y |])
             |],
             InferenceRule.Assumption,
             Array.empty
@@ -495,9 +498,9 @@ type UnitTest() =
                     y,
                     Formula (
                         p,
-                        [| Term x; Term y |]))
+                        [| VariableTerm x; VariableTerm y |]))
             |],
-            InferenceRule.ExistentialIntroduction (Term y, y),
+            InferenceRule.ExistentialIntroduction (VariableTerm y, y),
             [| 2 |]
 
             (*4*)
@@ -507,19 +510,19 @@ type UnitTest() =
                         y,
                         Formula (
                             p,
-                            [| Term x; Term y |])),
+                            [| VariableTerm x; VariableTerm y |])),
                     Formula (
                         q,
-                        [| Term x |]))
+                        [| VariableTerm x |]))
             |],
-            InferenceRule.UniversalElimination (Term x),
+            InferenceRule.UniversalElimination (VariableTerm x),
             [| 1 |]
 
             (*5*)
             [|
                 Formula (
                     q,
-                    [| Term x |])
+                    [| VariableTerm x |])
             |],
             InferenceRule.implicationElimination,
             [| 4; 3 |]
@@ -529,10 +532,10 @@ type UnitTest() =
                 Implication (
                     Formula (
                         p,
-                        [| Term x; Term y |]),
+                        [| VariableTerm x; VariableTerm y |]),
                     Formula (
                         q,
-                        [| Term x |]))
+                        [| VariableTerm x |]))
             |],
             InferenceRule.ImplicationIntroduction,
             [| 2; 5 |]
@@ -544,10 +547,10 @@ type UnitTest() =
                     Implication (
                         Formula (
                             p,
-                            [| Term x; Term y |]),
+                            [| VariableTerm x; VariableTerm y |]),
                         Formula (
                             q,
-                            [| Term x |])))
+                            [| VariableTerm x |])))
             |],
             InferenceRule.UniversalIntroduction y,
             [| 6 |]
@@ -561,10 +564,10 @@ type UnitTest() =
                         Implication (
                             Formula (
                                 p,
-                                [| Term x; Term y |]),
+                                [| VariableTerm x; VariableTerm y |]),
                             Formula (
                                 q,
-                                [| Term x |]))))
+                                [| VariableTerm x |]))))
             |],
             InferenceRule.UniversalIntroduction x,
             [| 7 |]
@@ -583,7 +586,7 @@ type UnitTest() =
         Assert.AreEqual(
             Formula (
                 Predicate ("P", 1),
-                [| Term (Variable "x") |]),
+                [| VariableTerm (Variable "x") |]),
             "P(x)" |> Parser.run parser)
 
         Assert.AreEqual(
@@ -592,7 +595,7 @@ type UnitTest() =
                 [|
                     Application (
                         Function ("s", 1),
-                        [| Term (Variable "x") |])
+                        [| VariableTerm (Variable "x") |])
                 |]),
             "P(s(x))" |> Parser.run parser)
 
@@ -602,7 +605,7 @@ type UnitTest() =
                 [|
                     Application (
                         Function ("s", 1),
-                        [| Term.constant "0" |])
+                        [| ConstantTerm (Constant "0") |])
                 |]),
             "P(s(0))" |> Parser.run parser)
 
@@ -610,8 +613,8 @@ type UnitTest() =
             Formula (
                 Predicate ("Binary", 2),
                 [|
-                    Term (Variable "x")
-                    Term.constant "0"
+                    VariableTerm (Variable "x")
+                    ConstantTerm (Constant "0")
                 |]),
             "Binary(x, 0)" |> Parser.run parser)
 
@@ -640,8 +643,8 @@ type UnitTest() =
             let s_x =
                 Application (
                     Function ("s", 1),
-                    [| Term x |])
-            let zero = Term.constant "0"
+                    [| VariableTerm x |])
+            let zero = ConstantTerm (Constant "0")
             ForAll (
                 x,
                 And (
@@ -816,3 +819,115 @@ type UnitTest() =
                 printfn "%A" proof
                 Assert.AreEqual(7, proof.DerivedClauses.Length)
             | None -> Assert.Fail()
+
+    [<TestMethod>]
+    member __.Peano() =
+
+        let clause1 =
+            {
+                Literals =
+                    [|
+                        {
+                            Predicate = Predicate ("f", 2)
+                            Terms = [|
+                                ConstantTerm (Constant "harry")
+                                VariableTerm (Variable "y")
+                            |]
+                            IsPositive = false
+                        }
+                        {
+                            Predicate = Predicate ("f", 2)
+                            Terms = [|
+                                VariableTerm (Variable "y")
+                                ConstantTerm (Constant "ralph")
+                            |]
+                            IsPositive = false
+                        }
+                    |]
+            }
+        let clause2 =
+            {
+                Literals =
+                    [|
+                        {
+                            Predicate = Predicate ("d", 1)
+                            Terms = [|
+                                VariableTerm (Variable "y")
+                            |]
+                            IsPositive = false
+                        }
+                        {
+                            Predicate = Predicate ("f", 2)
+                            Terms = [|
+                                VariableTerm (Variable "x")
+                                VariableTerm (Variable "y")
+                            |]
+                            IsPositive = true
+                        }
+                        {
+                            Predicate = Predicate ("h", 1)
+                            Terms = [|
+                                VariableTerm (Variable "x")
+                            |]
+                            IsPositive = false
+                        }
+                    |]
+            }
+        let resolutions = Clause.resolve clause1 clause2
+        for resolvent in resolutions do
+            printfn "%A" resolvent
+
+        (*
+        let constantName = "0"
+        let parser = Parser.makeParser [constantName]
+        let premises =
+            [|
+                "∀y.+(0,y,y)"
+                "∀x.∀y.∀z.(+(x,y,z) ⇒ +(s(x),y,s(z)))"
+            |] |> Array.map (Parser.run parser)
+
+        let goal = "+(0,0,0)" |> Parser.run parser
+        match Derivation.tryProve premises goal with
+            | Some proof ->
+                printfn "%A" proof
+            | None -> Assert.Fail()
+
+        let goal = "∀x.(+(x,0,x) ⇒ +(s(x),0,s(x)))" |> Parser.run parser
+        match Derivation.tryProve premises goal with
+            | Some proof ->
+                printfn "%A" proof
+            | None -> Assert.Fail()
+
+        let baseSchema = "+(x,0,x)" |> Parser.run parser
+        let variable = Variable "x"
+        let formulaOpt =
+            baseSchema
+                |> Formula.trySubstitute
+                    variable
+                    (ConstantTerm (Constant constantName))
+        printfn "%A" formulaOpt
+
+        let inductiveSchema =
+            ForAll (
+                variable,
+                Implication (
+                    baseSchema,
+                    baseSchema
+                        |> Formula.trySubstitute
+                            variable
+                            (Application (
+                                Function ("s", 1),
+                                [| (VariableTerm variable) |]))
+                        |> Option.get))
+        printfn "%A" inductiveSchema
+        *)
+
+
+        (*
+        let premises = Peano.equalsAxioms
+        let goal = "∀x.∀y.(=(x,y) ⇒ =(y,x))" |> Parser.run Peano.parser
+        match Derivation.tryProve premises goal with
+            | Some proof ->
+                printfn "%A" proof
+            | None -> Assert.Fail()
+        *)

@@ -2,25 +2,6 @@
 
 open System
 
-/// Based on the syntax of first-order logic. This is also isomorphic to
-/// Stanford's relational/Herbrand logic syntax:
-///    +--------------------------+------------------------------------+
-///    | Stanford                 | First-order                        |
-///    +--------------------------+------------------------------------+
-///    | Relational logic         |                                    |
-///    |    Object constant       | Function of arity 0                |
-///    |    Variable              | Variable                           |
-///    |    Relation constant     | Predicate                          |
-///    |    Term                  | Term                               |
-///    |    Relational sentence   | Atomic formula                     |
-///    |    Logical sentence      | Non-atomic, non-quantified formula |
-///    |    Quantified sentence   | Quantified formula                 |
-///    | Herbrand logic           |                                    |
-///    |    Function constant     | Function of arity > 0              |
-///    |    Functional expression | Function application               |
-///    +--------------------------+------------------------------------+
-/// See http://intrologic.stanford.edu/public/index.php
-
 /// E.g. Mortal(x) is a predicate of arity 1.
 type Predicate = Predicate of name : string * arity : int
 
@@ -175,7 +156,7 @@ module Formula =
         let substituteVariable variable =
             seq {
                 match oldTerm, newTerm with
-                    | (Term oldVariable, Term newVariable) ->
+                    | (VariableTerm oldVariable, VariableTerm newVariable) ->
                         if variable = oldVariable then
                             yield newVariable
                     | _ -> ()

@@ -267,7 +267,7 @@ module InferenceRule =
     /// Introduces all possible existential quantifications of the given formula.
     let existentialIntroduction term variable formula =
         formula
-            |> Formula.substitute term (Term variable)
+            |> Formula.substitute term (VariableTerm variable)
             |> Seq.choose (fun formula' ->
                 opt {
                     let! formula'' =
@@ -287,7 +287,7 @@ module InferenceRule =
                     skolem,
                     formula
                         |> Formula.getFreeVariables
-                        |> Seq.map Term
+                        |> Seq.map VariableTerm
                         |> Seq.toArray)
             inner |> Formula.trySubstitute variable term
         | _ -> None

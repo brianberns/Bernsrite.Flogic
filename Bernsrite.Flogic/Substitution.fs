@@ -39,12 +39,13 @@ module Substitution =
             term
         else
             match term with
-                | Term (Variable name) as term ->
+                | VariableTerm (Variable name) ->
                     subst.SubstMap
                         |> Array.tryPick (fun (name', term') ->
                             if name' = name then Some term'
                             else None)
                         |> Option.defaultValue term
+                | ConstantTerm _ -> term
                 | Application (func, terms) ->
                     Application (
                         func,

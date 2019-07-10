@@ -110,10 +110,11 @@ module Clause =
                     |> Option.defaultValue variable
 
             let rec standardizeTerm variableMap = function
-                | Term variable ->
+                | VariableTerm variable ->
                     variable
                         |> standardizeVariable variableMap
-                        |> Term 
+                        |> VariableTerm 
+                | ConstantTerm _ as term -> term
                 | Application (func, terms) ->
                     Application (
                         func,
@@ -224,9 +225,9 @@ module Clause =
 
                     // skolemize to remove existential quantifier
                 | Exists (variable, inner) ->
-                    let _, skolem =
+                    let skolem =
                         scope
-                            |> Seq.map Term
+                            |> Seq.map VariableTerm
                             |> Seq.toArray
                             |> Skolem.create
                     inner
@@ -338,10 +339,11 @@ module Clause =
                     |> fst
 
             let rec deconflictTerm = function
-                | Term variable ->
+                | VariableTerm variable ->
                     variable
                         |> deconflictVariable
-                        |> Term
+                        |> VariableTerm
+                | ConstantTerm _ as term -> term
                 | Application (func, terms) ->
                     Application (
                         func,
@@ -429,7 +431,7 @@ module Clause =
                     |> Seq.distinct
             (Substitution.empty, variables)
                 ||> Seq.fold (fun acc variable ->
-                    let _, term = Skolem.create Array.empty   // create constant term
+                    let term = Skolem.create Array.empty   // create constant term
                     let sub = Substitution.create variable term
                     Substitution.compose acc sub)
 

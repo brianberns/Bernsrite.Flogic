@@ -47,7 +47,7 @@ module Parser =
             parse {
                 let! name = parseName
                 if constantsSet.Contains(name) then
-                    return Term.constant name
+                    return Constant name
             }
     
         let parseTerm, parseTermRef =
@@ -73,8 +73,8 @@ module Parser =
 
         let parseTermActual =
             attempt parseApplication
-                <|> attempt parseConstant
-                <|> (parseVariable |>> Term)
+                <|> attempt (parseConstant |>> ConstantTerm)
+                <|> (parseVariable |>> VariableTerm)
         parseTermRef := parseTermActual
 
         let parseAtomic =

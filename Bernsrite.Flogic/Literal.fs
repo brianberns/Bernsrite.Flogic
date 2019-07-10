@@ -104,8 +104,12 @@ module Literal =
                 match (term1', term2') with
 
                         // unify term with variable
-                    | Term variable, term -> add variable term
-                    | term, Term variable -> add variable term
+                    | VariableTerm variable, term -> add variable term
+                    | term, VariableTerm variable -> add variable term
+
+                        // can't unify with a constant
+                    | _, ConstantTerm _
+                    | ConstantTerm _, _ -> None
 
                         // recurse on subterms
                     | Application (function1, terms1),

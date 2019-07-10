@@ -2,10 +2,7 @@
 
 open System
 
-/// A function that takes some number of arguments.
-type Function = Function of name : string * arity : int
-
-/// A variable that represents an object in the world.
+/// An unspecified object in the world.
 [<StructuredFormatDisplay("{Name}")>]
 type Variable =
     | Variable of name : string
@@ -30,16 +27,36 @@ module Variable =
             let seen' = seen |> Set.add variable
             variable, seen'
 
+/// A specific object in the world.
+[<StructuredFormatDisplay("{Name}")>]
+type Constant =
+    | Constant of name : string
+
+    /// Constant's name.
+    member this.Name =
+        let (Constant name) = this
+        name
+
+    /// Display string.
+    override this.ToString() =
+        this.Name
+
+/// A function that takes some number of arguments.
+type Function = Function of name : string * arity : int
+
 /// A term typically denotes an object that exists in the world.
 /// E.g.
+///    * someone: variable
 ///    * Joe: constant
 ///    * Joe's father: function application (i.e. father(joe))
-///    * someone: variable
 [<StructuredFormatDisplay("{String}")>]
 type Term =
 
-    /// An atomic term.
-    | Term of Variable
+    /// An atomic variable term.
+    | VariableTerm of Variable
+
+    /// An atomic constant term.
+    | ConstantTerm of Constant
 
     /// Function application: f(t1, t2, ...)
     | Application of Function * Term[]
@@ -47,13 +64,12 @@ type Term =
     /// Display string.
     member this.String =
         match this with
-            | Term variable -> variable.Name
+            | VariableTerm variable -> variable.Name
+            | ConstantTerm constant -> constant.Name
             | Application (Function (name, arity), terms) ->
                 if (arity <> terms.Length) then
                     failwith "Arity mismatch"
-                if arity = 0 then name
-                else
-                    sprintf "%s(%s)" name <| String.Join(",", terms)
+                sprintf "%s(%s)" name <| String.Join(",", terms)
 
     /// Display string.
     override this.ToString() =
@@ -61,20 +77,14 @@ type Term =
 
 module Term =
 
-    /// Creates a constant term with the given name. A constant is a
-    /// function of arity 0.
-    let constant name =
-        Application (
-            (Function (name, arity = 0)),
-            Array.empty)
-
     /// Answers the distinct variables contained in the given term.
     let getVariables term =
 
         let rec loop term =
             seq {
                 match term with
-                    | Term var -> yield var
+                    | VariableTerm var -> yield var
+                    | ConstantTerm _ -> ()
                     | Application (_, terms) ->
                         for term in terms do
                             yield! term |> loop
@@ -88,9 +98,10 @@ module Term =
     /// old term.
     let rec substitute variable newTerm oldTerm =
         match oldTerm with
-            | Term var ->
+            | VariableTerm var ->
                 if var = variable then newTerm
                 else oldTerm
+            | ConstantTerm _ -> oldTerm
             | Application (func, oldTerms) ->
                 Application (
                     func,
@@ -108,13 +119,14 @@ module Skolem =
     /// Number of Skolem functions created so far.
     let mutable private counter = 0
 
-    /// Creates a Skolem function for the given terms.
-    let create terms =
+    /// Creates a Skolem constant or function for the given terms.
+    let create (terms : _[]) =
         let name =
             counter <- counter + 1
             sprintf "skolem%d" counter
-        let func =
-            Function (name, terms |> Array.length)
-        let term =
-            Application (func, terms)
-        func, term
+        if terms.Length = 0 then
+            ConstantTerm (Constant name)
+        else
+            Application (
+                Function (name, terms.Length),
+                terms)
