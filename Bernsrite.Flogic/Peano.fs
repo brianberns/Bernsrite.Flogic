@@ -3,8 +3,22 @@
 /// http://intrologic.stanford.edu/public/section.php?section=section_09_04
 module Peano =
 
+    let language =
+        {
+            Constants =
+                [| Constant "0" |]
+            Functions =
+                [| Function ("s", 1) |]
+            Predicates =
+                [|
+                    Predicate ("=", 2)
+                    Predicate ("+", 3)
+                    Predicate ("*", 3)
+                |]
+        }
+
     let parser =
-        Parser.makeParser ["0"]
+        language |> Language.makeParser
 
     let private parse = Array.map (Parser.run parser)
 

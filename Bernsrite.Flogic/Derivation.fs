@@ -19,8 +19,9 @@ type Derivation =
     member this.String =
         seq {
 
+            yield "Input clauses:"
             for clause in this.InputClauses do
-                yield clause.ToString()
+                yield sprintf "   %A" clause
 
             yield sprintf "0. %A" this.TopClause
 
@@ -101,3 +102,67 @@ module Derivation =
                             TopClause = topClause
                             DerivedClauses = List.empty
                         }))
+
+type Language =
+    {
+        Constants : Constant[]
+        Functions : Function[]
+        Predicates : Predicate[]
+    }
+
+module Language =
+
+    let makeParser language : Parser<_> =
+        language.Constants
+            |> Array.map (fun (Constant name) -> name)
+            |> Parser.makeParser
+
+    let tryLinearInductionRaw cnst func premises = function
+        | ForAll (variable, schema) ->
+            opt {
+                let! baseFormula =
+                    schema
+                        |> Formula.trySubstitute
+                            variable
+                            (ConstantTerm cnst)
+                let! baseDerivation =
+                    Derivation.tryProve premises baseFormula
+
+                let! inductiveConclusion =
+                    schema
+                        |> Formula.trySubstitute
+                            variable
+                            (Application (
+                                func, [| VariableTerm variable |]))
+                let inductiveFormula =
+                    ForAll (
+                        variable,
+                        Implication (
+                            schema,
+                            inductiveConclusion))
+                let! inductiveDerivation =
+                    let premises' =
+                        seq {
+                            yield! premises
+                            yield baseFormula
+                        }
+                    Derivation.tryProve premises' inductiveFormula
+
+                return baseDerivation, inductiveDerivation
+            }
+        | _ -> None
+
+    let tryLinearInduction premises goal language =
+        let cnstOpt =
+            language.Constants
+                |> Seq.tryExactlyOne
+        let funcOpt =
+            language.Functions
+                |> Seq.where (fun (Function (_, arity)) ->
+                    arity = 1)
+                |> Seq.tryExactlyOne
+        match (cnstOpt, funcOpt) with
+            | Some cnst, Some func ->
+                tryLinearInductionRaw cnst func premises goal
+            | _ -> None
+

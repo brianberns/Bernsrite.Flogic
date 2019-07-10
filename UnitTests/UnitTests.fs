@@ -822,55 +822,22 @@ type UnitTest() =
 
     [<TestMethod>]
     member __.Peano() =
-        let constantName = "0"
-        let parser = Parser.makeParser [constantName]
+        let parse = Parser.run Peano.parser
         let premises =
             [|
                 "∀y.+(0,y,y)"
                 "∀x.∀y.∀z.(+(x,y,z) ⇒ +(s(x),y,s(z)))"
-            |] |> Array.map (Parser.run parser)
+            |] |> Array.map parse
 
-        let goal = "+(0,0,0)" |> Parser.run parser
-        match Derivation.tryProve premises goal with
-            | Some proof ->
-                printfn "%A" proof
+        let goal = parse "∀x.+(x,0,x)"
+        let proofOpt =
+            Peano.language
+                |> Language.tryLinearInduction premises goal
+        match proofOpt with
+            | Some (baseProof, inductiveProof) ->
+                printfn "Base case:"
+                printfn "%A" baseProof
+                printfn "Inductive case:"
+                printfn "%A" inductiveProof
             | None -> Assert.Fail()
 
-        let goal = "∀x.(+(x,0,x) ⇒ +(s(x),0,s(x)))" |> Parser.run parser
-        match Derivation.tryProve premises goal with
-            | Some proof ->
-                printfn "%A" proof
-            | None -> Assert.Fail()
-
-        let baseSchema = "+(x,0,x)" |> Parser.run parser
-        let variable = Variable "x"
-        let formulaOpt =
-            baseSchema
-                |> Formula.trySubstitute
-                    variable
-                    (ConstantTerm (Constant constantName))
-        printfn "%A" formulaOpt
-
-        let inductiveSchema =
-            ForAll (
-                variable,
-                Implication (
-                    baseSchema,
-                    baseSchema
-                        |> Formula.trySubstitute
-                            variable
-                            (Application (
-                                Function ("s", 1),
-                                [| (VariableTerm variable) |]))
-                        |> Option.get))
-        printfn "%A" inductiveSchema
-
-
-        (*
-        let premises = Peano.equalsAxioms
-        let goal = "∀x.∀y.(=(x,y) ⇒ =(y,x))" |> Parser.run Peano.parser
-        match Derivation.tryProve premises goal with
-            | Some proof ->
-                printfn "%A" proof
-            | None -> Assert.Fail()
-        *)
