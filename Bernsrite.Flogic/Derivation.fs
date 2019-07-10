@@ -117,41 +117,52 @@ module Language =
             |> Array.map (fun (Constant name) -> name)
             |> Parser.makeParser
 
-    let tryLinearInductionRaw cnst func premises = function
+    /// Attempts to prove the given formula using linear induction.
+    let private tryLinearInductionRaw cnst func premises = function
+
+            // e.g. ∀x.plus(x,0,x)
         | ForAll (variable, schema) ->
             opt {
-                let! baseFormula =
+
+                    // e.g. plus(0,0,0)
+                let! baseCase =
                     schema
                         |> Formula.trySubstitute
                             variable
                             (ConstantTerm cnst)
-                let! baseDerivation =
-                    Derivation.tryProve premises baseFormula
 
+                    // prove base case
+                let! baseDerivation =
+                    Derivation.tryProve premises baseCase
+
+                    // e.g. plus(s(x),0,s(x))
                 let! inductiveConclusion =
                     schema
                         |> Formula.trySubstitute
                             variable
                             (Application (
                                 func, [| VariableTerm variable |]))
-                let inductiveFormula =
-                    ForAll (
-                        variable,
-                        Implication (
-                            schema,
-                            inductiveConclusion))
+
+                    // e.g. plus(x,0,x) ⇒ plus(s(x),0,s(x))
+                let inductiveCase =
+                    Implication (
+                        schema,
+                        inductiveConclusion)
+
+                    // prove inductive case
                 let! inductiveDerivation =
                     let premises' =
                         seq {
                             yield! premises
-                            yield baseFormula
+                            yield baseCase
                         }
-                    Derivation.tryProve premises' inductiveFormula
+                    Derivation.tryProve premises' inductiveCase
 
                 return baseDerivation, inductiveDerivation
             }
         | _ -> None
 
+    /// Attempts to prove the given formula using linear induction.
     let tryLinearInduction premises goal language =
         let cnstOpt =
             language.Constants
