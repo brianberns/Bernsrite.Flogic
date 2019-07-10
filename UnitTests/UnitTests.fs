@@ -848,10 +848,4 @@ type UnitTest() =
         let proofOpt =
             Peano.language
                 |> Language.tryLinearInduction premises goal
-        match proofOpt with
-            | Some (baseProof, inductiveProof) ->
-                printfn "Base case:"
-                printfn "%A" baseProof
-                printfn "Inductive case:"
-                printfn "%A" inductiveProof
-            | None -> Assert.Fail()
+        Assert.IsTrue(proofOpt.IsSome)

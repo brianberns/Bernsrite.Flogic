@@ -149,6 +149,10 @@ type Language =
         Predicates : Predicate[]
     }
 
+type LinearInductionProof =
+    | Derivation of Derivation
+    | Induction of (LinearInductionProof * LinearInductionProof)
+
 module Language =
 
     let makeParser language : Parser<_> =
@@ -157,49 +161,69 @@ module Language =
             |> Parser.makeParser
 
     /// Attempts to prove the given formula using linear induction.
-    let private tryLinearInductionRaw cnst func premises = function
+    let private tryLinearInductionRaw cnst func premises goal =
 
-            // e.g. ∀x.plus(x,0,x)
-        | ForAll (variable, schema) ->
-            opt {
+        let rec loop premises = function
 
-                    // e.g. plus(0,0,0)
-                let! baseCase =
-                    schema
-                        |> Formula.trySubstitute
-                            variable
-                            (ConstantTerm cnst)
+                // e.g. ∀x.plus(x,0,x)
+            | ForAll (variable, schema) as goal ->
+                opt {
 
-                    // prove base case
-                let! baseDerivation =
-                    Derivation.tryProve premises baseCase
+                        // e.g. plus(0,0,0)
+                    let! baseCase =
+                        schema
+                            |> Formula.trySubstitute
+                                variable
+                                (ConstantTerm cnst)
 
-                    // e.g. plus(s(x),0,s(x))
-                let! inductiveConclusion =
-                    schema
-                        |> Formula.trySubstitute
-                            variable
-                            (Application (
-                                func, [| VariableTerm variable |]))
+                        // prove base case
+                    let! baseProof =
+                        tryProve premises baseCase
 
-                    // e.g. plus(x,0,x) ⇒ plus(s(x),0,s(x))
-                let inductiveCase =
-                    Implication (
-                        schema,
-                        inductiveConclusion)
+                        // e.g. plus(s(x),0,s(x))
+                    let! inductiveConclusion =
+                        schema
+                            |> Formula.trySubstitute
+                                variable
+                                (Application (
+                                    func, [| VariableTerm variable |]))
 
-                    // prove inductive case
-                let! inductiveDerivation =
-                    let premises' =
-                        seq {
-                            yield! premises
-                            yield baseCase
-                        }
-                    Derivation.tryProve premises' inductiveCase
+                        // e.g. plus(x,0,x) ⇒ plus(s(x),0,s(x))
+                    let inductiveCase =
+                        Implication (
+                            schema,
+                            inductiveConclusion)
 
-                return baseDerivation, inductiveDerivation
-            }
-        | _ -> None
+                        // prove inductive case
+                    let! inductiveProof =
+                        let premises' =
+                            seq {
+                                yield! premises
+                                yield baseCase
+                            }
+                        tryProve premises' inductiveCase
+
+                    printfn ""
+                    printfn "Premises: %A" premises
+                    printfn "Goal: %A" goal
+                    printfn "Base case: %A" baseCase
+                    printfn "Base proof:\r\n%A" baseProof
+                    printfn "Inductive case: %A" inductiveCase
+                    printfn "Inductive proof:\r\n%A" inductiveProof
+                    return baseProof, inductiveProof
+                }
+            | _ -> None
+
+        and tryProve premises goal =
+            goal
+                |> Derivation.tryProve premises
+                |> Option.map Derivation
+                |> Option.orElseWith (fun () ->
+                    goal
+                        |> loop premises
+                        |> Option.map Induction)
+
+        goal |> loop premises
 
     /// Attempts to prove the given formula using linear induction.
     let tryLinearInduction premises goal language =

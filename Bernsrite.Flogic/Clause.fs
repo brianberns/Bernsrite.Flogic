@@ -11,10 +11,12 @@ type Clause =
 
     /// Display string.
     member this.String =
-        this.Literals
-            |> Seq.sortBy (fun literal ->
-                literal.Predicate)
-            |> String.join " | "
+        if this.Literals.Length = 0 then "Absurd"   // empty clause indicates contradiction
+        else
+            this.Literals
+                |> Seq.sortBy (fun literal ->
+                    literal.Predicate)
+                |> String.join " | "
 
     /// Display string.
     override this.ToString() =
