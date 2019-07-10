@@ -17,6 +17,13 @@ type Literal =
         if (arity <> this.Terms.Length) then
             failwith "Arity mismatch"
         if arity = 0 then name
+        elif Char.IsSymbol(name.[0]) && arity = 3 then
+            sprintf "%A %s %A %s %A"
+                this.Terms.[0]
+                name
+                this.Terms.[1]
+                (if this.IsPositive then "=" else "<>")
+                this.Terms.[2]
         else
             sprintf "%s%s(%s)"
                 (if this.IsPositive then "" else "~")
