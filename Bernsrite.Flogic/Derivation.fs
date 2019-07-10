@@ -1,6 +1,16 @@
 ﻿namespace Bernsrite.Flogic
 
-/// A resolution derivation.
+/// One step in a linear resolution derivation.
+type DerivationStep =
+    {
+        /// Clause created in this step.
+        CenterClause : Clause
+
+        /// Existing side clause used in this step's creation.
+        SideClause : Clause
+    }
+
+/// A linear resolution derivation.
 /// http://intrologic.stanford.edu/public/section.php?section=section_05_04
 [<StructuredFormatDisplay("{String}")>]
 type Derivation =
@@ -11,8 +21,8 @@ type Derivation =
         /// Top clause (will be one of the negated goal clauses).
         TopClause : Clause
 
-        /// Clauses derived via linear resolution.
-        DerivedClauses : List<Clause>
+        /// Derived steps, in reverse order.
+        Steps : List<DerivationStep>
     }
 
     /// Display string.
@@ -23,14 +33,32 @@ type Derivation =
             for clause in this.InputClauses do
                 yield sprintf "   %A" clause
 
-            yield sprintf "0. %A" this.TopClause
+            let strPairs =
+                let steps = this.Steps |> List.rev
+                let centerStrs =
+                    seq {
+                        yield this.TopClause.ToString()
+                        for step in steps do
+                            yield step.CenterClause.ToString()
+                    }
+                let sideStrs =
+                    seq {
+                        for step in steps do
+                            yield step.SideClause.ToString()
+                        yield ""
+                    }
+                Seq.zip centerStrs sideStrs
+                    |> Seq.toArray
 
-            let pairs =
-                this.DerivedClauses
-                    |> List.rev
-                    |> Seq.mapi (fun i clause -> i, clause)
-            for i, clause in pairs do
-                yield sprintf "%d. %A" (i + 1) clause
+            for i = 0 to strPairs.Length - 1 do
+                let centerStr, sideStr = strPairs.[i]
+                let prefix = sprintf "%d. %s" (i + 1) centerStr
+                yield
+                    if i = strPairs.Length - 1 then
+                        assert(sideStr = "")
+                        prefix
+                    else
+                        sprintf "%s\twith %s" prefix sideStr
 
         } |> String.join "\r\n"
 
@@ -63,25 +91,36 @@ module Derivation =
         let search maxDepth derivation =
 
             let rec loop depth derivation =
+                assert(depth = (derivation.Steps |> Seq.length))
                 if depth < maxDepth then
 
                         // get current center clause
-                    let centerClause =
-                        derivation.DerivedClauses
-                            |> List.tryHead
-                            |> Option.defaultValue derivation.TopClause
+                    let centerClause, centerClauses =
+                        match derivation.Steps with
+                            | [] ->
+                                derivation.TopClause, Seq.empty
+                            | step :: steps ->
+                                let centerClauses =
+                                    steps
+                                        |> Seq.map (fun step -> step.CenterClause)
+                                step.CenterClause, centerClauses
 
-                        // combine with available side clauses
-                    Seq.append derivation.InputClauses derivation.DerivedClauses
+                        // resolve with all possible side clauses
+                    let sideClauses =
+                        Seq.append derivation.InputClauses centerClauses
+                    sideClauses
                         |> Seq.tryPick (fun sideClause ->
                             Clause.resolve centerClause sideClause
                                 |> Seq.tryPick (fun resolvent ->
                                     let nextDerivation =
+                                        let step =
+                                            {
+                                                CenterClause = resolvent
+                                                SideClause = sideClause
+                                            }
                                         {
                                             derivation with
-                                                DerivedClauses =
-                                                    resolvent
-                                                        :: derivation.DerivedClauses
+                                                Steps = step :: derivation.Steps
                                         }
                                     if resolvent.Literals.Length = 0 then   // success: empty clause is a contradiction
                                         Some nextDerivation
@@ -100,7 +139,7 @@ module Derivation =
                         search maxDepth {
                             InputClauses = inputClauses
                             TopClause = topClause
-                            DerivedClauses = List.empty
+                            Steps = List.empty
                         }))
 
 type Language =

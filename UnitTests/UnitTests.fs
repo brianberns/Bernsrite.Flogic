@@ -798,7 +798,7 @@ type UnitTest() =
         match Derivation.tryProve premises goal with
             | Some proof ->
                 printfn "%A" proof
-                Assert.AreEqual(2, proof.DerivedClauses.Length)
+                Assert.AreEqual(2, proof.Steps.Length)
             | None -> Assert.Fail()
 
     [<TestMethod>]
@@ -817,18 +817,17 @@ type UnitTest() =
         match Derivation.tryProve premises goal with
             | Some proof ->
                 printfn "%A" proof
-                Assert.AreEqual(7, proof.DerivedClauses.Length)
+                Assert.AreEqual(7, proof.Steps.Length)
             | None -> Assert.Fail()
 
     [<TestMethod>]
-    member __.Peano() =
+    member __.Induction() =
         let parse = Parser.run Peano.parser
         let premises =
             [|
                 "∀y.+(0,y,y)"
                 "∀x.∀y.∀z.(+(x,y,z) ⇒ +(s(x),y,s(z)))"
             |] |> Array.map parse
-
         let goal = parse "∀x.+(x,0,x)"
         let proofOpt =
             Peano.language
@@ -841,3 +840,18 @@ type UnitTest() =
                 printfn "%A" inductiveProof
             | None -> Assert.Fail()
 
+    [<TestMethod>]
+    member __.Peano() =
+        let parse = Parser.run Peano.parser
+        let premises = Peano.equalsAxioms
+        let goal = parse "∀x.∀y.(=(x,y) ⇒ =(y,x))"
+        let proofOpt =
+            Peano.language
+                |> Language.tryLinearInduction premises goal
+        match proofOpt with
+            | Some (baseProof, inductiveProof) ->
+                printfn "Base case:"
+                printfn "%A" baseProof
+                printfn "Inductive case:"
+                printfn "%A" inductiveProof
+            | None -> Assert.Fail()
