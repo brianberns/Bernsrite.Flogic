@@ -18,13 +18,13 @@ type UnitTest() =
                 |> InferenceRule.apply
                     [|
                         Implication (
-                            Formula (isMan, x),
-                            Formula (isMortal, x))
-                        Formula (isMan, x)
+                            Atom (isMan, x),
+                            Atom (isMortal, x))
+                        Atom (isMan, x)
                     |]
         Assert.AreEqual(1, conclusions.Length)
         Assert.AreEqual(1, conclusions.[0].Length)
-        Assert.AreEqual(Formula (isMortal, x), conclusions.[0].[0])
+        Assert.AreEqual(Atom (isMortal, x), conclusions.[0].[0])
 
     [<TestMethod>]
     member __.ImplicationCreation() =
@@ -41,8 +41,8 @@ type UnitTest() =
             }
         let premises =
             [|
-                Formula (isMan, x)
-                Formula (isMortal, x)
+                Atom (isMan, x)
+                Atom (isMortal, x)
             |]
         let bindings =
             implicationCreation.Premises
@@ -130,8 +130,8 @@ type UnitTest() =
     member this.UniversalIntroduction() =
 
         let x = Variable "x"
-        let p = Formula (Predicate ("p", 1), [| VariableTerm x |])
-        let q = Formula (Predicate ("q", 1), [| VariableTerm x |])
+        let p = Atom (Predicate ("p", 1), [| VariableTerm x |])
+        let q = Atom (Predicate ("q", 1), [| VariableTerm x |])
 
         let steps =
             [|
@@ -165,7 +165,7 @@ type UnitTest() =
                 x,
                 Exists (
                     y,
-                    Formula (
+                    Atom (
                         Predicate ("hates", 2),
                         [| VariableTerm x; VariableTerm y |])))
         Assert.AreEqual(
@@ -203,7 +203,7 @@ type UnitTest() =
                     y,
                     Exists (
                         z,
-                        Formula (loves, [| VariableTerm y; VariableTerm z |])))
+                        Atom (loves, [| VariableTerm y; VariableTerm z |])))
             |],
             InferenceRule.Premise,
             Array.empty
@@ -217,8 +217,8 @@ type UnitTest() =
                         Implication (
                             Exists (
                                 z,
-                                Formula (loves, [| VariableTerm y; VariableTerm z |])),
-                            Formula (loves, [| VariableTerm x; VariableTerm y |]))))
+                                Atom (loves, [| VariableTerm y; VariableTerm z |])),
+                            Atom (loves, [| VariableTerm x; VariableTerm y |]))))
             |],
             InferenceRule.Premise,
             Array.empty
@@ -227,7 +227,7 @@ type UnitTest() =
             [|
                 Exists (
                     z,
-                    Formula (loves, [| VariableTerm y; VariableTerm z |]))
+                    Atom (loves, [| VariableTerm y; VariableTerm z |]))
             |],
             InferenceRule.UniversalElimination (VariableTerm y),
             [|1|]
@@ -239,8 +239,8 @@ type UnitTest() =
                     Implication (
                         Exists (
                             z,
-                            Formula (loves, [| VariableTerm y; VariableTerm z |])),
-                        Formula (loves, [| VariableTerm x; VariableTerm y |])))
+                            Atom (loves, [| VariableTerm y; VariableTerm z |])),
+                        Atom (loves, [| VariableTerm x; VariableTerm y |])))
             |],
             InferenceRule.UniversalElimination (VariableTerm x),
             [|2|]
@@ -250,15 +250,15 @@ type UnitTest() =
                 Implication (
                     Exists (
                         z,
-                        Formula (loves, [| VariableTerm y; VariableTerm z |])),
-                    Formula (loves, [| VariableTerm x; VariableTerm y |]))
+                        Atom (loves, [| VariableTerm y; VariableTerm z |])),
+                    Atom (loves, [| VariableTerm x; VariableTerm y |]))
             |],
             InferenceRule.UniversalElimination (VariableTerm y),
             [|4|]
 
             (*6*)
             [|
-                Formula (loves, [| VariableTerm x; VariableTerm y |])
+                Atom (loves, [| VariableTerm x; VariableTerm y |])
             |],
             InferenceRule.implicationElimination,
             [|5; 3|]
@@ -267,7 +267,7 @@ type UnitTest() =
             [|
                 ForAll (
                     y,
-                    Formula (loves, [| VariableTerm x; VariableTerm y |]))
+                    Atom (loves, [| VariableTerm x; VariableTerm y |]))
             |],
             InferenceRule.UniversalIntroduction y,
             [|6|]
@@ -278,7 +278,7 @@ type UnitTest() =
                     x,
                     ForAll (
                         y,
-                        Formula (loves, [| VariableTerm x; VariableTerm y |])))
+                        Atom (loves, [| VariableTerm x; VariableTerm y |])))
             |],
             InferenceRule.UniversalIntroduction x,
             [|7|]
@@ -294,7 +294,7 @@ type UnitTest() =
 
         // introduce x for jill in hates(jill, jill)
         let formulaStrs =
-            Formula (hates, [| jill; jill |])
+            Atom (hates, [| jill; jill |])
                 |> InferenceRule.existentialIntroduction jill x
                 |> Seq.map (fun formula -> formula.ToString())
                 |> set
@@ -310,7 +310,7 @@ type UnitTest() =
         let formulaStrs =
             Exists (
                 x,
-                Formula (
+                Atom (
                     hates,
                     [| jill; VariableTerm x |]))
                 |> InferenceRule.existentialIntroduction jill x
@@ -326,7 +326,7 @@ type UnitTest() =
         let formula =
             ForAll (
                 x,
-                Formula (
+                Atom (
                     hates,
                     [| VariableTerm x; fx |]))
         let formulas =
@@ -356,10 +356,10 @@ type UnitTest() =
                     ForAll (
                         y,
                         Implication (
-                            Formula (
+                            Atom (
                                 p,
                                 [| VariableTerm x; VariableTerm y |]),
-                            Formula (
+                            Atom (
                                 q,
                                 [| VariableTerm x |]))))
             |],
@@ -370,7 +370,7 @@ type UnitTest() =
             [|
                 Exists (
                     y,
-                    Formula (
+                    Atom (
                         p,
                         [| VariableTerm x; VariableTerm y |]))
             |],
@@ -379,7 +379,7 @@ type UnitTest() =
 
             (*3*)
             [|
-                Formula (
+                Atom (
                     p,
                     [| VariableTerm x; skolemTerm |])
             |],
@@ -391,10 +391,10 @@ type UnitTest() =
                 ForAll (
                     y,
                     Implication (
-                        Formula (
+                        Atom (
                             p,
                             [| VariableTerm x; VariableTerm y |]),
-                        Formula (
+                        Atom (
                             q,
                             [| VariableTerm x |])))
             |],
@@ -404,10 +404,10 @@ type UnitTest() =
             (*5*)
             [|
                 Implication (
-                    Formula (
+                    Atom (
                         p,
                         [| VariableTerm x; skolemTerm |]),
-                    Formula (
+                    Atom (
                         q,
                         [| VariableTerm x |]))
             |],
@@ -416,7 +416,7 @@ type UnitTest() =
 
             (*6*)
             [|
-                Formula (
+                Atom (
                     q,
                     [| VariableTerm x |])
             |],
@@ -428,10 +428,10 @@ type UnitTest() =
                 Implication (
                     Exists (
                         y,
-                        Formula (
+                        Atom (
                             p,
                             [| VariableTerm x; VariableTerm y |])),
-                    Formula (
+                    Atom (
                         q,
                         [| VariableTerm x |]))
             |],
@@ -445,10 +445,10 @@ type UnitTest() =
                     Implication (
                         Exists (
                             y,
-                            Formula (
+                            Atom (
                                 p,
                                 [| VariableTerm x; VariableTerm y |])),
-                        Formula (
+                        Atom (
                             q,
                             [| VariableTerm x |])))
             |],
@@ -473,10 +473,10 @@ type UnitTest() =
                     Implication (
                         Exists (
                             y,
-                            Formula (
+                            Atom (
                                 p,
                                 [| VariableTerm x; VariableTerm y |])),
-                        Formula (
+                        Atom (
                             q,
                             [| VariableTerm x |])))
             |],
@@ -485,7 +485,7 @@ type UnitTest() =
 
             (*2*)
             [|
-                Formula (
+                Atom (
                     p,
                     [| VariableTerm x; VariableTerm y |])
             |],
@@ -496,7 +496,7 @@ type UnitTest() =
             [|
                 Exists (
                     y,
-                    Formula (
+                    Atom (
                         p,
                         [| VariableTerm x; VariableTerm y |]))
             |],
@@ -508,10 +508,10 @@ type UnitTest() =
                 Implication (
                     Exists (
                         y,
-                        Formula (
+                        Atom (
                             p,
                             [| VariableTerm x; VariableTerm y |])),
-                    Formula (
+                    Atom (
                         q,
                         [| VariableTerm x |]))
             |],
@@ -520,7 +520,7 @@ type UnitTest() =
 
             (*5*)
             [|
-                Formula (
+                Atom (
                     q,
                     [| VariableTerm x |])
             |],
@@ -530,10 +530,10 @@ type UnitTest() =
             (*6*)
             [|
                 Implication (
-                    Formula (
+                    Atom (
                         p,
                         [| VariableTerm x; VariableTerm y |]),
-                    Formula (
+                    Atom (
                         q,
                         [| VariableTerm x |]))
             |],
@@ -545,10 +545,10 @@ type UnitTest() =
                 ForAll (
                     y,
                     Implication (
-                        Formula (
+                        Atom (
                             p,
                             [| VariableTerm x; VariableTerm y |]),
-                        Formula (
+                        Atom (
                             q,
                             [| VariableTerm x |])))
             |],
@@ -562,10 +562,10 @@ type UnitTest() =
                     ForAll (
                         y,
                         Implication (
-                            Formula (
+                            Atom (
                                 p,
                                 [| VariableTerm x; VariableTerm y |]),
-                            Formula (
+                            Atom (
                                 q,
                                 [| VariableTerm x |]))))
             |],
@@ -584,13 +584,13 @@ type UnitTest() =
             "P" |> Parser.run parser)
 
         Assert.AreEqual(
-            Formula (
+            Atom (
                 Predicate ("P", 1),
                 [| VariableTerm (Variable "x") |]),
             "P(x)" |> Parser.run parser)
 
         Assert.AreEqual(
-            Formula (
+            Atom (
                 Predicate ("P", 1),
                 [|
                     Application (
@@ -600,7 +600,7 @@ type UnitTest() =
             "P(s(x))" |> Parser.run parser)
 
         Assert.AreEqual(
-            Formula (
+            Atom (
                 Predicate ("P", 1),
                 [|
                     Application (
@@ -610,7 +610,7 @@ type UnitTest() =
             "P(s(0))" |> Parser.run parser)
 
         Assert.AreEqual(
-            Formula (
+            Atom (
                 Predicate ("Binary", 2),
                 [|
                     VariableTerm (Variable "x")
@@ -649,11 +649,11 @@ type UnitTest() =
                 x,
                 And (
                     Not (
-                        Formula (
+                        Atom (
                             same,
                             [| zero; s_x |])),
                     Not (
-                        Formula (
+                        Atom (
                             same,
                             [| s_x; zero |]))))
         Assert.AreEqual(
@@ -822,62 +822,6 @@ type UnitTest() =
 
     [<TestMethod>]
     member __.Peano() =
-
-        let clause1 =
-            {
-                Literals =
-                    [|
-                        {
-                            Predicate = Predicate ("f", 2)
-                            Terms = [|
-                                ConstantTerm (Constant "harry")
-                                VariableTerm (Variable "y")
-                            |]
-                            IsPositive = false
-                        }
-                        {
-                            Predicate = Predicate ("f", 2)
-                            Terms = [|
-                                VariableTerm (Variable "y")
-                                ConstantTerm (Constant "ralph")
-                            |]
-                            IsPositive = false
-                        }
-                    |]
-            }
-        let clause2 =
-            {
-                Literals =
-                    [|
-                        {
-                            Predicate = Predicate ("d", 1)
-                            Terms = [|
-                                VariableTerm (Variable "y")
-                            |]
-                            IsPositive = false
-                        }
-                        {
-                            Predicate = Predicate ("f", 2)
-                            Terms = [|
-                                VariableTerm (Variable "x")
-                                VariableTerm (Variable "y")
-                            |]
-                            IsPositive = true
-                        }
-                        {
-                            Predicate = Predicate ("h", 1)
-                            Terms = [|
-                                VariableTerm (Variable "x")
-                            |]
-                            IsPositive = false
-                        }
-                    |]
-            }
-        let resolutions = Clause.resolve clause1 clause2
-        for resolvent in resolutions do
-            printfn "%A" resolvent
-
-        (*
         let constantName = "0"
         let parser = Parser.makeParser [constantName]
         let premises =
@@ -920,7 +864,6 @@ type UnitTest() =
                                 [| (VariableTerm variable) |]))
                         |> Option.get))
         printfn "%A" inductiveSchema
-        *)
 
 
         (*

@@ -80,7 +80,7 @@ module Parser =
         let parseAtomic =
             pipe2 parseName (parseTerms true)
                 (fun name (terms : _[]) ->
-                    Formula (Predicate (name, terms.Length), terms))
+                    Atom (Predicate (name, terms.Length), terms))
 
         let parseFormula, parseFormulaRef =
             createParserForwardedToRef<Formula, unit>()

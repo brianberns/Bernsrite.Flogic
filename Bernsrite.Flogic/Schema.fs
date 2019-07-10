@@ -8,7 +8,7 @@ module MetaVariable =
     /// Creates a metavariable. This is currently implemented as
     /// 0-arity placeholder for a predicate.
     let create name : MetaVariable =
-        Formula (
+        Atom (
             Predicate (name, arity = 0),
             Array.empty)
 
@@ -22,7 +22,7 @@ module Schema =
 
     /// Active pattern for a metavariable.
     let (|MetaVariable|_|) = function
-        | Formula ((Predicate (name, arity)), terms)
+        | Atom ((Predicate (name, arity)), terms)
             when arity = 0 ->
                 if (terms.Length > 0) then
                     failwith "Arity mismatch"

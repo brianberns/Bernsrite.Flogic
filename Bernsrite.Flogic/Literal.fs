@@ -50,9 +50,9 @@ module Literal =
 
     /// Converts a formula to a literal.
     let ofFormula = function
-        | Formula (predicate, terms) ->
+        | Atom (predicate, terms) ->
             create predicate terms true
-        | Not (Formula (predicate, terms)) ->
+        | Not (Atom (predicate, terms)) ->
             create predicate terms false
         | _ -> failwith "Not a literal"
 

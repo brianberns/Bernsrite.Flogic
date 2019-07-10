@@ -10,7 +10,7 @@ type Predicate = Predicate of name : string * arity : int
 type Formula =
 
     /// Atomic formula (no sub-formulas): P(t1, t2, ...)
-    | Formula of Predicate * Term[]
+    | Atom of Predicate * Term[]
 
     /// Negation: ~P
     | Not of Formula
@@ -47,7 +47,7 @@ type Formula =
                     (if isRoot then "" else ")")
 
             function
-                | Formula (Predicate (name, arity), terms) ->
+                | Atom (Predicate (name, arity), terms) ->
                     if (arity <> terms.Length) then
                         failwith "Arity mismatch"
                     if arity = 0 then name
@@ -125,8 +125,8 @@ module Formula =
 
                 // substitutes within a formula
             match formula with
-                | Formula (predicate, oldTerms) ->
-                    Formula (
+                | Atom (predicate, oldTerms) ->
+                    Atom (
                         predicate,
                         oldTerms
                             |> Term.substituteTerms variable term)
@@ -206,9 +206,9 @@ module Formula =
 
             seq {
                 match formula with
-                    | Formula (predicate, terms) ->
+                    | Atom (predicate, terms) ->
                         for newTerms in terms |> substituteTerms do
-                            yield Formula (predicate, newTerms)
+                            yield Atom (predicate, newTerms)
                     | Not formula ->
                         for formula' in loop formula do
                             yield Not formula'
@@ -238,7 +238,7 @@ module Formula =
         let rec loop formula =
             seq {
                 match formula with
-                    | Formula (_, terms) ->
+                    | Atom (_, terms) ->
                         for term in terms do
                             yield! term |> Term.getVariables
                     | Not formula ->
@@ -280,7 +280,7 @@ module Formula =
     let transform func =
         let (!) = func
         function
-            | Formula _ as fla -> fla
+            | Atom _ as fla -> fla
             | Not fla -> Not (!fla)
             | And (fla1, fla2) -> And (!fla1, !fla2)
             | Or (fla1, fla2) -> Or (!fla1, !fla2)

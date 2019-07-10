@@ -146,9 +146,9 @@ module Clause =
                     result, seen''
 
                 function
-                    | Formula (predicate, terms) ->
+                    | Atom (predicate, terms) ->
                         let result =
-                            Formula (
+                            Atom (
                                 predicate,
                                 terms |> standardizeTerms variableMap)
                         result, seen
@@ -278,9 +278,9 @@ module Clause =
                     q |> removeAnds formulas'
                 | Or _ as formula ->
                     formulas |> Set.add formula
-                | Formula _ as formula ->
+                | Atom _ as formula ->
                     formulas |> Set.add formula
-                | Not (Formula _) as formula ->
+                | Not (Atom _) as formula ->
                     formulas |> Set.add formula
                 | _ -> failwith "Not in conjunctive normal form"
 
@@ -288,10 +288,10 @@ module Clause =
                 | Or (p, q) ->
                     let literals' = p |> removeOrs literals
                     q |> removeOrs literals'
-                | Formula _ as formula ->
+                | Atom _ as formula ->
                     literals
                         |> Set.add (Literal.ofFormula formula)
-                | Not (Formula _) as formula ->
+                | Not (Atom _) as formula ->
                     literals
                         |> Set.add (Literal.ofFormula formula)
                 | _ -> failwith "Not in conjunctive normal form"
