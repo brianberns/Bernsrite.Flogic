@@ -39,12 +39,15 @@ type Derivation =
 /// Proof via resolution.
 module Derivation =
 
-    /// Attempts to prove the given goal from the given premises.
+    /// Attempts to prove the given goal from the given premises via
+    /// linear resolution.
     /// http://www.cs.miami.edu/home/geoff/Courses/CSC648-12S/Content/LinearResolution.shtml
     let tryProve premises goal =
 
+            // convert formulas to clauses
         let goalClauses =
-            (Not goal)
+            goal
+                |> Not   // proof by refutation: negate goal
                 |> Clause.toClauses
                 |> Seq.toArray
         let inputClauses =
@@ -55,37 +58,47 @@ module Derivation =
                 yield! goalClauses
             |]
 
+            
+            // depth-first search
+        let search maxDepth derivation =
+
+            let rec loop depth derivation =
+                if depth < maxDepth then
+
+                        // get current center clause
+                    let centerClause =
+                        derivation.DerivedClauses
+                            |> List.tryHead
+                            |> Option.defaultValue derivation.TopClause
+
+                        // combine with available side clauses
+                    Seq.append derivation.InputClauses derivation.DerivedClauses
+                        |> Seq.tryPick (fun sideClause ->
+                            Clause.resolve centerClause sideClause
+                                |> Seq.tryPick (fun nextCenterClause ->
+                                    let nextDerivation =
+                                        {
+                                            derivation with
+                                                DerivedClauses =
+                                                    nextCenterClause
+                                                        :: derivation.DerivedClauses
+                                        }
+                                    if nextCenterClause.Literals.Length = 0 then   // success: empty clause is a contradiction
+                                        Some nextDerivation
+                                    else
+                                        nextDerivation |> loop (depth + 1)))
+                else None
+
+            derivation |> loop 0
+
+
+            // iterative deepening
         [4; 10]
             |> Seq.tryPick (fun maxDepth ->
-
-                let rec loop depth derivation =
-                    if depth < maxDepth then
-                        let centerClause =
-                            derivation.DerivedClauses
-                                |> List.tryHead
-                                |> Option.defaultValue derivation.TopClause
-                        Seq.append derivation.InputClauses derivation.DerivedClauses
-                            |> Seq.tryPick (fun sideClause ->
-                                Clause.resolve centerClause sideClause
-                                    |> Seq.tryPick (fun nextCenterClause ->
-                                        let nextDerivation =
-                                            {
-                                                derivation with
-                                                    DerivedClauses =
-                                                        nextCenterClause
-                                                            :: derivation.DerivedClauses
-                                            }
-                                        if nextCenterClause.Literals.Length = 0 then   // empty clause is a contradiction
-                                            Some nextDerivation
-                                        else
-                                            nextDerivation |> loop (depth + 1)))
-                    else None
-
                 goalClauses
                     |> Seq.tryPick (fun topClause ->
-                        {
+                        search maxDepth {
                             InputClauses = inputClauses
                             TopClause = topClause
                             DerivedClauses = List.empty
-                        }
-                            |> loop 0))
+                        }))
