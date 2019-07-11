@@ -53,13 +53,10 @@
     <Compile Include="Term.fs" />
     <Compile Include="Formula.fs" />
     <Compile Include="Parse.fs" />
-    <Compile Include="Schema.fs" />
-    <Compile Include="InferenceRule.fs" />
-    <Compile Include="Proof.fs" />
     <Compile Include="Substitution.fs" />
     <Compile Include="Literal.fs" />
     <Compile Include="Clause.fs" />
-    <Compile Include="Derivation.fs" />
+    <Compile Include="Proof.fs" />
     <Compile Include="Peano.fs" />
   </ItemGroup>
   <ItemGroup>

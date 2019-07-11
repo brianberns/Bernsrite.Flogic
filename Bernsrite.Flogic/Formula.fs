@@ -148,90 +148,6 @@ module Formula =
 
         loop formula
 
-    /// Substitutes one term for another in the given formula in all possible ways.
-    /// Does not attempt to avoid variable capture.
-    let substitute oldTerm newTerm formula =
-
-            // substitutes within a variable
-        let substituteVariable variable =
-            seq {
-                match oldTerm, newTerm with
-                    | (VariableTerm oldVariable, VariableTerm newVariable) ->
-                        if variable = oldVariable then
-                            yield newVariable
-                    | _ -> ()
-                yield variable
-            }
-
-            // substitutes within a term
-        let rec substituteTerm term =
-            seq {
-                if term = oldTerm then
-                    yield newTerm
-                else
-                    match term with
-                        | Application (func, terms) ->
-                            for newTerms in terms |> substituteTerms do
-                                yield Application (func, newTerms)
-                        | _ -> ()
-                yield term
-            }
-
-            // substitutes within multiple terms
-        and substituteTerms terms =
-            terms
-                |> Seq.map (substituteTerm >> Seq.toList)
-                |> Seq.toList
-                |> List.cartesian
-                |> Seq.map Seq.toArray
-
-            // substitutes within a formula
-        let rec loop formula =
-
-                // substitutes within a binary formula
-            let binary formula1 formula2 constructor =
-                seq {
-                    for formula1' in loop formula1 do
-                        for formula2' in loop formula2 do
-                            yield constructor (formula1', formula2')
-                }
-
-                // substitutes within a quantified formula
-            let quantified variable formula constructor =
-                seq {
-                    for variable' in substituteVariable variable do
-                        for formula' in loop formula do
-                            yield constructor (variable', formula')
-                }
-
-            seq {
-                match formula with
-                    | Atom (predicate, terms) ->
-                        for newTerms in terms |> substituteTerms do
-                            yield Atom (predicate, newTerms)
-                    | Not formula ->
-                        for formula' in loop formula do
-                            yield Not formula'
-                    | And (formula1, formula2) ->
-                        yield! And |> binary formula1 formula2
-                    | Or (formula1, formula2) ->
-                        yield! Or |> binary formula1 formula2
-                    | Implication (formula1, formula2) ->
-                        yield! Implication |> binary formula1 formula2
-                    | Biconditional (formula1, formula2) ->
-                        yield! Biconditional |> binary formula1 formula2
-                    | Exists (variable, formula) ->
-                        yield! Exists |> quantified variable formula
-                    | ForAll (variable, formula) ->
-                        yield! ForAll |> quantified variable formula
-            }
-
-        [|
-            for formula' in loop formula do
-                if newTerm = oldTerm || formula' <> formula then
-                    yield formula'
-        |]
-
     /// Answers the free variables in the given formula.
     let getFreeVariables formula =
 
@@ -276,15 +192,17 @@ module Formula =
             |> getFreeVariables
             |> Set.contains variable
 
+    /// Maps over immediate children. (Easier to understand and work with
+    /// than catamorphism.)
     /// http://t0yv0.blogspot.com/2011/09/transforming-large-unions-in-f.html
     let transform func =
         let (!) = func
         function
-            | Atom _ as fla -> fla
-            | Not fla -> Not (!fla)
-            | And (fla1, fla2) -> And (!fla1, !fla2)
-            | Or (fla1, fla2) -> Or (!fla1, !fla2)
-            | Implication (fla1, fla2) -> Implication (!fla1, !fla2)
-            | Biconditional (fla1, fla2) -> Biconditional (!fla1, !fla2)
-            | Exists (variable, fla) -> Exists (variable, !fla)
-            | ForAll (variable, fla) -> ForAll (variable, !fla)
+            | Atom _ as formula -> formula
+            | Not formula -> Not (!formula)
+            | And (formula1, formula2) -> And (!formula1, !formula2)
+            | Or (formula1, formula2) -> Or (!formula1, !formula2)
+            | Implication (formula1, formula2) -> Implication (!formula1, !formula2)
+            | Biconditional (formula1, formula2) -> Biconditional (!formula1, !formula2)
+            | Exists (variable, formula) -> Exists (variable, !formula)
+            | ForAll (variable, formula) -> ForAll (variable, !formula)

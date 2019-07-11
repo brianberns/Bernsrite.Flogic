@@ -152,8 +152,8 @@ module Parser =
         parseTerm, parseFormula
 
     /// Makes a formula parser that recognizes the given names as constants.
-    let makeParser constants =
-        let _, parseFormula = makeParsers constants
+    let makeParser constantNames =
+        let _, parseFormula = makeParsers constantNames
         parseFormula
 
     /// Runs the given parser on the given string.
