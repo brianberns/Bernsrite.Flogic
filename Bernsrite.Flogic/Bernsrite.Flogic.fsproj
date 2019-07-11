@@ -57,6 +57,8 @@
     <Compile Include="Literal.fs" />
     <Compile Include="Clause.fs" />
     <Compile Include="Proof.fs" />
+    <Compile Include="LinearResolution.fs" />
+    <Compile Include="LinearInduction.fs" />
     <Compile Include="Peano.fs" />
   </ItemGroup>
   <ItemGroup>

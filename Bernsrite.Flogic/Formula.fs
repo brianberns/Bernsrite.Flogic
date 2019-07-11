@@ -187,10 +187,13 @@ module Formula =
 
     /// Adds an explicit universal quantifier for each free variable.
     let quantifyUniversally formula =
-        formula
-            |> getFreeVariables
-            |> Seq.fold (fun acc var ->
-                ForAll (var, acc)) formula
+        let result =
+            formula
+                |> getFreeVariables
+                |> Seq.fold (fun acc var ->
+                    ForAll (var, acc)) formula
+        assert(result |> getFreeVariables |> Set.isEmpty)
+        result
 
     /// Maps over immediate children. (Easier to understand and work with
     /// than catamorphism.)

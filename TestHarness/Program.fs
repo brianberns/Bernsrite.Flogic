@@ -21,7 +21,7 @@ module Program =
 
         let dtStart = DateTime.Now
         let proofOpt =
-            Proof.tryLinearResolution premises goal
+            LinearResolution.tryProve premises goal
         printfn "%A" proofOpt
         printfn "%A" (DateTime.Now - dtStart)
 

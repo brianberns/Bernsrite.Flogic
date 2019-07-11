@@ -22,11 +22,14 @@ module Peano =
 
     let private parse = Array.map (Parser.run parser)
 
+    // http://intrologic.stanford.edu/public/section.php?section=section_11_06
     let equalsAxioms =
         parse [|
-            "∀x.=(x,x)"
-            "∀x.(¬=(0,s(x)) ∧ ¬=(s(x),0))"
-            "∀x.∀y.(¬=(x,y) ⇒ ¬=(s(x),s(y)))"
+            "=(0,0)"
+            "∀x.¬=(0,s(x))"
+            "∀x.¬=(s(x),0)"
+            "∀x.∀y.(=(x,y) ⇒ =(s(x),s(y)))"
+            "∀x.∀y.(=(s(x),s(y)) ⇒ =(x,y))"
         |]
 
     let plusAxioms =
