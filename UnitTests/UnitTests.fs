@@ -189,4 +189,7 @@ type UnitTest() =
             let proofOpt =
                 goal
                     |> Strategy.tryProve Peano.language Peano.equalsAxioms
+            printfn ""
+            printfn "Goal: %A" goal
+            printfn "%A" proofOpt
             Assert.AreEqual(flag, proofOpt.IsSome)
