@@ -87,7 +87,7 @@ module Formula =
     /// Tries to substitute the given term for the given variable in the given
     /// formula. Fails if this would capture any of the variables in the given
     /// term.
-    /// See https://math.stackexchange.com/questions/3272333/restrictions-on-existential-introduction-in-first-order-logic
+    /// https://math.stackexchange.com/questions/3272333/restrictions-on-existential-introduction-in-first-order-logic
     let trySubstitute variable term formula =
 
             // variables that must avoid capture
@@ -184,13 +184,6 @@ module Formula =
         formula
             |> loop
             |> set
-
-    /// Indicates whether the given variable occurs free within the given
-    /// formula.
-    let isFree variable formula =
-        formula
-            |> getFreeVariables
-            |> Set.contains variable
 
     /// Maps over immediate children. (Easier to understand and work with
     /// than catamorphism.)
