@@ -90,7 +90,7 @@ type Proof =
         premises : seq<Formula>
             * goal : Formula
             * baseCase : Proof
-            * inductionCase : Proof
+            * inductionCase : LinearResolutionDerivation
         
     /// Display string.
     member this.String =
@@ -222,21 +222,20 @@ module Proof =
                                 (Application (
                                     func, [| VariableTerm variable |]))
 
-                        // don't add an explicit ∀, which could trigger infinite recursive induction
                         // e.g. (plus(x,0,x) ⇒ plus(s(x),0,s(x))
                     let inductiveCase =
                         Implication (
                             schema,
                             inductiveConclusion)
 
-                        // prove inductive case
+                        // prove inductive case (without recursing)
                     let! inductiveProof =
                         let premises' =
                             seq {
                                 yield! premises
                                 yield baseCase
                             }
-                        tryProve premises' inductiveCase
+                        tryLinearResolution premises' inductiveCase
 
                     return baseProof, inductiveProof
                 }
