@@ -149,7 +149,7 @@ module Formula =
         loop formula
 
     /// Answers the free variables in the given formula.
-    let getFreeVariables formula =
+    let private getFreeVariables formula =
 
         let rec loop formula =
             seq {
@@ -184,6 +184,13 @@ module Formula =
         formula
             |> loop
             |> set
+
+    /// Adds an explicit universal quantifier for each free variable.
+    let quantifyUniversally formula =
+        formula
+            |> getFreeVariables
+            |> Seq.fold (fun acc var ->
+                ForAll (var, acc)) formula
 
     /// Maps over immediate children. (Easier to understand and work with
     /// than catamorphism.)

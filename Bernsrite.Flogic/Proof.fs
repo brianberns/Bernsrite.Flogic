@@ -80,10 +80,42 @@ module Language =
             |> Array.map (fun (Constant name) -> name)
             |> Parser.makeParser
 
+[<StructuredFormatDisplay("{String}")>]
 type Proof =
-    | LinearResolutionProof of LinearResolutionDerivation
-    | LinearInductionProof of (
-        Proof (*base case*) * Proof (*induction case*))
+    | LinearResolutionProof of
+        premises : seq<Formula>
+            * goal : Formula
+            * LinearResolutionDerivation
+    | LinearInductionProof of
+        premises : seq<Formula>
+            * goal : Formula
+            * baseCase : Proof
+            * inductionCase : Proof
+        
+    /// Display string.
+    member this.String =
+        seq {
+            match this with
+                | LinearResolutionProof (premises, goal, derivation) ->
+                    yield "Premises:"
+                    for premise in premises do
+                        yield sprintf "   %A" premise
+                    yield sprintf "Goal: %A" goal
+                    yield "Derivation:"
+                    yield derivation.ToString()
+                | LinearInductionProof (premises, goal, baseProof, inductionProof) ->
+                    yield "Premises:"
+                    for premise in premises do
+                        yield sprintf "   %A" premise
+                    yield sprintf "Goal: %A" goal
+                    yield "Base case:"
+                    yield baseProof.ToString()
+                    yield "Induction case:"
+                    yield inductionProof.ToString()
+        } |> String.join "\r\n"
+
+    /// Display string.
+    override this.ToString() = this.String
 
 module Proof =
 
@@ -95,6 +127,7 @@ module Proof =
             // convert formulas to clauses
         let goalClauses =
             goal
+                |> Formula.quantifyUniversally
                 |> Not   // proof by refutation: negate goal
                 |> Clause.toClauses
                 |> Seq.toArray
@@ -167,7 +200,7 @@ module Proof =
         let rec loop premises = function
 
                 // e.g. ∀x.plus(x,0,x)
-            | ForAll (variable, schema) as goal ->
+            | ForAll (variable, schema) ->
                 opt {
 
                         // e.g. plus(0,0,0)
@@ -189,7 +222,8 @@ module Proof =
                                 (Application (
                                     func, [| VariableTerm variable |]))
 
-                        // e.g. plus(x,0,x) ⇒ plus(s(x),0,s(x))
+                        // don't add an explicit ∀, which could trigger infinite recursive induction
+                        // e.g. (plus(x,0,x) ⇒ plus(s(x),0,s(x))
                     let inductiveCase =
                         Implication (
                             schema,
@@ -208,16 +242,18 @@ module Proof =
                 }
             | _ -> None
 
-        /// Tries to prove a sub-goal. First via linear resolution, then
-        /// via recursive induction.
+        /// Tries to prove the given formula. First via induction, then
+        /// via linear resolution.
         and tryProve premises goal =
             goal
-                |> tryLinearResolution premises
-                |> Option.map LinearResolutionProof
+                |> loop premises
+                |> Option.map (fun (baseProof, inductiveProof) ->
+                    LinearInductionProof (premises, goal, baseProof, inductiveProof))
                 |> Option.orElseWith (fun () ->
                     goal
-                        |> loop premises
-                        |> Option.map LinearInductionProof)
+                        |> tryLinearResolution premises
+                        |> Option.map (fun derivation ->
+                            LinearResolutionProof (premises, goal, derivation)))
 
         goal |> loop premises
 
@@ -241,8 +277,10 @@ module Proof =
     let tryProve language premises goal =
         goal
             |> tryLinearInduction language premises
-            |> Option.map LinearInductionProof
+            |> Option.map (fun (baseProof, inductiveProof) ->
+                LinearInductionProof (premises, goal, baseProof, inductiveProof))
             |> Option.orElseWith (fun () ->
                 goal
                     |> tryLinearResolution premises
-                    |> Option.map LinearResolutionProof)
+                    |> Option.map (fun derivation ->
+                        LinearResolutionProof (premises, goal, derivation)))

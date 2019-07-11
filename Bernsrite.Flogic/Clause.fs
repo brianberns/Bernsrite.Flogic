@@ -241,11 +241,8 @@ module Clause =
                 | _ as formula ->
                     formula |> Formula.transform (loop scope)
 
-                // add explicit universal quantifier for any free variables
             formula
-                |> Formula.getFreeVariables
-                |> Seq.fold (fun acc var ->
-                    ForAll (var, acc)) formula
+                |> Formula.quantifyUniversally
                 |> loop Set.empty
 
         /// Distributes disjunctions: moves ANDs outside, ORs inside.

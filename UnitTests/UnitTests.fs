@@ -177,8 +177,17 @@ type UnitTest() =
 
     [<TestMethod>]
     member __.Peano() =
-        let proofOpt =
-            "∀x.∀y.(=(x,y) ⇒ =(y,x))"
-                |> Parser.run Peano.parser
-                |> Proof.tryProve Peano.language Peano.equalsAxioms
-        Assert.IsTrue(proofOpt.IsSome)
+        let goalPairs =
+            [|
+                "∀x.∀y.(=(x,y) ⇒ =(y,x))", true
+                "∀x.∀y.=(x,y)", false
+                "(=(0, y) ⇒ =(0, s(y)))", false
+                "∀y.(=(0, y) ⇒ =(0, s(y)))", false
+                "∀x.∀y.=(x,y)", false
+            |] |> Array.map (fun (str, flag) ->
+                str |> Parser.run Peano.parser, flag)
+        for (goal, flag) in goalPairs do
+            let proofOpt =
+                goal
+                    |> Proof.tryProve Peano.language Peano.equalsAxioms
+            Assert.AreEqual(flag, proofOpt.IsSome)
