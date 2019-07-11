@@ -17,48 +17,55 @@ module Parser =
             reply
 #endif
 
-    let special = set "(,)~&|<->∃∀.∧¬"
+    /// Symbols with special meanings.
+    let symbols = set "-&(),.|~<>∀∃∧∨→⇒⇐⇔¬!"
 
-    let isSpecial c =
-        special.Contains(c)
-            || Char.IsWhiteSpace(c)
-
+    /// Parses a name, such as "P" or "harry".
     let parseName =
-        many1Satisfy (isSpecial >> not)
+        let isTerminator c =
+            symbols.Contains(c)
+                || Char.IsWhiteSpace(c)
+        many1Satisfy (isTerminator >> not)
 
+    /// Parses a variable.
     let parseVariable =
         parseName |>> Variable
 
-    let skipAnyOfStr strs =
+    /// Skips any of the given strings.
+    let skipAnyOfStr strs : Parser<_> =
         strs
             |> Seq.map skipString
             |> Seq.toList
             |> choice
 
+    /// Skips surrounding parentheses.
     let parseParenthesized parser =
         skipChar '('
             >>. parser
             .>> skipChar ')'
 
-    let makeParsers constants =
+    /// Makes parsers that recognize the given names as constants.
+    let makeParsers constantNames =
 
+        /// Parses a constant.
         let parseConstant =
-            let constantsSet = set constants
+            let constantsSet = set constantNames
             parse {
                 let! name = parseName
                 if constantsSet.Contains(name) then
                     return Constant name
             }
-    
+
+        /// Parses a term recursively.
         let parseTerm, parseTermRef =
             createParserForwardedToRef<Term, unit>()
 
+        /// Parses a (potentially empty) list of terms.
         let parseTerms allowEmpty =
             let parsePresent =
                 spaces
-                    >>. skipChar '('
-                    >>. sepBy1 parseTerm (skipChar ',' .>> spaces)
-                    .>> skipChar ')'
+                    >>. parseParenthesized (
+                        sepBy1 parseTerm (skipChar ',' .>> spaces))
                     |>> Seq.toArray
             if allowEmpty then
                 attempt parsePresent
@@ -66,30 +73,38 @@ module Parser =
             else
                 parsePresent
 
+        /// Parses a function application term.
         let parseApplication =
             pipe2 parseName (parseTerms false)
                 (fun name (terms : _[]) ->
-                    Application (Function (name, terms.Length), terms))
+                    Application (
+                        Function (name, terms.Length),
+                        terms))
 
+        /// Parses a term.
         let parseTermActual =
             attempt parseApplication
                 <|> attempt (parseConstant |>> ConstantTerm)
                 <|> (parseVariable |>> VariableTerm)
         parseTermRef := parseTermActual
 
+        /// Parses an atomic formula.
         let parseAtomic =
             pipe2 parseName (parseTerms true)
                 (fun name (terms : _[]) ->
                     Atom (Predicate (name, terms.Length), terms))
 
+        /// Parses a formula recursively.
         let parseFormula, parseFormulaRef =
             createParserForwardedToRef<Formula, unit>()
-                        
+
+        /// Parses a negation formula.
         let parseNot =
             skipAnyOf ['~'; '¬'; '!']
                 >>. parseFormula
                 |>> Not
 
+        /// Parses a binary formula.
         let parseBinary : Parser<_> =
             [
                 ["&"; "∧"], And
@@ -107,6 +122,7 @@ module Parser =
                             constructor (formula1, formula2))))
                 |> choice
 
+        /// Parses a quantified formula.
         let parseQuantified =
             [
                 '∃', Exists
@@ -122,23 +138,20 @@ module Parser =
                             constructor (variable, formula))))
                 |> choice
 
-        // https://stackoverflow.com/questions/56779430/parser-combinator-for-propositional-logic
-        let parseComplex =
-            choice [
-                attempt parseNot
-                attempt (parseParenthesized parseBinary)
-                attempt parseQuantified
-            ]
-
+        /// Parses a formula.
+        /// https://stackoverflow.com/questions/56779430/parser-combinator-for-propositional-logic
         let parseFormulaActual =
             choice [
                 attempt parseAtomic
-                attempt parseComplex
+                attempt parseNot
+                attempt (parseParenthesized parseBinary)   // require parens to avoid left-recursion
+                attempt parseQuantified
             ]
         parseFormulaRef := parseFormulaActual
 
         parseTerm, parseFormula
 
+    /// Makes a formula parser that recognizes the given names as constants.
     let makeParser constants =
         let _, parseFormula = makeParsers constants
         parseFormula
