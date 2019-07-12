@@ -182,15 +182,15 @@ type UnitTest() =
         let goalPairs =
             [|
                 "∀x.∀y.(=(x,y) => =(y,x))", true
+                "∀x.+(x,0,x)", true
                 // "∀x.∀y.=(x,y)", false
                 // "∀y.=(0, y)", false
-                // "∀x.plus(x,0,x)", true
             |] |> Array.map (fun (str, flag) ->
                 str |> Parser.run Peano.parser, flag)
         for (goal, flag) in goalPairs do
             let proofOpt =
                 goal
-                    |> Strategy.tryProve Peano.language Peano.equalsAxioms
+                    |> Strategy.tryProve Peano.language Peano.axioms
             printfn ""
             printfn "Goal: %A" goal
             printfn "%A" proofOpt

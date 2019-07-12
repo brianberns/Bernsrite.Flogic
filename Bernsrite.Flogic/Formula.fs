@@ -45,13 +45,13 @@ type Formula =
         match arity, Char.IsSymbol(name.[0]) with
             | 0, _ -> name
             | 2, true ->
-                sprintf "%A %s%s %A"
+                sprintf "(%A %s%s %A)"
                     args.[0]
                     (if isPositive then "" else "~")
                     name
                     args.[1]
             | 3, true ->
-                sprintf "%A %s %A %s %A"
+                sprintf "(%A %s %A %s %A)"
                     args.[0]
                     name
                     args.[1]
