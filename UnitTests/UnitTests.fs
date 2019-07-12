@@ -159,7 +159,7 @@ type UnitTest() =
             | None -> Assert.Fail()
 
     [<TestMethod>]
-    member __.Induction() =
+    member __.Induction1() =
         let parse = Parser.run Peano.parser
         let premises =
             [|
@@ -171,6 +171,43 @@ type UnitTest() =
                 |> LinearInduction.tryProve
                     Peano.language
                     LinearResolution.tryProve
+                    premises
+        match proofOpt with
+            | Some proof ->
+                printfn "%A" proof
+            | None -> Assert.Fail()
+
+    [<TestMethod>]
+    member __.Induction2() =
+
+        let parse = Parser.run Peano.parser
+
+        let premises =
+            [|
+                "∀x.(p(x) ⇒ p(s(s(x))))"
+                "p(0)"
+                "p(s(0))"
+            |] |> Array.map parse
+        let goal = parse "∀x.(p(x) ∧ p(s(x)))"
+        let proofOpt =
+            goal
+                |> Strategy.tryProve
+                    Peano.language
+                    premises
+        match proofOpt with
+            | Some proof ->
+                printfn "%A" proof
+            | None -> Assert.Fail()
+
+        let premises =
+            [|
+                yield! premises
+                yield goal
+            |]
+        let proofOpt =
+            parse "∀x.p(x)"   // to-do: prove this directly from initial premises
+                |> Strategy.tryProve
+                    Peano.language
                     premises
         match proofOpt with
             | Some proof ->
