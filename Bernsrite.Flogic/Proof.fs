@@ -35,14 +35,14 @@ type Prover = seq<Formula> (*premises*) -> Formula (*goal*) -> Option<Proof>
 module Prover =
 
     /// Combines the given provers in series.
-    let combine (prover1 : Prover) (prover2 : Prover) =
+    let combine (prover1 : Prover) (prover2 : Prover) : Prover =
         fun premises goal ->
             prover1 premises goal
                 |> Option.orElseWith (fun () ->
                     prover2 premises goal)
 
     /// Creates a serial prover from the given provers.
-    let serial provers =
+    let serial provers : Prover =
         fun premises goal ->
             provers
                 |> Seq.tryPick (fun (prover : Prover) ->

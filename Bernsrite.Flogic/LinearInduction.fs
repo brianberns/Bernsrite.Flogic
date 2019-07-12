@@ -31,17 +31,22 @@ module LinearInduction =
                 // e.g. ∀x.plus(x,0,x)
             | ForAll (variable, schema) as goal ->
                 opt {
-
+                        // prove base case, trying recursive induction first
                         // e.g. plus(0,0,0)
                     let! baseCase =
                         schema
                             |> Formula.trySubstitute
                                 variable
                                 (ConstantTerm constant)
-
-                        // prove base case, trying recursive induction first
                     let! baseProof =
                         Prover.combine loop subprover premises baseCase
+
+                        // add base case to premises now that we've proved it
+                    let premises' =
+                        seq {
+                            yield! premises
+                            yield baseCase
+                        }
 
                         // e.g. plus(s(x),0,s(x))
                     let! inductiveConclusion =
@@ -51,20 +56,25 @@ module LinearInduction =
                                 (Application (
                                     func, [| VariableTerm variable |]))
 
+                        // prove inductive case
                         // e.g. (plus(x,0,x) ⇒ plus(s(x),0,s(x))
-                    let inductiveCase =
-                        Implication (
-                            schema,
-                            inductiveConclusion)
-
-                        // prove inductive case (without recursing)
                     let! inductiveProof =
-                        let premises' =
+
+                            // assume antecedent
+                        let premises'' =
                             seq {
-                                yield! premises
-                                yield baseCase
+                                yield! premises'
+                                yield schema
                             }
-                        subprover premises' inductiveCase
+
+                            // don't allow subprover to assume antecedent
+                            // see https://math.stackexchange.com/questions/3290370/first-order-logic-and-peano-arithmetic-paradox
+                        loop premises'' inductiveConclusion
+                            |> Option.orElseWith (fun () ->
+                                Implication (
+                                    schema,
+                                    inductiveConclusion)
+                                    |> subprover premises')
 
                     return {
                         Premises = premises |> Seq.toArray

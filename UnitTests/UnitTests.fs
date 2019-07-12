@@ -183,6 +183,10 @@ type UnitTest() =
         let goalPairs =
             [|
                 "∀x.∀y.(=(x,y) => =(y,x))", true
+                "~∀x.∀y.=(x,y)", true
+                // "∀x.∀y.=(x,y)", false
+                "~∀y.=(0, y)", true
+                // "∀y.=(0, y)", false
             |] |> Array.map (fun (str, flag) ->
                 str |> Parser.run Peano.parser, flag)
         for (goal, flag) in goalPairs do
