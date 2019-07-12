@@ -30,7 +30,7 @@ type LinearResolutionDerivation =
         member this.ToString(level) =
             seq {
 
-                yield "" |> Print.indent level
+                yield ""
                 yield "Input clauses:" |> Print.indent level
                 for clause in this.InputClauses do
                     yield clause |> Print.indent (level + 1)
@@ -52,6 +52,7 @@ type LinearResolutionDerivation =
                     Seq.zip centerStrs sideStrs
                         |> Seq.toArray
 
+                yield ""
                 yield "Steps:" |> Print.indent level
                 for i = 0 to strPairs.Length - 1 do
                     let centerStr, sideStr = strPairs.[i]

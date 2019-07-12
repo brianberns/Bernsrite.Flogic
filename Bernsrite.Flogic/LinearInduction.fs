@@ -27,11 +27,11 @@ type LinearInductionDerivation =
         member this.ToString(level) =
             seq {
 
-                yield "" |> Print.indent level
+                yield ""
                 yield "Base case:" |> Print.indent level
                 yield this.BaseCase.ToString(level + 1)
 
-                yield "" |> Print.indent level
+                yield ""
                 yield "Inductive case:" |> Print.indent level
                 yield this.InductiveCase.ToString(level + 1)
 

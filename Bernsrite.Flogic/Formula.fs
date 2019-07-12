@@ -33,6 +33,36 @@ type Formula =
     /// Universal quantifier: ∀x.P(x)
     | ForAll of Variable * Formula
 
+    /// ~(=(x,y)) -> x ~= y
+    /// +(a,b,c) -> a + b = c
+    static member PredicateString
+       (predicate : Predicate,
+        args : _[],
+        isPositive : bool) =
+        let (Predicate (name, arity)) = predicate
+        if (arity <> args.Length) then
+            failwith "Arity mismatch"
+        match arity, Char.IsSymbol(name.[0]) with
+            | 0, _ -> name
+            | 2, true ->
+                sprintf "%A %s%s %A"
+                    args.[0]
+                    (if isPositive then "" else "~")
+                    name
+                    args.[1]
+            | 3, true ->
+                sprintf "%A %s %A %s %A"
+                    args.[0]
+                    name
+                    args.[1]
+                    (if isPositive then "=" else "~=")
+                    args.[2]
+            | _ ->
+                sprintf "%s%s(%s)"
+                    (if isPositive then "" else "~")
+                    name
+                    (args |> String.join ", ")
+
     /// Display string.
     member this.String =
 
@@ -47,12 +77,10 @@ type Formula =
                     (if isRoot then "" else ")")
 
             function
-                | Atom (Predicate (name, arity), terms) ->
-                    if (arity <> terms.Length) then
-                        failwith "Arity mismatch"
-                    if arity = 0 then name
-                    else
-                        sprintf "%s(%s)" name <| String.Join(", ", terms)
+                | Atom (predicate, terms) ->
+                    Formula.PredicateString(predicate, terms, true)
+                | Not (Atom (predicate, terms)) ->
+                    Formula.PredicateString(predicate, terms, false)
                 | Not formula ->
                     sprintf "~%s" (formula |> loop false)
                 | And (formula1, formula2) ->

@@ -25,12 +25,12 @@ type Proof =
     member this.ToString(level) =
         seq {
 
-            yield "" |> Print.indent level
+            yield ""
             yield "Premises:" |> Print.indent level
             for premise in this.Premises do
                 yield premise |> Print.indent (level + 1)
 
-            yield "" |> Print.indent level
+            yield ""
             yield sprintf "Goal: %A" this.Goal |> Print.indent level
 
             yield this.Evidence.ToString(level + 1)

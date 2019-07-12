@@ -1,7 +1,5 @@
 ﻿namespace Bernsrite.Flogic
 
-open System
-
 /// A literal is either an atomic formula or its negation.
 [<StructuredFormatDisplay("{String}")>]
 type Literal =
@@ -13,29 +11,10 @@ type Literal =
 
     /// Display string.
     member this.String =
-        let (Predicate (name, arity)) = this.Predicate
-        if (arity <> this.Terms.Length) then
-            failwith "Arity mismatch"
-        match arity, Char.IsSymbol(name.[0]) with
-            | 0, _ -> name
-            | 2, true ->
-                sprintf "%A %s%s %A"
-                    this.Terms.[0]
-                    (if this.IsPositive then "" else "~")
-                    name
-                    this.Terms.[1]
-            | 3, true ->
-                sprintf "%A %s %A %s %A"
-                    this.Terms.[0]
-                    name
-                    this.Terms.[1]
-                    (if this.IsPositive then "=" else "~=")
-                    this.Terms.[2]
-            | _ ->
-                sprintf "%s%s(%s)"
-                    (if this.IsPositive then "" else "~")
-                    name
-                    (String.Join(", ", this.Terms))
+        Formula.PredicateString(
+            this.Predicate,
+            this.Terms,
+            this.IsPositive)
 
     /// Display string.
     override this.ToString() =
