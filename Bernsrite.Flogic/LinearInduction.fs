@@ -41,13 +41,6 @@ module LinearInduction =
                     let! baseProof =
                         Prover.combine loop subprover premises baseCase
 
-                        // add base case to premises now that we've proved it
-                    let premises' =
-                        seq {
-                            yield! premises
-                            yield baseCase
-                        }
-
                         // e.g. plus(s(x),0,s(x))
                     let! inductiveConclusion =
                         schema
@@ -60,20 +53,17 @@ module LinearInduction =
                         // e.g. (plus(x,0,x) ⇒ plus(s(x),0,s(x))
                     let! inductiveProof =
 
-                            // assume antecedent
-                        let premises'' =
-                            seq {
-                                yield! premises'
-                                yield schema
-                            }
+                            // add base case to premises (since we proved it above)
+                        let premises' = seq { yield! premises; yield baseCase }
 
-                            // don't allow subprover to assume antecedent
-                            // see https://math.stackexchange.com/questions/3290370/first-order-logic-and-peano-arithmetic-paradox
-                        loop premises'' inductiveConclusion
+                            // assume antecedent for recursive proof
+                        inductiveConclusion
+                            |> loop (seq { yield! premises'; yield schema })
+
+                                // otherwise, try to prove the full implication without assuming the antecedent
+                                // see https://math.stackexchange.com/questions/3290370/first-order-logic-and-peano-arithmetic-paradox
                             |> Option.orElseWith (fun () ->
-                                Implication (
-                                    schema,
-                                    inductiveConclusion)
+                                Implication (schema, inductiveConclusion)
                                     |> subprover premises')
 
                     return {
