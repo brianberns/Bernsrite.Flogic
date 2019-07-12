@@ -21,6 +21,29 @@ type LinearInductionDerivation =
         InductiveCase : Proof
     }
 
+    interface IEvidence with
+
+        /// Display string.
+        member this.ToString(level) =
+            seq {
+
+                yield "" |> Print.indent level
+                yield "Base case:" |> Print.indent level
+                yield this.BaseCase.ToString(level + 1)
+
+                yield "" |> Print.indent level
+                yield "Inductive case:" |> Print.indent level
+                yield this.InductiveCase.ToString(level + 1)
+
+            } |> String.join "\r\n"
+
+    /// Display string.
+    override this.ToString() =
+        (this :> IEvidence).ToString(0)
+        
+    /// Display string.
+    member this.String = this.ToString()
+
 module LinearInduction =
 
     /// Tries to prove the given formula using linear induction.

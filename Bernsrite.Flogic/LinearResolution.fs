@@ -24,45 +24,54 @@ type LinearResolutionDerivation =
         Steps : List<LinearResolutionDerivationStep>
     }
 
+    interface IEvidence with
+
+        /// Display string.
+        member this.ToString(level) =
+            seq {
+
+                yield "" |> Print.indent level
+                yield "Input clauses:" |> Print.indent level
+                for clause in this.InputClauses do
+                    yield clause |> Print.indent (level + 1)
+
+                let strPairs =
+                    let steps = this.Steps |> List.rev
+                    let centerStrs =
+                        seq {
+                            yield this.TopClause.ToString()
+                            for step in steps do
+                                yield step.CenterClause.ToString()
+                        }
+                    let sideStrs =
+                        seq {
+                            for step in steps do
+                                yield step.SideClause.ToString()
+                            yield ""
+                        }
+                    Seq.zip centerStrs sideStrs
+                        |> Seq.toArray
+
+                yield "Steps:" |> Print.indent level
+                for i = 0 to strPairs.Length - 1 do
+                    let centerStr, sideStr = strPairs.[i]
+                    let prefix = sprintf "%d. %s" (i + 1) centerStr
+                    let str =
+                        if i = strPairs.Length - 1 then
+                            assert(sideStr = "")
+                            prefix
+                        else
+                            sprintf "%s with %s" prefix sideStr
+                    yield str |> Print.indent (level + 1)
+
+            } |> String.join "\r\n"
+
     /// Display string.
-    member this.String =
-        seq {
-
-            yield "Input clauses:"
-            for clause in this.InputClauses do
-                yield sprintf "   %A" clause
-
-            let strPairs =
-                let steps = this.Steps |> List.rev
-                let centerStrs =
-                    seq {
-                        yield this.TopClause.ToString()
-                        for step in steps do
-                            yield step.CenterClause.ToString()
-                    }
-                let sideStrs =
-                    seq {
-                        for step in steps do
-                            yield step.SideClause.ToString()
-                        yield ""
-                    }
-                Seq.zip centerStrs sideStrs
-                    |> Seq.toArray
-
-            for i = 0 to strPairs.Length - 1 do
-                let centerStr, sideStr = strPairs.[i]
-                let prefix = sprintf "%d. %s" (i + 1) centerStr
-                yield
-                    if i = strPairs.Length - 1 then
-                        assert(sideStr = "")
-                        prefix
-                    else
-                        sprintf "%s\twith %s" prefix sideStr
-
-        } |> String.join "\r\n"
-
+    override this.ToString() =
+        (this :> IEvidence).ToString(0)
+        
     /// Display string.
-    override this.ToString() = this.String
+    member this.String = this.ToString()
 
 /// http://www.cs.miami.edu/home/geoff/Courses/CSC648-12S/Content/LinearResolution.shtml
 module LinearResolution =

@@ -1,25 +1,47 @@
 ﻿namespace Bernsrite.Flogic
 
+open System
+
+module Print =
+
+    /// Indents the given object to the given level.
+    let indent level obj =
+        sprintf "%s%s"
+            (String(' ', 3 * level))
+            (obj.ToString())
+
+type IEvidence =
+    abstract member ToString : int -> string
+
 [<StructuredFormatDisplay("{String}")>]
 type Proof =
     {
         Premises : Formula[]
         Goal : Formula
-        Evidence : obj
+        Evidence : IEvidence
     }
-        
+
     /// Display string.
-    member this.String =
+    member this.ToString(level) =
         seq {
-            yield "Premises:"
+
+            yield "" |> Print.indent level
+            yield "Premises:" |> Print.indent level
             for premise in this.Premises do
-                yield sprintf "   %A" premise
-            yield sprintf "Goal: %A" this.Goal
-            yield sprintf "%A" this.Evidence
+                yield premise |> Print.indent (level + 1)
+
+            yield "" |> Print.indent level
+            yield sprintf "Goal: %A" this.Goal |> Print.indent level
+
+            yield this.Evidence.ToString(level + 1)
+
         } |> String.join "\r\n"
 
     /// Display string.
-    override this.ToString() = this.String
+    override this.ToString() = this.ToString(0)
+        
+    /// Display string.
+    member this.String = this.ToString()
 
 module Proof =
 
