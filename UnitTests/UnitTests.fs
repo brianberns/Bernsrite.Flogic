@@ -236,9 +236,6 @@ type UnitTest() =
             let result =
                 goal
                     |> Strategy.tryProve Peano.language Peano.axioms
-            printfn ""
-            printfn "Goal: %A" goal
-            printfn "%A" result
             printfn "%A" result
             match result with
                 | Proved _ -> Assert.IsTrue(flag)
