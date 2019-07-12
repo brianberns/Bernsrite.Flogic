@@ -24,7 +24,7 @@ type LinearResolutionDerivation =
         Steps : List<LinearResolutionDerivationStep>
     }
 
-    interface IEvidence with
+    interface IDerivation with
 
         /// Display string.
         member this.ToString(level) =
@@ -69,85 +69,110 @@ type LinearResolutionDerivation =
 
     /// Display string.
     override this.ToString() =
-        (this :> IEvidence).ToString(0)
+        (this :> IDerivation).ToString(0)
         
     /// Display string.
     member this.String = this.ToString()
 
 /// http://www.cs.miami.edu/home/geoff/Courses/CSC648-12S/Content/LinearResolution.shtml
 module LinearResolution =
+            
+    // Depth-first search.
+    let private search maxDepth derivation =
+
+        let rec loop depth derivation =
+            assert(depth = (derivation.Steps |> Seq.length))
+            if depth < maxDepth then
+
+                    // get current center clause
+                let centerClause, centerClauses =
+                    match derivation.Steps with
+                        | [] ->
+                            derivation.TopClause, Seq.empty
+                        | step :: steps ->
+                            let centerClauses =
+                                steps
+                                    |> Seq.map (fun step -> step.CenterClause)
+                            step.CenterClause, centerClauses
+
+                    // resolve with all possible side clauses
+                let sideClauses =
+                    Seq.append derivation.InputClauses centerClauses
+                sideClauses
+                    |> Seq.tryPick (fun sideClause ->
+                        Clause.resolve centerClause sideClause
+                            |> Seq.tryPick (fun resolvent ->
+                                let nextDerivation =
+                                    let step =
+                                        {
+                                            CenterClause = resolvent
+                                            SideClause = sideClause
+                                        }
+                                    {
+                                        derivation with
+                                            Steps = step :: derivation.Steps
+                                    }
+                                if resolvent.Literals.Length = 0 then   // success: empty clause is a contradiction
+                                    Some nextDerivation
+                                else
+                                    nextDerivation |> loop (depth + 1)))
+            else None
+
+        derivation |> loop 0
 
     /// Tries to prove the given goal from the given premises via linear
     /// resolution.
     let tryProve premises goal =
 
-            // convert formulas to clauses
-        let goalClauses =
-            goal
-                |> Formula.quantifyUniversally   // must have explicit quantification before negating
-                |> Not                           // proof by refutation: negate goal
+            // convert premises to clause normal form (CNF)
+        let premiseClauses =
+            premises
+                |> Seq.collect Clause.toClauses
+                |> Seq.toArray
+
+            // ensure explicit quantification before negating
+        let goal' =
+            goal |> Formula.quantifyUniversally
+
+            // convert goal to CNF for proof
+        let proofGoalClauses =
+            goal'
+                |> Not   // proof by refutation: negate goal
                 |> Clause.toClauses
                 |> Seq.toArray
-        let inputClauses =
+        let proofInputClauses =
             [|
-                yield! premises
-                    |> Seq.collect Clause.toClauses
-                    |> Seq.toArray
-                yield! goalClauses
+                yield! premiseClauses
+                yield! proofGoalClauses
             |]
-            
-            // depth-first search
-        let search maxDepth derivation =
 
-            let rec loop depth derivation =
-                assert(depth = (derivation.Steps |> Seq.length))
-                if depth < maxDepth then
-
-                        // get current center clause
-                    let centerClause, centerClauses =
-                        match derivation.Steps with
-                            | [] ->
-                                derivation.TopClause, Seq.empty
-                            | step :: steps ->
-                                let centerClauses =
-                                    steps
-                                        |> Seq.map (fun step -> step.CenterClause)
-                                step.CenterClause, centerClauses
-
-                        // resolve with all possible side clauses
-                    let sideClauses =
-                        Seq.append derivation.InputClauses centerClauses
-                    sideClauses
-                        |> Seq.tryPick (fun sideClause ->
-                            Clause.resolve centerClause sideClause
-                                |> Seq.tryPick (fun resolvent ->
-                                    let nextDerivation =
-                                        let step =
-                                            {
-                                                CenterClause = resolvent
-                                                SideClause = sideClause
-                                            }
-                                        {
-                                            derivation with
-                                                Steps = step :: derivation.Steps
-                                        }
-                                    if resolvent.Literals.Length = 0 then   // success: empty clause is a contradiction
-                                        Some nextDerivation
-                                    else
-                                        nextDerivation |> loop (depth + 1)))
-                else None
-
-            derivation
-                |> loop 0
-                |> Option.map (Proof.create premises goal)
+            // convert goal to CNF for disproof
+        let disproofGoalClauses =
+            goal'
+                |> Clause.toClauses
+                |> Seq.toArray
+        let disproofInputClauses =
+            [|
+                yield! premiseClauses
+                yield! disproofGoalClauses
+            |]
 
             // iterative deepening
-        [4; 20]
-            |> Seq.tryPick (fun maxDepth ->
+        [ 4; 10 ]
+            |> Seq.collect (fun maxDepth ->
+                seq {
+                    yield maxDepth, proofGoalClauses, proofInputClauses, Proved
+                    yield maxDepth, disproofGoalClauses, disproofInputClauses, Disproved
+                })
+            |> Seq.tryPick (fun (maxDepth, goalClauses, inputClauses, constructor) ->
                 goalClauses
                     |> Seq.tryPick (fun topClause ->
                         search maxDepth {
                             InputClauses = inputClauses
                             TopClause = topClause
                             Steps = List.empty
-                        }))
+                        })
+                    |> Option.map (fun derivation ->
+                        ProofSuccess.create premises goal derivation
+                            |> constructor))
+            |> Option.defaultValue Undecided

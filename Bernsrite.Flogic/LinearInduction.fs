@@ -15,13 +15,18 @@ module Language =
             |> Array.map (fun (Constant name) -> name)
             |> Parser.makeParser
 
+/// A linear resolution derivation.
+[<StructuredFormatDisplay("{String}")>]
 type LinearInductionDerivation =
     {
-        BaseCase : Proof
-        InductiveCase : Proof
+        /// Positive proof of base case.
+        BaseCase : ProofSuccess
+
+        /// Postive proof of inductive case.
+        InductiveCase : ProofSuccess
     }
 
-    interface IEvidence with
+    interface IDerivation with
 
         /// Display string.
         member this.ToString(level) =
@@ -39,7 +44,7 @@ type LinearInductionDerivation =
 
     /// Display string.
     override this.ToString() =
-        (this :> IEvidence).ToString(0)
+        (this :> IDerivation).ToString(0)
         
     /// Display string.
     member this.String = this.ToString()
@@ -47,7 +52,12 @@ type LinearInductionDerivation =
 module LinearInduction =
 
     /// Tries to prove the given formula using linear induction.
-    let private tryProveRaw constant func (subprover : Prover) premises goal =
+    let private tryProveRaw constant func (subprover : Prover) premises goal : ProofResult =
+
+        /// Converts a positive proof result to a proof success.
+        let toSuccessOpt = function
+            | Proved success -> Some success
+            | _ -> None
 
         let rec loop premises = function
 
@@ -63,6 +73,7 @@ module LinearInduction =
                                 (ConstantTerm constant)
                     let! baseProof =
                         Prover.combine loop subprover premises baseCase
+                            |> toSuccessOpt
 
                         // e.g. plus(s(x),0,s(x))
                     let! inductiveConclusion =
@@ -85,21 +96,25 @@ module LinearInduction =
 
                                 // otherwise, try to prove the full implication without assuming the antecedent
                                 // see https://math.stackexchange.com/questions/3290370/first-order-logic-and-peano-arithmetic-paradox
-                            |> Option.orElseWith (fun () ->
-                                Implication (schema, inductiveConclusion)
-                                    |> subprover premises')
+                            |> function
+                                | Proved success -> Some success
+                                | Disproved _ -> None   // disproof causes the induction to fail
+                                | Undecided ->
+                                    Implication (schema, inductiveConclusion)
+                                        |> subprover premises'
+                                        |> toSuccessOpt
 
-                    return {
+                    return Proved {
                         Premises = premises |> Seq.toArray
                         Goal = goal
-                        Evidence =
+                        Derivation =
                             {
                                 BaseCase = baseProof
                                 InductiveCase = inductiveProof
                             }
                     }
-                }
-            | _ -> None
+                } |> Option.defaultValue Undecided
+            | _ -> Undecided
 
         goal |> loop premises
 
@@ -116,7 +131,7 @@ module LinearInduction =
         match (constantOpt, functionOpt) with
             | Some constant, Some func ->
                 tryProveRaw constant func subprover premises goal
-            | _ -> None
+            | _ -> Undecided
 
 module Strategy =
 

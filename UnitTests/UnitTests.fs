@@ -131,12 +131,13 @@ type UnitTest() =
                 "∀u.∀v.∀w.(loves(v,w) ⇒ loves(u,v))"
             |] |> Array.map (Parser.run parser)
         let goal = "∀x.∀y.loves(x,y)" |> Parser.run parser
-        match LinearResolution.tryProve premises goal with
-            | Some proof ->
-                printfn "%A" proof
-                let derivation = proof.Evidence :?> LinearResolutionDerivation
+        let result = LinearResolution.tryProve premises goal
+        printfn "%A" result
+        match result with
+            | Proved success ->
+                let derivation = success.Derivation :?> LinearResolutionDerivation
                 Assert.AreEqual(2, derivation.Steps.Length)
-            | None -> Assert.Fail()
+            | _ -> Assert.Fail()
 
     [<TestMethod>]
     member __.Resolve2() =
@@ -151,12 +152,13 @@ type UnitTest() =
                 "r(ralph)"
             |] |> Array.map (Parser.run parser)
         let goal = "f(harry, ralph)" |> Parser.run parser
-        match LinearResolution.tryProve premises goal with
-            | Some proof ->
-                printfn "%A" proof
-                let derivation = proof.Evidence :?> LinearResolutionDerivation
+        let result = LinearResolution.tryProve premises goal
+        printfn "%A" result
+        match result with
+            | Proved success ->
+                let derivation = success.Derivation :?> LinearResolutionDerivation
                 Assert.AreEqual(7, derivation.Steps.Length)
-            | None -> Assert.Fail()
+            | _ -> Assert.Fail()
 
     [<TestMethod>]
     member __.Induction1() =
@@ -166,16 +168,16 @@ type UnitTest() =
                 "∀y.+(0,y,y)"
                 "∀x.∀y.∀z.(+(x,y,z) ⇒ +(s(x),y,s(z)))"
             |] |> Array.map parse
-        let proofOpt =
+        let result =
             parse "∀x.+(x,0,x)"
                 |> LinearInduction.tryProve
                     Peano.language
                     LinearResolution.tryProve
                     premises
-        match proofOpt with
-            | Some proof ->
-                printfn "%A" proof
-            | None -> Assert.Fail()
+        printfn "%A" result
+        match result with
+            | Proved success -> ()
+            | _ -> Assert.Fail()
 
     [<TestMethod>]
     member __.Induction2() =
@@ -189,47 +191,56 @@ type UnitTest() =
                 "p(s(0))"
             |] |> Array.map parse
         let goal = parse "∀x.(p(x) ∧ p(s(x)))"
-        let proofOpt =
+        let result =
             goal
                 |> Strategy.tryProve
                     Peano.language
                     premises
-        match proofOpt with
-            | Some proof ->
-                printfn "%A" proof
-            | None -> Assert.Fail()
+        printfn "%A" result
+        match result with
+            | Proved success -> ()
+            | _ -> Assert.Fail()
 
         let premises =
             [|
                 yield! premises
                 yield goal
             |]
-        let proofOpt =
+        let result =
             parse "∀x.p(x)"   // to-do: prove this directly from initial premises
                 |> Strategy.tryProve
                     Peano.language
                     premises
-        match proofOpt with
-            | Some proof ->
-                printfn "%A" proof
-            | None -> Assert.Fail()
+        printfn "%A" result
+        match result with
+            | Proved success -> ()
+            | _ -> Assert.Fail()
 
     [<TestMethod>]
     member __.Peano() =
         let goalPairs =
             [|
+                    // symmetry
                 "∀x.∀y.(=(x,y) => =(y,x))", true
-                "∀x.+(x,0,x)", true
+                "∀x.∀y.=(x,y)", false
+                "∀y.=(0, y)", false
+
+                    // transitivity
                 "∀x.∀y.∀z.((=(x,y) ∧ =(y,z)) ⇒ =(x,z))", true
-                // "∀x.∀y.=(x,y)", false
-                // "∀y.=(0, y)", false
+
+                    // addition
+                "∀x.+(x,0,x)", true
             |] |> Array.map (fun (str, flag) ->
                 str |> Parser.run Peano.parser, flag)
         for (goal, flag) in goalPairs do
-            let proofOpt =
+            let result =
                 goal
                     |> Strategy.tryProve Peano.language Peano.axioms
             printfn ""
             printfn "Goal: %A" goal
-            printfn "%A" proofOpt
-            Assert.AreEqual(flag, proofOpt.IsSome)
+            printfn "%A" result
+            printfn "%A" result
+            match result with
+                | Proved _ -> Assert.IsTrue(flag)
+                | Disproved _ -> Assert.IsFalse(flag)
+                | Undecided -> Assert.Fail()
