@@ -220,6 +220,7 @@ type UnitTest() =
             [|
                 "∀x.∀y.(=(x,y) => =(y,x))", true
                 "∀x.+(x,0,x)", true
+                "∀x.∀y.∀z.((=(x,y) ∧ =(y,z)) ⇒ =(x,z))", true
                 // "∀x.∀y.=(x,y)", false
                 // "∀y.=(0, y)", false
             |] |> Array.map (fun (str, flag) ->
