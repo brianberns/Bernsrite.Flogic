@@ -97,19 +97,9 @@ module LinearInduction =
 
 module Strategy =
 
-    let tryProveImplication premises = function
-        | Implication (formula1, formula2) ->
-            let premises' =
-                seq {
-                    yield! premises
-                    yield formula1
-                }
-            LinearResolution.tryProve premises' formula2
-        | goal -> LinearResolution.tryProve premises goal
-
     /// Tries to prove the given formula.
     let tryProve language =
         Prover.serial [|
-            LinearInduction.tryProve language tryProveImplication
-            tryProveImplication
+            LinearInduction.tryProve language LinearResolution.tryProve
+            LinearResolution.tryProve
         |]
