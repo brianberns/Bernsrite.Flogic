@@ -60,6 +60,7 @@
     <Compile Include="LinearResolution.fs" />
     <Compile Include="LinearInduction.fs" />
     <Compile Include="Peano.fs" />
+    <Compile Include="Robinson.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FParsec">
