@@ -164,7 +164,7 @@ type UnitTest() =
 
     [<TestMethod>]
     member __.Induction1() =
-        let parse = Parser.run Peano.parser
+        let parse = Language.parse Peano.language
         let premises =
             [|
                 "∀y.+(0,y,y)"
@@ -224,7 +224,7 @@ type Peano() =
     let test (goalStr, flag) =
         let proofOpt =
             goalStr
-                |> Parser.run Peano.parser
+                |> Language.parse Peano.language
                 |> Strategy.tryProve Peano.language Peano.axioms
         printfn "%A" proofOpt
         match proofOpt with
