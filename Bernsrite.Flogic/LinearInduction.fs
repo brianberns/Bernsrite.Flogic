@@ -1,20 +1,5 @@
 ﻿namespace Bernsrite.Flogic
 
-type Language =
-    {
-        Constants : Constant[]
-        Functions : Function[]
-        Predicates : Predicate[]
-    }
-
-module Language =
-
-    /// Creates a parser for the given language.
-    let makeParser language : Parser<_> =
-        language.Constants
-            |> Array.map (fun (Constant name) -> name)
-            |> Parser.makeParser
-
 /// A linear resolution derivation.
 [<StructuredFormatDisplay("{String}")>]
 type LinearInductionDerivation =
