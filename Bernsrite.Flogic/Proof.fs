@@ -10,22 +10,31 @@ module Print =
             (String(' ', 3 * level))
             (obj.ToString())
 
-/// Derivation of a proof.
-type IDerivation =
-    abstract member ToString : int -> string
-
-/// Information about a successsful proof.
-[<StructuredFormatDisplay("{String}")>]
-type ProofSuccess =
+/// Interface for pretty printing.
+type Printable =
     {
-        /// Premises used by this proof.
+        /// Full object.
+        Object : obj
+
+        /// Creates a string indented to the given level.
+        ToString : int (*level, 0-based*) -> string
+    }
+
+/// Input to and output of a proof.
+[<StructuredFormatDisplay("{String}")>]
+type Proof =
+    {
+        /// Premises of this proof.
         Premises : Formula[]
 
-        /// Goal proved.
+        /// Goal of this proof.
         Goal : Formula
 
-        /// Derivation of the proof.
-        Derivation : IDerivation
+        /// Result of this proof: proved or disproved.
+        Result : bool
+
+        /// Derivation of this proof.
+        Derivation : Printable
     }
 
     /// Display string.
@@ -42,6 +51,10 @@ type ProofSuccess =
 
             yield this.Derivation.ToString(level)
 
+            yield ""
+            yield if this.Result then "Proved" else "Disproved"
+                |> Print.indent level
+
         } |> String.join "\r\n"
 
     /// Display string.
@@ -50,52 +63,19 @@ type ProofSuccess =
     /// Display string.
     member this.String = this.ToString()
 
-module ProofSuccess =
+module Proof =
 
-    /// Creates a proof success.
-    let create premises goal evidence =
+    /// Creates a proof.
+    let create premises goal result derivation =
         {
             Premises = premises |> Seq.toArray
             Goal = goal
-            Derivation = evidence
+            Result = result
+            Derivation = derivation
         }
 
-/// Result of an attempted proof.
-[<StructuredFormatDisplay("{String}")>]
-type ProofResult =
-
-    /// Goal was proved.
-    | Proved of ProofSuccess
-
-    /// Goal was disproved. Negation of the goal was proved.
-    | Disproved of ProofSuccess
-
-    /// Goal could not be proved or disproved.
-    | Undecided
-
-    /// Display string.
-    member this.ToString(level) =
-        seq {
-            match this with
-                | Proved success ->
-                    yield success.ToString(level)
-                    yield ""
-                    yield "Proved" |> Print.indent level
-                | Disproved success ->
-                    yield success.ToString(level)
-                    yield ""
-                    yield "Disproved" |> Print.indent level
-                | Undecided -> yield "Undecided" |> Print.indent level
-        } |> String.join "\r\n"
-
-    /// Display string.
-    override this.ToString() = this.ToString(0)
-        
-    /// Display string.
-    member this.String = this.ToString()
-
 /// A prover is a function that can attempt proofs.
-type Prover = seq<Formula> (*premises*) -> Formula (*goal*) -> ProofResult
+type Prover = seq<Formula> (*premises*) -> Formula (*goal*) -> Option<Proof>
 
 module Prover =
 
@@ -104,15 +84,7 @@ module Prover =
         fun premises goal ->
             provers
                 |> Seq.tryPick (fun (prover : Prover) ->
-                    let result = prover premises goal
-                    match result with
-                        | Proved _
-                        | Disproved _ -> Some result
-                        | Undecided -> None)
-                |> function
-                    | Some (Proved _ as result)
-                    | Some (Disproved _ as result) -> result
-                    | _ -> Undecided
+                    prover premises goal)
 
     /// Combines the given provers in series.
     let combine (prover1 : Prover) (prover2 : Prover) : Prover =

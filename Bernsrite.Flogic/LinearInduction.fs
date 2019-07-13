@@ -20,44 +20,51 @@ module Language =
 type LinearInductionDerivation =
     {
         /// Positive proof of base case.
-        BaseCase : ProofSuccess
+        BaseCase : Proof
 
         /// Postive proof of inductive case.
-        InductiveCase : ProofSuccess
+        InductiveCase : Proof
     }
 
-    interface IDerivation with
+    /// Display string.
+    member this.ToString(level) =
+        seq {
 
-        /// Display string.
-        member this.ToString(level) =
-            seq {
+            yield ""
+            yield "Base case:" |> Print.indent level
+            yield this.BaseCase.ToString(level + 1)
 
-                yield ""
-                yield "Base case:" |> Print.indent level
-                yield this.BaseCase.ToString(level + 1)
+            yield ""
+            yield "Inductive case:" |> Print.indent level
+            yield this.InductiveCase.ToString(level + 1)
 
-                yield ""
-                yield "Inductive case:" |> Print.indent level
-                yield this.InductiveCase.ToString(level + 1)
-
-            } |> String.join "\r\n"
+        } |> String.join "\r\n"
 
     /// Display string.
     override this.ToString() =
-        (this :> IDerivation).ToString(0)
+        this.ToString(0)
         
     /// Display string.
     member this.String = this.ToString()
 
+    /// Printable implementation.
+    member this.Printable =
+        {
+            Object = this
+            ToString = this.ToString
+        }
+
 module LinearInduction =
 
     /// Tries to prove the given formula using linear induction.
-    let private tryProveRaw constant func (subprover : Prover) premises goal : ProofResult =
+    let private tryProveRaw constant func (subprover : Prover) premises goal =
 
-        /// Converts a positive proof result to a proof success.
-        let toSuccessOpt = function
-            | Proved success -> Some success
-            | _ -> None
+        /// Picks only a successful proof.
+        let pickSuccess proofOpt =
+            proofOpt
+                |> Option.bind (fun proof ->
+                    if proof.Result then Some proof
+                    else None)
 
         let rec loop premises = function
 
@@ -73,7 +80,7 @@ module LinearInduction =
                                 (ConstantTerm constant)
                     let! baseProof =
                         Prover.combine loop subprover premises baseCase
-                            |> toSuccessOpt
+                            |> pickSuccess
 
                         // e.g. plus(s(x),0,s(x))
                     let! inductiveConclusion =
@@ -96,25 +103,22 @@ module LinearInduction =
 
                                 // otherwise, try to prove the full implication without assuming the antecedent
                                 // see https://math.stackexchange.com/questions/3290370/first-order-logic-and-peano-arithmetic-paradox
-                            |> function
-                                | Proved success -> Some success
-                                | Disproved _ -> None   // disproof causes the induction to fail
-                                | Undecided ->
-                                    Implication (schema, inductiveConclusion)
-                                        |> subprover premises'
-                                        |> toSuccessOpt
+                            |> Option.orElseWith (fun () ->
+                                Implication (schema, inductiveConclusion)
+                                    |> subprover premises')
+                            |> pickSuccess
 
-                    return Proved {
-                        Premises = premises |> Seq.toArray
-                        Goal = goal
-                        Derivation =
-                            {
-                                BaseCase = baseProof
-                                InductiveCase = inductiveProof
-                            }
-                    }
-                } |> Option.defaultValue Undecided
-            | _ -> Undecided
+                    return Proof.create
+                        premises
+                        goal
+                        true
+                        {
+                            BaseCase = baseProof
+                            InductiveCase = inductiveProof
+                        }.Printable
+                }
+
+            | _ -> None
 
         goal |> loop premises
 
@@ -131,7 +135,7 @@ module LinearInduction =
         match (constantOpt, functionOpt) with
             | Some constant, Some func ->
                 tryProveRaw constant func subprover premises goal
-            | _ -> Undecided
+            | _ -> None
 
 module Strategy =
 

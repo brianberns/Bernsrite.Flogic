@@ -24,55 +24,60 @@ type LinearResolutionDerivation =
         Steps : List<LinearResolutionDerivationStep>
     }
 
-    interface IDerivation with
+    /// Display string.
+    member this.ToString(level) =
+        seq {
 
-        /// Display string.
-        member this.ToString(level) =
-            seq {
+            yield ""
+            yield "Input clauses:" |> Print.indent level
+            for clause in this.InputClauses do
+                yield clause |> Print.indent (level + 1)
 
-                yield ""
-                yield "Input clauses:" |> Print.indent level
-                for clause in this.InputClauses do
-                    yield clause |> Print.indent (level + 1)
+            let strPairs =
+                let steps = this.Steps |> List.rev
+                let centerStrs =
+                    seq {
+                        yield this.TopClause.ToString()
+                        for step in steps do
+                            yield step.CenterClause.ToString()
+                    }
+                let sideStrs =
+                    seq {
+                        for step in steps do
+                            yield step.SideClause.ToString()
+                        yield ""
+                    }
+                Seq.zip centerStrs sideStrs
+                    |> Seq.toArray
 
-                let strPairs =
-                    let steps = this.Steps |> List.rev
-                    let centerStrs =
-                        seq {
-                            yield this.TopClause.ToString()
-                            for step in steps do
-                                yield step.CenterClause.ToString()
-                        }
-                    let sideStrs =
-                        seq {
-                            for step in steps do
-                                yield step.SideClause.ToString()
-                            yield ""
-                        }
-                    Seq.zip centerStrs sideStrs
-                        |> Seq.toArray
+            yield ""
+            yield "Steps:" |> Print.indent level
+            for i = 0 to strPairs.Length - 1 do
+                let centerStr, sideStr = strPairs.[i]
+                let prefix = sprintf "%d. %s" (i + 1) centerStr
+                let str =
+                    if i = strPairs.Length - 1 then
+                        assert(sideStr = "")
+                        prefix
+                    else
+                        sprintf "%s with %s" prefix sideStr
+                yield str |> Print.indent (level + 1)
 
-                yield ""
-                yield "Steps:" |> Print.indent level
-                for i = 0 to strPairs.Length - 1 do
-                    let centerStr, sideStr = strPairs.[i]
-                    let prefix = sprintf "%d. %s" (i + 1) centerStr
-                    let str =
-                        if i = strPairs.Length - 1 then
-                            assert(sideStr = "")
-                            prefix
-                        else
-                            sprintf "%s with %s" prefix sideStr
-                    yield str |> Print.indent (level + 1)
-
-            } |> String.join "\r\n"
+        } |> String.join "\r\n"
 
     /// Display string.
     override this.ToString() =
-        (this :> IDerivation).ToString(0)
+        this.ToString(0)
         
     /// Display string.
     member this.String = this.ToString()
+
+    /// Printable implementation.
+    member this.Printable =
+        {
+            Object = this
+            ToString = this.ToString
+        }
 
 /// http://www.cs.miami.edu/home/geoff/Courses/CSC648-12S/Content/LinearResolution.shtml
 module LinearResolution =
@@ -161,10 +166,10 @@ module LinearResolution =
         [ 4; 10 ]
             |> Seq.collect (fun maxDepth ->
                 seq {
-                    yield maxDepth, proofGoalClauses, proofInputClauses, Proved
-                    yield maxDepth, disproofGoalClauses, disproofInputClauses, Disproved
+                    yield maxDepth, proofGoalClauses, proofInputClauses, true
+                    yield maxDepth, disproofGoalClauses, disproofInputClauses, false
                 })
-            |> Seq.tryPick (fun (maxDepth, goalClauses, inputClauses, constructor) ->
+            |> Seq.tryPick (fun (maxDepth, goalClauses, inputClauses, flag) ->
                 goalClauses
                     |> Seq.tryPick (fun topClause ->
                         search maxDepth {
@@ -173,6 +178,8 @@ module LinearResolution =
                             Steps = List.empty
                         })
                     |> Option.map (fun derivation ->
-                        ProofSuccess.create premises goal derivation
-                            |> constructor))
-            |> Option.defaultValue Undecided
+                        Proof.create
+                            premises
+                            goal
+                            flag
+                            derivation.Printable))

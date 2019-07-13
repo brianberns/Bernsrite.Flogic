@@ -42,15 +42,15 @@ type Formula =
         let (Predicate (name, arity)) = predicate
         if (arity <> args.Length) then
             failwith "Arity mismatch"
-        match arity, Char.IsSymbol(name.[0]) with
+        match arity, Char.IsLetterOrDigit(name.[0]) with
             | 0, _ -> name
-            | 2, true ->
+            | 2, false ->
                 sprintf "(%A %s%s %A)"
                     args.[0]
                     (if isPositive then "" else "~")
                     name
                     args.[1]
-            | 3, true ->
+            | 3, false ->
                 sprintf "(%A %s %A %s %A)"
                     args.[0]
                     name
