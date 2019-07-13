@@ -184,7 +184,8 @@ type UnitTest() =
     [<TestMethod>]
     member __.Induction2() =
 
-        let parse = Parser.run Peano.parser
+        let parser = Parser.makeParser ["0"]
+        let parse = Parser.run parser
 
         let premises =
             [|

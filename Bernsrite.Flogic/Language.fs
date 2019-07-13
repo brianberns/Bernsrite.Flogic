@@ -11,16 +11,26 @@ type Language =
 
         /// Predicates of the language. E.g. "equal(x, y)".
         Predicates : Predicate[]
+
+        /// Parser for this language.
+        Parser : Parser<Formula>
     }
 
 module Language =
 
-    /// Creates a parser for the given language.
-    let makeParser language : Parser<_> =
-        language.Constants
-            |> Array.map (fun (Constant name) -> name)
-            |> Parser.makeParser
+    /// Creates a language.
+    let create constants functions predicates =
+        {
+            Constants = constants
+            Functions = functions
+            Predicates = predicates
+            Parser =
+                constants
+                    |> Array.map (fun (Constant name) -> name)
+                    |> Parser.makeParser
+        }
 
+    /// Finds all functions and predicates contained in the given formula.
     let private getContents formula =
 
         let rec loopTerm functions = function
@@ -54,10 +64,10 @@ module Language =
                 formula2 |> loopPredicate functions' predicates'
 
         formula |> loopPredicate Set.empty Set.empty
-                
+
+    /// Parses the given string using the given language.
     let parse language str =
-        let parser = makeParser language
-        let formula = Parser.run parser str
+        let formula = Parser.run language.Parser str
         let functions, predicates = getContents formula
         let undeclaredFunctions =
             Set.difference functions (set language.Functions)

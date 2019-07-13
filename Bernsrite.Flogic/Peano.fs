@@ -4,21 +4,14 @@
 module Peano =
 
     let language =
-        {
-            Constants =
-                [| Constant "0" |]
-            Functions =
-                [| Function ("s", 1) |]
-            Predicates =
-                [|
-                    Predicate ("=", 2)
-                    Predicate ("+", 3)
-                    Predicate ("*", 3)
-                |]
-        }
-
-    let parser =
-        language |> Language.makeParser
+        Language.create
+            [| Constant "0" |]
+            [| Function ("s", 1) |]
+            [|
+                Predicate ("=", 2)
+                Predicate ("+", 3)
+                Predicate ("*", 3)
+            |]
 
     let private parse = Array.map (Language.parse language)
 

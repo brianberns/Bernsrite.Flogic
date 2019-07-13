@@ -4,25 +4,16 @@
 module Robinson =
 
     let language =
-        {
-            Constants =
-                [| Constant "0" |]
-            Functions =
-                [|
-                    Function ("s", 1)
-                    Function ("+", 2)
-                    Function ("*", 2)
-                |]
-            Predicates =
-                [|
-                    Predicate ("=", 2)
-                |]
-        }
+        Language.create
+            [| Constant "0" |]
+            [|
+                Function ("s", 1)
+                Function ("+", 2)
+                Function ("*", 2)
+            |]
+            [| Predicate ("=", 2) |]
 
-    let parser =
-        language |> Language.makeParser
-
-    let private parse = Array.map (Parser.run parser)
+    let private parse = Array.map (Language.parse language)
 
     let equalsAxioms =
         parse [|
