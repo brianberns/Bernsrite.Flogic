@@ -163,7 +163,7 @@ type UnitTest() =
             | _ -> Assert.Fail()
 
     [<TestMethod>]
-    member __.Induction() =
+    member __.Induction1() =
         let parse = Parser.run Peano.parser
         let premises =
             [|
@@ -181,11 +181,8 @@ type UnitTest() =
             | Some proof -> Assert.IsTrue(proof.Result)
             | _ -> Assert.Fail()
 
-[<TestClass>]
-type Peano() =
-
     [<TestMethod>]
-    member __.Induction() =
+    member __.Induction2() =
 
         let parse = Parser.run Peano.parser
 
@@ -221,28 +218,36 @@ type Peano() =
             | Some proof -> Assert.IsTrue(proof.Result)
             | _ -> Assert.Fail()
 
+[<TestClass>]
+type Peano() =
+
+    let test (goalStr, flag) =
+        let proofOpt =
+            goalStr
+                |> Parser.run Peano.parser
+                |> Strategy.tryProve Peano.language Peano.axioms
+        printfn "%A" proofOpt
+        match proofOpt with
+            | Some proof -> Assert.AreEqual(flag, proof.Result)
+            | _ -> Assert.Fail()
+
     [<TestMethod>]
-    member __.Peano() =
-        let goalPairs =
-            [|
-                    // symmetry
-                "∀x.∀y.(=(x,y) => =(y,x))", true
-                "∀x.∀y.=(x,y)", false
-                "∀y.=(0, y)", false
+    member __.EqualSymmetry() =
+        test ("∀x.∀y.(=(x,y) => =(y,x))", true)
 
-                    // transitivity
-                "∀x.∀y.∀z.((=(x,y) ∧ =(y,z)) ⇒ =(x,z))", true
+    [<TestMethod>]
+    member __.EqualTransitivity() =
+        test ("∀x.∀y.∀z.((=(x,y) ∧ =(y,z)) ⇒ =(x,z))", true)
 
-                    // addition
-                "∀x.+(x,0,x)", true
-                "∀a.∀b.∀c.∀d.((+(a,b,c) & +(b,a,d)) => =(c,d))", true
-            |] |> Array.map (fun (str, flag) ->
-                str |> Parser.run Peano.parser, flag)
-        for (goal, flag) in goalPairs do
-            let proofOpt =
-                goal
-                    |> Strategy.tryProve Peano.language Peano.axioms
-            printfn "%A" proofOpt
-            match proofOpt with
-                | Some proof -> Assert.AreEqual(flag, proof.Result)
-                | _ -> Assert.Fail()
+    [<TestMethod>]
+    member __.EqualFalse() =
+        test ("∀x.∀y.=(x,y)", false)
+
+    [<TestMethod>]
+    member __.AdditionIdentity() =
+        test ("∀x.+(x,0,x)", true)
+        test ("∀x.+(0,x,x)", true)
+
+    [<TestMethod>]
+    member __.AdditionCommutative() =
+        test ("∀a.∀b.∀c.∀d.((+(a,b,c) & +(b,a,d)) => =(c,d))", true)
