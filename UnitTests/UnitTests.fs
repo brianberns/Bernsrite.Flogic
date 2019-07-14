@@ -233,11 +233,15 @@ type Peano() =
             | _ -> Assert.Fail()
 
     [<TestMethod>]
-    member __.EqualSymmetry() =
-        test ("∀x.∀y.(=(x,y) => =(y,x))", true)
+    member __.EqualsReflexive() =
+        test ("∀x.=(x,x)", true)
 
     [<TestMethod>]
-    member __.EqualTransitivity() =
+    member __.EqualsSymmetric() =
+        test ("∀x.∀y.(=(x,y) ⇒ =(y,x))", true)
+
+    [<TestMethod>]
+    member __.EqualsTransitive() =
         test ("∀x.∀y.∀z.((=(x,y) ∧ =(y,z)) ⇒ =(x,z))", true)
 
     [<TestMethod>]
@@ -250,5 +254,13 @@ type Peano() =
         test ("∀x.+(0,x,x)", true)
 
     [<TestMethod>]
+    member __.AdditionCancellative() =
+        test ("∀a.∀b.∀c.∀y.∀z.(((=(a,b) ∧ +(a,c,y)) ∧ +(b,c,z)) ⇒ =(y,z))", true)
+
+    [<TestMethod>]
     member __.AdditionCommutative() =
-        test ("∀a.∀b.∀c.∀d.((+(a,b,c) & +(b,a,d)) => =(c,d))", true)
+        test ("∀a.∀b.∀x.∀y.((+(a,b,x) ∧ +(b,a,y)) ⇒ =(x,y))", true)
+
+    [<TestMethod>]
+    member __.AdditionTransitive() =
+        test ("∀x.∀y.∀z.((((+(a,b,w) ∧ +(w,c,x)) ∧ +(b,c,y)) ∧ +(a,y,z)) ⇒ =(x,z))", true)
