@@ -255,7 +255,7 @@ type Peano() =
 
     [<TestMethod>]
     member __.AdditionCancellative() =
-        test ("∀a.∀b.∀c.∀y.∀z.(((=(a,b) ∧ +(a,c,y)) ∧ +(b,c,z)) ⇒ =(y,z))", true)
+        test ("∀a.∀b.∀c.∀x.∀y.(((=(a,b) ∧ +(a,c,x)) ∧ +(b,c,y)) ⇒ =(x,y))", true)
 
     [<TestMethod>]
     member __.AdditionCommutative() =
@@ -263,4 +263,4 @@ type Peano() =
 
     [<TestMethod>]
     member __.AdditionTransitive() =
-        test ("∀x.∀y.∀z.((((+(a,b,w) ∧ +(w,c,x)) ∧ +(b,c,y)) ∧ +(a,y,z)) ⇒ =(x,z))", true)
+        test ("∀a.∀b.∀c.∀w.∀x.∀y.∀z.((((+(a,b,w) ∧ +(w,c,x)) ∧ +(b,c,y)) ∧ +(a,y,z)) ⇒ =(x,z))", true)
