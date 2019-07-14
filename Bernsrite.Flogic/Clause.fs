@@ -376,7 +376,7 @@ module Clause =
                 |> Seq.toArray
 
             // isolates each item in the given array
-        let createAllButArray mapping (items : _[]) =
+        let createAllButArray mapping items =
             items
                 |> Array.mapi (fun i item ->
                     let item' = mapping item
