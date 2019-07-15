@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
     <DebugType>Full</DebugType>
+    <OutputType>Exe</OutputType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +20,7 @@
     <Compile Include="LinearInduction.fs" />
     <Compile Include="Peano.fs" />
     <Compile Include="Robinson.fs" />
+    <Compile Include="Program.fs" />
   </ItemGroup>
 
   <ItemGroup>
