@@ -163,6 +163,23 @@ type UnitTest() =
             | _ -> Assert.Fail()
 
     [<TestMethod>]
+    /// This test requires factoring (or something similar).
+    member __.Derivation() =
+        let parser = Parser.makeParser Array.empty
+        let goalClauses =
+            [|
+                "(p(x) | p(y))"
+                "(¬p(u) | ¬p(v))"
+            |] |> Array.map (
+                Parser.run parser >> Clause.toClauses >> Seq.exactlyOne)
+        let derivationOpt =
+            LinearResolutionDerivation.create
+                Array.empty goalClauses goalClauses.[0]
+                    |> LinearResolution.search 6
+        printfn "%A" derivationOpt
+        Assert.IsTrue(derivationOpt.IsSome)
+
+    [<TestMethod>]
     member __.Induction1() =
         let parse = Language.parse Peano.language
         let premises =

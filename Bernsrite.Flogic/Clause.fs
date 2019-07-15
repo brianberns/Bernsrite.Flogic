@@ -320,8 +320,14 @@ module Clause =
         literal
             |> Literal.map (Substitution.applyTerm subst)
 
-    /// Derives new clauses from the given clauses using the resolution
-    /// principle.
+    /// Derives new clauses from the given clauses using the resolution principle.
+    ///
+    /// Sources state that factoring is required to resolve some inputs to the
+    /// empty clause (see unit test). However, this implementation succeeds in
+    /// many (all?) cases without full-blown factoring because it eliminates
+    /// duplicate literals within clauses.
+    /// Issue: Are there still cases where factoring is necessary?
+    /// https://www.doc.ic.ac.uk/~kb/MACTHINGS/SLIDES/2013Notes/6LSub4up13.pdf
     let resolve clause1 clause2 =
 
         /// Deconflicts variable names in the given clauses by renaming
@@ -384,11 +390,15 @@ module Clause =
                 for (literal2, allBut2) in allButArray2 do
                     match Literal.tryUnify literal1 literal2 with
                         | Some subst ->
-                            yield Seq.append allBut1.Value allBut2.Value
-                                |> Seq.map (apply subst)
-                                |> create
+                            let resolvent =
+                                Seq.append allBut1.Value allBut2.Value
+                                    |> Seq.map (apply subst)
+                                    |> create   // eliminate duplicate literals
+                            yield resolvent, subst
                         | None -> ()
-        } |> set
+        }
+            |> Seq.distinctBy fst
+            |> Seq.toArray
 
     /// Answers all factors of the given clause (including itself).
     let allFactors clause =
@@ -452,6 +462,7 @@ module Clause =
                     for clauseU in clausesU do
                         for clauseW in clausesW do
                             yield! resolve clauseU clauseW
+                                |> Seq.map fst
                 }
                     |> set
                     |> loop

@@ -11,8 +11,8 @@ type Substitution =
     member this.String =
         this.SubstMap
             |> Seq.sort
-            |> Seq.map (fun (variable, term) ->
-                sprintf "%A <- %A" variable term)
+            |> Seq.map (fun (variableName, term) ->
+                sprintf "%s <- %A" variableName term)
             |> String.join ", "
 
     /// Display string.

@@ -8,6 +8,9 @@ type LinearResolutionDerivationStep =
 
         /// Existing side clause used in this step's creation.
         SideClause : Clause
+
+        /// Substitution used in this step's creation.
+        Substitution : Substitution
     }
 
 /// A linear resolution derivation.
@@ -44,7 +47,7 @@ type LinearResolutionDerivation =
                 let sideStrs =
                     seq {
                         for step in steps do
-                            yield step.SideClause.ToString()
+                            yield sprintf "%A via %A" step.SideClause step.Substitution
                         yield ""
                     }
                 Seq.zip centerStrs sideStrs
@@ -79,11 +82,26 @@ type LinearResolutionDerivation =
             ToString = this.ToString
         }
 
+module LinearResolutionDerivation =
+
+    /// Initializes a derivation from the given clauses.
+    let create premiseClauses goalClauses topClause =
+        assert(goalClauses |> Seq.contains topClause)
+        {
+            InputClauses =
+                [|
+                    yield! premiseClauses
+                    yield! goalClauses
+                |]
+            TopClause = topClause
+            Steps = List.empty
+        }
+
 /// http://www.cs.miami.edu/home/geoff/Courses/CSC648-12S/Content/LinearResolution.shtml
 module LinearResolution =
             
-    // Depth-first search.
-    let private search maxDepth derivation =
+    /// Depth-first search.
+    let search maxDepth derivation =
 
         let rec loop depth derivation =
             assert(depth = (derivation.Steps |> Seq.length))
@@ -106,12 +124,13 @@ module LinearResolution =
                 sideClauses
                     |> Seq.tryPick (fun sideClause ->
                         Clause.resolve centerClause sideClause
-                            |> Seq.tryPick (fun resolvent ->
+                            |> Seq.tryPick (fun (resolvent, substitution) ->
                                 let nextDerivation =
                                     let step =
                                         {
                                             CenterClause = resolvent
                                             SideClause = sideClause
+                                            Substitution = substitution
                                         }
                                     {
                                         derivation with
@@ -145,38 +164,26 @@ module LinearResolution =
                 |> Not   // proof by refutation: negate goal
                 |> Clause.toClauses
                 |> Seq.toArray
-        let proofInputClauses =
-            [|
-                yield! premiseClauses
-                yield! proofGoalClauses
-            |]
 
             // convert goal to CNF for disproof
         let disproofGoalClauses =
             goal'
                 |> Clause.toClauses
                 |> Seq.toArray
-        let disproofInputClauses =
-            [|
-                yield! premiseClauses
-                yield! disproofGoalClauses
-            |]
 
             // iterative deepening
         [ 4; 10 ]
             |> Seq.collect (fun maxDepth ->
                 seq {
-                    yield maxDepth, proofGoalClauses, proofInputClauses, true
-                    yield maxDepth, disproofGoalClauses, disproofInputClauses, false
+                    yield maxDepth, proofGoalClauses, true
+                    yield maxDepth, disproofGoalClauses, false
                 })
-            |> Seq.tryPick (fun (maxDepth, goalClauses, inputClauses, flag) ->
+            |> Seq.tryPick (fun (maxDepth, goalClauses, flag) ->
                 goalClauses
                     |> Seq.tryPick (fun topClause ->
-                        search maxDepth {
-                            InputClauses = inputClauses
-                            TopClause = topClause
-                            Steps = List.empty
-                        })
+                        LinearResolutionDerivation.create
+                            premiseClauses goalClauses topClause
+                                |> search maxDepth)
                     |> Option.map (fun derivation ->
                         Proof.create
                             premises
