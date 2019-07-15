@@ -12,8 +12,6 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Bernsrite.Flogic", "Bernsri
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "UnitTests", "UnitTests\UnitTests.fsproj", "{9F293AE9-52DC-43EB-8A81-90D58E70A83B}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TestHarness", "TestHarness\TestHarness.fsproj", "{7931C357-136C-4830-A04A-845202699D2B}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,10 +26,6 @@ Global
 		{9F293AE9-52DC-43EB-8A81-90D58E70A83B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9F293AE9-52DC-43EB-8A81-90D58E70A83B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9F293AE9-52DC-43EB-8A81-90D58E70A83B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7931C357-136C-4830-A04A-845202699D2B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7931C357-136C-4830-A04A-845202699D2B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7931C357-136C-4830-A04A-845202699D2B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7931C357-136C-4830-A04A-845202699D2B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
