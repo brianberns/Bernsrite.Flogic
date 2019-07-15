@@ -131,7 +131,7 @@ type UnitTest() =
                 "∀u.∀v.∀w.(loves(v,w) ⇒ loves(u,v))"
             |] |> Array.map (Parser.run parser)
         let goal = "∀x.∀y.loves(x,y)" |> Parser.run parser
-        let proofOpt = LinearResolution.tryProve premises goal
+        let proofOpt = LinearResolution.tryProve Language.empty premises goal
         printfn "%A" proofOpt
         match proofOpt with
             | Some proof ->
@@ -153,7 +153,7 @@ type UnitTest() =
                 "r(ralph)"
             |] |> Array.map (Parser.run parser)
         let goal = "f(harry, ralph)" |> Parser.run parser
-        let proofOpt = LinearResolution.tryProve premises goal
+        let proofOpt = LinearResolution.tryProve Language.empty premises goal
         printfn "%A" proofOpt
         match proofOpt with
             | Some proof ->
@@ -184,14 +184,13 @@ type UnitTest() =
         let parse = Language.parse Peano.language
         let premises =
             [|
-                "∀y.+(0,y,y)"
-                "∀x.∀y.∀z.(+(x,y,z) ⇒ +(s(x),y,s(z)))"
+                "∀y.=(+(0,y), y)"
+                "∀x.∀y.∀z.(=(+(x,y), z) ⇒ =(+(s(x),y), s(z)))"
             |] |> Array.map parse
         let proofOpt =
-            parse "∀x.+(x,0,x)"
-                |> LinearInduction.tryProve
+            parse "∀x.=(+(x,0), x)"
+                |> LinearResolution.tryProve
                     Peano.language
-                    LinearResolution.tryProve
                     premises
         printfn "%A" proofOpt
         match proofOpt with
@@ -213,7 +212,7 @@ type UnitTest() =
         let goal = parse "∀x.(p(x) ∧ p(s(x)))"
         let proofOpt =
             goal
-                |> Strategy.tryProve
+                |> LinearResolution.tryProve
                     Peano.language
                     premises
         printfn "%A" proofOpt
@@ -228,7 +227,7 @@ type UnitTest() =
             |]
         let proofOpt =
             parse "∀x.p(x)"   // to-do: prove this directly from initial premises
-                |> Strategy.tryProve
+                |> LinearResolution.tryProve
                     Peano.language
                     premises
         printfn "%A" proofOpt
@@ -243,41 +242,50 @@ type Peano() =
         let proofOpt =
             goalStr
                 |> Language.parse Peano.language
-                |> Strategy.tryProve Peano.language Peano.axioms
+                |> LinearResolution.tryProve Peano.language Peano.axioms
         printfn "%A" proofOpt
         match proofOpt with
             | Some proof -> Assert.AreEqual(flag, proof.Result)
             | _ -> Assert.Fail()
 
     [<TestMethod>]
-    member __.EqualsReflexive() =
-        test ("∀x.=(x,x)", true)
+    member __.EqualityReflexive() =
+        test ("∀x.=(x, x)", true)
 
     [<TestMethod>]
-    member __.EqualsSymmetric() =
-        test ("∀x.∀y.(=(x,y) ⇒ =(y,x))", true)
+    member __.EqualitySymmetric() =
+        test ("∀x.∀y.(=(x, y) ⇒ =(y, x))", true)
 
     [<TestMethod>]
-    member __.EqualsTransitive() =
-        test ("∀x.∀y.∀z.((=(x,y) ∧ =(y,z)) ⇒ =(x,z))", true)
+    member __.EqualityTransitive() =
+        test ("∀x.∀y.∀z.((=(x, y) ∧ =(y, z)) ⇒ =(x, z))", true)
 
     [<TestMethod>]
-    member __.EqualFalse() =
-        test ("∀x.∀y.=(x,y)", false)
+    member __.EqualityFalse() =
+        // test ("~∀x.∀y.=(x, y)", true)
+        test ("∀x.∀y.=(x, y)", false)
 
     [<TestMethod>]
     member __.AdditionIdentity() =
-        test ("∀x.+(x,0,x)", true)
-        test ("∀x.+(0,x,x)", true)
+        test ("∀x.=(+(x,0), x)", true)
+        test ("∀x.=(+(0,x), x)", true)
+
+    [<TestMethod>]
+    member __.AdditionSuccessor() =
+        test ("∀x.∀y.=(+(x,s(y)), s(+(x,y)))", true)
+        // test ("∀a.∀b.∀x.∀y.((+(a,s(b),x) & +(a,b,y)) -> =(x,s(y)))", true)
 
     [<TestMethod>]
     member __.AdditionCancellative() =
-        test ("∀a.∀b.∀c.∀x.∀y.(((=(a,b) ∧ +(a,c,x)) ∧ +(b,c,y)) ⇒ =(x,y))", true)
+        test ("∀x.∀y.∀z.(=(+(x,z), +(y,z)) ⇒ =(x, y))", true)
 
     [<TestMethod>]
     member __.AdditionCommutative() =
-        test ("∀a.∀b.∀x.∀y.((+(a,b,x) ∧ +(b,a,y)) ⇒ =(x,y))", true)
+        // test ("∀a.∀b.∀x.∀y.((=(+(a,b), x) ∧ =(+(b,a), y)) ⇒ =(x, y))", true)
+        test ("∀x.∀y.=(+(x,y), +(y,x))", true)
 
     [<TestMethod>]
-    member __.AdditionTransitive() =
-        test ("∀a.∀b.∀c.∀w.∀x.∀y.∀z.((((+(a,b,w) ∧ +(w,c,x)) ∧ +(b,c,y)) ∧ +(a,y,z)) ⇒ =(x,z))", true)
+    member __.AdditionAssociative() =
+        // test ("∀w.∀x.∀y.∀z.∀a.∀b.∀c.((((=(+(a,b), w) ∧ =(+(w,c), x)) ∧ =(+(b,c), y)) ∧ =(+(a,y), z)) ⇒ =(x, z))", true)
+        // test ("∀z.∀x.∀y.=(+(+(x,y),z), +(x,+(y,z)))", true)
+        test ("∀x.∀y.=(+(+(x,y),0), +(x,+(y,0)))", true)

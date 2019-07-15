@@ -146,11 +146,14 @@ module LinearResolution =
 
     /// Tries to prove the given goal from the given premises via linear
     /// resolution.
-    let tryProve premises goal =
+    let tryProve language premises goal =
 
             // convert premises to clause normal form (CNF)
         let premiseClauses =
-            premises
+            [|
+                yield! premises
+                yield! Language.generateAxioms language goal
+            |]
                 |> Seq.collect Clause.toClauses
                 |> Seq.toArray
 

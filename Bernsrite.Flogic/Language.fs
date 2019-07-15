@@ -12,23 +12,41 @@ type Language =
         /// Predicates of the language. E.g. "equal(x, y)".
         Predicates : Predicate[]
 
+        /// Generates additional axioms (e.g. for induction)
+        AxiomGenerator : Formula -> Formula[]
+
         /// Parser for this language.
         Parser : Parser<Formula>
     }
 
 module Language =
 
+    /// The default empty language.
+    let empty =
+        {
+            Constants = Array.empty
+            Functions = Array.empty
+            Predicates = Array.empty
+            AxiomGenerator = (fun _ -> Array.empty)
+            Parser = (fun _ -> failwith "No parser")
+        }
+
     /// Creates a language.
-    let create constants functions predicates =
+    let create constants functions predicates axiomGenerator =
         {
             Constants = constants
             Functions = functions
             Predicates = predicates
+            AxiomGenerator = axiomGenerator
             Parser =
                 constants
                     |> Array.map (fun (Constant name) -> name)
                     |> Parser.makeParser
         }
+
+    /// Generates axioms for the given formula.
+    let generateAxioms language =
+        language.AxiomGenerator
 
     /// Finds all functions and predicates contained in the given formula.
     let private getContents formula =

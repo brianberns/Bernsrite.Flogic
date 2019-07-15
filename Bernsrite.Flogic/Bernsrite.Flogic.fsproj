@@ -17,9 +17,8 @@
     <Compile Include="Proof.fs" />
     <Compile Include="Language.fs" />
     <Compile Include="LinearResolution.fs" />
-    <Compile Include="LinearInduction.fs" />
+    <Compile Include="Equality.fs" />
     <Compile Include="Peano.fs" />
-    <Compile Include="Robinson.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

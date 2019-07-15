@@ -73,22 +73,3 @@ module Proof =
             Result = result
             Derivation = derivation
         }
-
-/// A prover is a function that can attempt proofs.
-type Prover = seq<Formula> (*premises*) -> Formula (*goal*) -> Option<Proof>
-
-module Prover =
-
-    /// Creates a serial prover from the given provers.
-    let serial provers : Prover =
-        fun premises goal ->
-            provers
-                |> Seq.tryPick (fun (prover : Prover) ->
-                    prover premises goal)
-
-    /// Combines the given provers in series.
-    let combine (prover1 : Prover) (prover2 : Prover) : Prover =
-        seq {
-            yield prover1
-            yield prover2
-        } |> serial
