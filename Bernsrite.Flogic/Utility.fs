@@ -98,5 +98,7 @@ module String =
 
     /// Concatenates the given items in a string, using the specified
     /// separator between each one.    
-    let join separator (items : seq<'t>) =
-        String.Join(separator, items)
+    let join separator (items : seq<_>) =
+        let strs =
+            items |> Seq.map (fun item -> item.ToString())
+        String.Join(separator, strs)
