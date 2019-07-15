@@ -40,6 +40,10 @@ module Clause =
                     |> Seq.toArray
         }
 
+    /// Converts a clause to literals.
+    let toLiterals clause =
+        clause.Literals
+
     /// Applies the given mapping to all literals in the given clause.
     let map mapping clause =
         clause.Literals
@@ -352,29 +356,6 @@ module Clause =
             clauseToRename
                 |> map (Literal.map deconflictTerm)
 
-        /// Answers all factors of the given clause (including itself).
-        let allFactors clause =
-
-            let rec loop clause =
-                seq {
-                    yield clause
-                    for i = 0 to clause.Literals.Length - 1 do
-                        for j = 0 to clause.Literals.Length - 1 do
-                            if i <> j then
-                                match Literal.tryUnify
-                                    clause.Literals.[i]
-                                    clause.Literals.[j] with
-                                    | Some subst ->
-                                        yield! clause
-                                            |> map (apply subst)
-                                            |> loop
-                                    | None -> ()
-                }
-
-            clause
-                |> loop
-                |> Seq.toArray
-
             // isolates each item in the given array
         let createAllButArray mapping items =
             items
@@ -388,32 +369,49 @@ module Clause =
                         |]
                     item', allBut)
 
-            // deconflict the clauses and find all factors of each one
-        let allButArrays1 =
+            // deconflict the clauses and prepare to unify their literals
+        let allButArray1 =
             clause1
-                |> allFactors
-                |> Seq.map (fun clause ->
-                    clause.Literals
-                        |> createAllButArray id)
-        let allButArrays2 =
+                |> toLiterals
+                |> createAllButArray id
+        let allButArray2 =
             deconflict clause1 clause2
-                |> allFactors
-                |> Seq.map (fun clause ->
-                    clause.Literals
-                        |> createAllButArray Literal.negate)   // negate for unification
+                |> toLiterals
+                |> createAllButArray Literal.negate   // negate for unification
 
         seq {
-            for allButArray1 in allButArrays1 do
-                for allButArray2 in allButArrays2 do
-                    for (literal1, allBut1) in allButArray1 do
-                        for (literal2, allBut2) in allButArray2 do
-                            match Literal.tryUnify literal1 literal2 with
-                                | Some subst ->
-                                    yield Seq.append allBut1.Value allBut2.Value
-                                        |> Seq.map (apply subst)
-                                        |> create
-                                | None -> ()
+            for (literal1, allBut1) in allButArray1 do
+                for (literal2, allBut2) in allButArray2 do
+                    match Literal.tryUnify literal1 literal2 with
+                        | Some subst ->
+                            yield Seq.append allBut1.Value allBut2.Value
+                                |> Seq.map (apply subst)
+                                |> create
+                        | None -> ()
         } |> set
+
+    /// Answers all factors of the given clause (including itself).
+    let allFactors clause =
+
+        let rec loop clause =
+            seq {
+                yield clause
+                for i = 0 to clause.Literals.Length - 1 do
+                    for j = 0 to clause.Literals.Length - 1 do
+                        if i <> j then
+                            match Literal.tryUnify
+                                clause.Literals.[i]
+                                clause.Literals.[j] with
+                                | Some subst ->
+                                    yield! clause
+                                        |> map (apply subst)
+                                        |> loop
+                                | None -> ()
+            }
+
+        clause
+            |> loop
+            |> Seq.toArray
 
     /// Indicates whether the first clause subsumes the second
     /// clause.
