@@ -13,13 +13,13 @@ module Print =
 /// One step in a linear resolution derivation.
 type LinearResolutionDerivationStep =
     {
-        /// Clause created in this step.
+        /// Clause used in this step.
         CenterClause : Clause
 
-        /// Existing side clause used in this step's creation.
+        /// Side clause used in this step.
         SideClause : Clause
 
-        /// Substitution used in this step's creation.
+        /// Substitution used in this step.
         Substitution : Substitution
     }
 
@@ -30,10 +30,10 @@ type LinearResolutionDerivation =
         /// Input clauses: premises plus negatated goal.
         InputClauses : Clause[]
 
-        /// Top clause (will be one of the negated goal clauses).
-        TopClause : Clause
+        /// Current center clause.
+        CenterClause : Clause
 
-        /// Derived steps, in reverse order.
+        /// Steps leading to current state, in reverse order.
         Steps : List<LinearResolutionDerivationStep>
     }
 
@@ -46,35 +46,26 @@ type LinearResolutionDerivation =
             for clause in this.InputClauses do
                 yield clause |> Print.indent (level + 1)
 
-            let strPairs =
-                let steps = this.Steps |> List.rev
-                let centerStrs =
-                    seq {
-                        yield this.TopClause.ToString()
-                        for step in steps do
-                            yield step.CenterClause.ToString()
-                    }
-                let sideStrs =
-                    seq {
-                        for step in steps do
-                            yield sprintf "%A via %A" step.SideClause step.Substitution
-                        yield ""
-                    }
-                Seq.zip centerStrs sideStrs
-                    |> Seq.toArray
-
             yield ""
             yield "Steps:" |> Print.indent level
-            for i = 0 to strPairs.Length - 1 do
-                let centerStr, sideStr = strPairs.[i]
-                let prefix = sprintf "%d. %s" (i + 1) centerStr
-                let str =
-                    if i = strPairs.Length - 1 then
-                        assert(sideStr = "")
-                        prefix
-                    else
-                        sprintf "%s with %s" prefix sideStr
-                yield str |> Print.indent (level + 1)
+            let steps =
+                this.Steps
+                    |> List.rev
+                    |> Seq.toArray
+            for i = 0 to steps.Length - 1 do
+                let step = steps.[i]
+                yield ""
+                yield sprintf "%d. %A" (i + 1) step.CenterClause
+                    |> Print.indent (level + 1)
+                yield sprintf "with %A" step.SideClause
+                    |> Print.indent (level + 3)
+                for (variableName, term) in step.Substitution.SubstMap do
+                    yield sprintf "%s <- %A" variableName term
+                        |> Print.indent (level + 4)
+
+            yield ""
+            yield sprintf "Center clause: %A" this.CenterClause
+                |> Print.indent level
 
         } |> String.join "\r\n"
 
@@ -96,7 +87,7 @@ module LinearResolutionDerivation =
                     yield! premiseClauses
                     yield! goalClauses
                 |]
-            TopClause = topClause
+            CenterClause = topClause
             Steps = List.empty
         }
 
@@ -110,23 +101,15 @@ module LinearResolution =
             assert(depth = (derivation.Steps |> Seq.length))
             if depth < maxDepth then
 
-                    // get current center clause
-                let centerClause, centerClauses =
-                    match derivation.Steps with
-                        | [] ->
-                            derivation.TopClause, Seq.empty
-                        | step :: steps ->
-                            let centerClauses =
-                                steps
-                                    |> Seq.map (fun step -> step.CenterClause)
-                            step.CenterClause, centerClauses
-
                     // resolve with all possible side clauses
                 let sideClauses =
+                    let centerClauses =
+                        derivation.Steps
+                            |> Seq.map (fun step -> step.CenterClause)
                     Seq.append derivation.InputClauses centerClauses
                 sideClauses
                     |> Seq.tryPick (fun sideClause ->
-                        Clause.resolve centerClause sideClause
+                        Clause.resolve derivation.CenterClause sideClause
                             |> Seq.tryPick (fun (resolvent, substitution) ->
                                 if resolvent |> Clause.isTautology then
                                     None
@@ -134,12 +117,13 @@ module LinearResolution =
                                     let nextDerivation =
                                         let step =
                                             {
-                                                CenterClause = resolvent
+                                                CenterClause = derivation.CenterClause
                                                 SideClause = sideClause
                                                 Substitution = substitution
                                             }
                                         {
                                             derivation with
+                                                CenterClause = resolvent
                                                 Steps = step :: derivation.Steps
                                         }
                                     if resolvent.Literals.Length = 0 then   // success: empty clause is a contradiction
