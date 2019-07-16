@@ -16,6 +16,7 @@ module Program =
             = s(a)         [by assumption]
         *)
 
+        let dtStart = DateTime.Now
         let proofOpt =
             // "∀x.=(+(0,x), x)"
             // "=(+(0,0), 0)"
@@ -24,5 +25,6 @@ module Program =
                 |> Language.parse Peano.language
                 |> LinearResolution.tryProve Peano.language Peano.axioms
         printfn "%A" proofOpt
+        printfn "%A" (DateTime.Now - dtStart)
 
         0
