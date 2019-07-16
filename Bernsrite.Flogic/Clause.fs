@@ -1,7 +1,5 @@
 ﻿namespace Bernsrite.Flogic
 
-open System
-
 /// A collection of literals that are implicitly ORed together.
 [<StructuredFormatDisplay("{String}")>]
 type Clause =
@@ -39,16 +37,6 @@ module Clause =
                     |> Seq.distinct
                     |> Seq.toArray
         }
-
-    /// Converts a clause to literals.
-    let toLiterals clause =
-        clause.Literals
-
-    /// Applies the given mapping to all literals in the given clause.
-    let map mapping clause =
-        clause.Literals
-            |> Seq.map mapping
-            |> create
 
     /// Converts a formula to clauses.
     let toClauses =
@@ -314,6 +302,28 @@ module Clause =
             >> removeQuantifiers
             >> distributeDisjunctions
             >> convertToClauses
+
+    /// Applies the given mapping to all literals in the given clause.
+    let map mapping clause =
+        clause.Literals
+            |> Seq.map mapping
+            |> create
+
+    /// Indicates whether the given clause is a tautology (i.e. always
+    /// true).
+    let isTautology clause =
+        seq {
+            for i = 0 to clause.Literals.Length - 1 do
+                for j = i + 1 to clause.Literals.Length - 1 do
+                    yield clause.Literals.[i], clause.Literals.[j]
+        } |> Seq.exists (fun (literal1, literal2) ->
+            literal1.Predicate = literal2.Predicate
+                && literal1.IsPositive <> literal2.IsPositive
+                && literal1.Terms = literal2.Terms)
+
+    /// Converts a clause to literals.
+    let toLiterals clause =
+        clause.Literals
 
     /// Applies the given substitution to the given literal.
     let private apply subst literal =

@@ -125,21 +125,24 @@ module LinearResolution =
                     |> Seq.tryPick (fun sideClause ->
                         Clause.resolve centerClause sideClause
                             |> Seq.tryPick (fun (resolvent, substitution) ->
-                                let nextDerivation =
-                                    let step =
-                                        {
-                                            CenterClause = resolvent
-                                            SideClause = sideClause
-                                            Substitution = substitution
-                                        }
-                                    {
-                                        derivation with
-                                            Steps = step :: derivation.Steps
-                                    }
-                                if resolvent.Literals.Length = 0 then   // success: empty clause is a contradiction
-                                    Some nextDerivation
+                                if resolvent |> Clause.isTautology then
+                                    None
                                 else
-                                    nextDerivation |> loop (depth + 1)))
+                                    let nextDerivation =
+                                        let step =
+                                            {
+                                                CenterClause = resolvent
+                                                SideClause = sideClause
+                                                Substitution = substitution
+                                            }
+                                        {
+                                            derivation with
+                                                Steps = step :: derivation.Steps
+                                        }
+                                    if resolvent.Literals.Length = 0 then   // success: empty clause is a contradiction
+                                        Some nextDerivation
+                                    else
+                                        nextDerivation |> loop (depth + 1)))
             else None
 
         derivation |> loop 0
