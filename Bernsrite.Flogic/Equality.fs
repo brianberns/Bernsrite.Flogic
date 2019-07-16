@@ -12,14 +12,9 @@ module Equality =
     /// Basic equality axioms.
     let basicAxioms =
         [|
-                // reflexive
-            "∀x.=(x,x)"
-
-                // symmetric
-            "∀x.∀y.(=(x,y) ⇒ =(y,x))"
-
-                // transitive
-            "∀x.∀y.∀z.((=(x,y) ∧ =(y,z)) ⇒ =(x,z))"
+            "∀x.=(x,x)"                                   // reflexive
+            "∀x.∀y.(=(x,y) ⇒ =(y,x))"                   // symmetric
+            "∀x.∀y.∀z.((=(x,y) ∧ =(y,z)) ⇒ =(x,z))"   // transitive
         |] |> Array.map (Parser.run parser)
 
     /// Tries to create a substitution axiom for the given predicate.

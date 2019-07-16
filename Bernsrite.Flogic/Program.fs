@@ -23,7 +23,7 @@ module Program =
             "(=(+(0,a), a) -> =(+(0,s(a)), s(a)))"
             // "(=(+(0,a), a) -> =(s(+(0,a)), s(a)))"
                 |> Language.parse Peano.language
-                |> LinearResolution.tryProve Peano.language Peano.axioms
+                |> Proof.tryProve Peano.language Peano.axioms
         printfn "%A" proofOpt
         printfn "%A" (DateTime.Now - dtStart)
 

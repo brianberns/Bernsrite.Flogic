@@ -1,25 +1,5 @@
 ﻿namespace Bernsrite.Flogic
 
-open System
-
-module Print =
-
-    /// Indents the given object to the given level.
-    let indent level obj =
-        sprintf "%s%s"
-            (String(' ', 3 * level))
-            (obj.ToString())
-
-/// Interface for pretty printing.
-type Printable =
-    {
-        /// Full object.
-        Object : obj
-
-        /// Creates a string indented to the given level.
-        ToString : int (*level, 0-based*) -> string
-    }
-
 /// Input to and output of a proof.
 [<StructuredFormatDisplay("{String}")>]
 type Proof =
@@ -34,7 +14,7 @@ type Proof =
         Result : bool
 
         /// Derivation of this proof.
-        Derivation : Printable
+        Derivation : LinearResolutionDerivation
     }
 
     /// Display string.
@@ -73,3 +53,43 @@ module Proof =
             Result = result
             Derivation = derivation
         }
+
+    /// Tries to prove the given goal from the given premises.
+    let tryProve language premises goal =
+    
+            // convert premises to clause normal form (CNF)
+        let premiseClauses =
+            [|
+                yield! premises
+                yield! Language.generateAxioms language goal
+            |]
+                |> Seq.collect Clause.toClauses
+                |> Seq.toArray
+
+            // ensure explicit quantification before negating
+        let goal' =
+            goal |> Formula.quantifyUniversally
+
+            // convert goal to CNF for proof
+        let proofGoalClauses =
+            goal'
+                |> Not   // proof by refutation: negate goal
+                |> Clause.toClauses
+                |> Seq.toArray
+
+            // convert goal to CNF for disproof
+        let disproofGoalClauses =
+            goal'
+                |> Clause.toClauses
+                |> Seq.toArray
+
+            // iterative deepening
+        [ 4; 10 ]
+            |> Seq.collect (fun maxDepth ->
+                seq {
+                    yield maxDepth, proofGoalClauses, true
+                    yield maxDepth, disproofGoalClauses, false
+                })
+            |> Seq.tryPick (fun (maxDepth, goalClauses, flag) ->
+                LinearResolution.tryProve maxDepth premiseClauses goalClauses
+                    |> Option.map (create premises goal flag))
