@@ -8,6 +8,9 @@ type Clause =
     {
         /// Literals in this set.
         Literals : Set<Literal>
+
+        /// Number of symbols in this clause.
+        SymbolCount : int
     }
 
     /// Indicates whether the receiver is empty.
@@ -27,11 +30,6 @@ type Clause =
     override this.ToString() =
         this.String
 
-    /// Answers the number of symbols in the given clause.
-    member this.SymbolCount =
-        this.Literals
-            |> Seq.sumBy Literal.symbolCount
-
 /// http://intrologic.stanford.edu/public/section.php?section=section_05_02
 /// http://www.cs.miami.edu/home/geoff/Courses/COMP6210-10M/Content/FOFToCNF.shtml
 /// https://en.wikipedia.org/wiki/Conjunctive_normal_form
@@ -39,11 +37,20 @@ module Clause =
 
     /// The empty clause.
     let empty =
-        { Literals = Set.empty }
+        {
+            Literals = Set.empty
+            SymbolCount = 0
+        }
 
     /// Creates a clause from the given literals.
     let create literals =
-        { Literals = set literals }
+        let literalSet = set literals
+        {
+            Literals = literalSet
+            SymbolCount =
+                literalSet
+                    |> Seq.sumBy Literal.symbolCount
+        }
 
     /// Converts a formula to clauses.
     let toClauses =
