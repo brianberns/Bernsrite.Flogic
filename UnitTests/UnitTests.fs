@@ -282,3 +282,6 @@ type Peano() =
     member __.AdditionAssociative() =
         test ("∀z.∀x.∀y.=(+(+(x,y),z), +(x,+(y,z)))", true)
     *)
+
+[<assembly: Parallelize(Workers = 4, Scope = ExecutionScope.MethodLevel)>]
+do ()
