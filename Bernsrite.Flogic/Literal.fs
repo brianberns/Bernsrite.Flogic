@@ -1,11 +1,17 @@
 ﻿namespace Bernsrite.Flogic
 
 /// A literal is either an atomic formula or its negation.
+/// E.g. P(x), ~Q(y,z).
 [<StructuredFormatDisplay("{String}")>]
 type Literal =
     {
+        /// E.g. P, Q.
         Predicate : Predicate
+
+        /// E.g. (x), (y,z).
         Terms : Term[]
+
+        /// False for negated atoms.
         IsPositive : bool
     }
 
@@ -55,6 +61,13 @@ module Literal =
             literal with
                 Terms = literal.Terms |> Array.map mapping
         }
+
+    /// Answers the number of symbols in the given literal.
+    let symbolCount literal =
+        let nTermSymbols =
+            literal.Terms
+                |> Seq.sumBy Term.symbolCount
+        nTermSymbols + 1   // +1 for predicate
 
     /// Tries to unify two literals.
     let tryUnify literal1 literal2 =

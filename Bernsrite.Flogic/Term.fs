@@ -94,6 +94,16 @@ module Term =
             |> loop
             |> set
 
+    /// Answers the number of symbols in the given term.
+    let rec symbolCount = function
+        | VariableTerm _
+        | ConstantTerm _ -> 1
+        | Application (_, terms) ->
+            let termCount =
+                terms
+                    |> Seq.sumBy symbolCount
+            termCount + 1   // +1 for function
+
     /// Substitutes the given new term for the given variable in the given
     /// old term.
     let rec substitute variable newTerm oldTerm =

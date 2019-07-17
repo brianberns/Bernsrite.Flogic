@@ -61,6 +61,11 @@ type LinearResolutionDerivation =
             yield sprintf "Center clause: %A" this.CenterClause
                 |> Print.indent level
 
+            yield ""
+            yield "Database:" |> Print.indent level
+            for clause in this.Database.Clauses do
+                yield clause |> Print.indent (level + 1)
+
         } |> String.join "\r\n"
 
     /// Display string.
@@ -103,7 +108,7 @@ module LinearResolution =
                                 if resolvent |> Clause.isTautology then
                                     None
                                 else
-                                    let nextDerivation =
+                                    let derivation' =
                                         {
                                             derivation with
                                                 CenterClause = resolvent
@@ -117,10 +122,10 @@ module LinearResolution =
                                                     derivation.Database
                                                         |> Database.add resolvent
                                         }
-                                    if resolvent.Literals.Length = 0 then   // success: empty clause is a contradiction
-                                        Some nextDerivation
+                                    if resolvent.IsEmpty then   // success: empty clause is a contradiction
+                                        Some derivation'
                                     else
-                                        nextDerivation |> loop (depth + 1)))
+                                        derivation' |> loop (depth + 1)))
             else None
 
         derivation |> loop 0

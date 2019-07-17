@@ -1,15 +1,22 @@
 ﻿namespace Bernsrite.Flogic
 
+open System
+
 /// A collection of literals that are implicitly ORed together.
-[<StructuredFormatDisplay("{String}")>]
+[<StructuredFormatDisplay("{String}"); CustomEquality; CustomComparison>]
 type Clause =
     {
-        Literals : Literal[]
+        /// Literals in this set.
+        Literals : Set<Literal>
     }
+
+    /// Indicates whether the receiver is empty.
+    member this.IsEmpty =
+        this.Literals.Count = 0
 
     /// Display string.
     member this.String =
-        if this.Literals.Length = 0 then "Absurd"   // empty clause indicates contradiction
+        if this.IsEmpty then "Contradiction"   // empty clause indicates contradiction
         else
             this.Literals
                 |> Seq.sortBy (fun literal ->
@@ -20,6 +27,51 @@ type Clause =
     override this.ToString() =
         this.String
 
+    /// Answers the number of symbols in the given clause.
+    member this.SymbolCount =
+        this.Literals
+            |> Seq.sumBy Literal.symbolCount
+
+    /// Indicates whether the given clause is equal to the receiver.
+    member this.Equals(clause : Clause) =
+        this.Literals = clause.Literals
+
+    /// Indicates whether the given object is equal to the receiver.
+    override this.Equals(obj) =
+        this.Equals(obj :?> Clause)
+
+    /// Hash function.
+    override this.GetHashCode() =
+        this.Literals.GetHashCode()
+
+    interface IEquatable<Clause> with
+
+        /// Indicates whether the given clause is equal to the receiver.
+        member this.Equals(clause) =
+            this.Equals(clause)
+
+    /// Compares the given clauses by their symbol count.
+    member this.CompareTo(clause : Clause) =
+        match compare this.SymbolCount clause.SymbolCount with
+            | 0 -> compare this.Literals clause.Literals
+            | result -> result
+
+    interface IComparable with
+
+        /// Compares the given object to the receiver.
+        member this.CompareTo(obj) =
+            match obj with
+                | :? Clause as clause ->
+                    this.CompareTo(clause)
+                | _ -> failwith "Not supported"
+
+    interface IComparable<Clause> with
+
+        /// Compares the given clause to the receiver.
+        member this.CompareTo(clause) =
+            this.CompareTo(clause)
+        
+
 /// http://intrologic.stanford.edu/public/section.php?section=section_05_02
 /// http://www.cs.miami.edu/home/geoff/Courses/COMP6210-10M/Content/FOFToCNF.shtml
 /// https://en.wikipedia.org/wiki/Conjunctive_normal_form
@@ -27,16 +79,11 @@ module Clause =
 
     /// The empty clause.
     let empty =
-        { Literals = Array.empty }
+        { Literals = Set.empty }
 
     /// Creates a clause from the given literals.
     let create literals =
-        {
-            Literals =
-                literals
-                    |> Seq.distinct
-                    |> Seq.toArray
-        }
+        { Literals = set literals }
 
     /// Converts a formula to clauses.
     let toClauses =
@@ -309,21 +356,29 @@ module Clause =
             |> Seq.map mapping
             |> create
 
+    /// Permutes the literals in the given clause.
+    let private permute clause =
+        let literals =
+            clause.Literals |> Seq.toArray
+        seq {
+            for i = 0 to literals.Length - 1 do
+                for j = i + 1 to literals.Length - 1 do
+                    yield literals.[i], literals.[j]
+        }
+
     /// Indicates whether the given clause is a tautology (i.e. always
     /// true).
     let isTautology clause =
-        seq {
-            for i = 0 to clause.Literals.Length - 1 do
-                for j = i + 1 to clause.Literals.Length - 1 do
-                    yield clause.Literals.[i], clause.Literals.[j]
-        } |> Seq.exists (fun (literal1, literal2) ->
-            literal1.Predicate = literal2.Predicate
-                && literal1.IsPositive <> literal2.IsPositive
-                && literal1.Terms = literal2.Terms)
+        clause
+            |> permute
+            |> Seq.exists (fun (literal1, literal2) ->
+                literal1.Predicate = literal2.Predicate
+                    && literal1.IsPositive <> literal2.IsPositive
+                    && literal1.Terms = literal2.Terms)
 
     /// Converts a clause to literals.
     let toLiterals clause =
-        clause.Literals
+        clause.Literals |> Seq.toArray
 
     /// Applies the given substitution to the given literal.
     let private apply subst literal =
@@ -416,25 +471,20 @@ module Clause =
         let rec loop clause =
             seq {
                 yield clause
-                for i = 0 to clause.Literals.Length - 1 do
-                    for j = 0 to clause.Literals.Length - 1 do
-                        if i <> j then
-                            match Literal.tryUnify
-                                clause.Literals.[i]
-                                clause.Literals.[j] with
-                                | Some subst ->
-                                    yield! clause
-                                        |> map (apply subst)
-                                        |> loop
-                                | None -> ()
+                for literal1, literal2 in permute clause do
+                    match Literal.tryUnify literal1 literal2 with
+                        | Some subst ->
+                            yield! clause
+                                |> map (apply subst)
+                                |> loop
+                        | None -> ()
             }
 
         clause
             |> loop
             |> Seq.toArray
 
-    /// Indicates whether the first clause subsumes the second
-    /// clause.
+    /// Indicates whether the first clause subsumes the second clause.
     /// http://profs.sci.univr.it/~farinelli/courses/ar/slides/resolution-fol.pdf
     /// https://archive.org/details/symboliclogicmec00chan/page/94
     let subsumes clauseC clauseD =
@@ -455,11 +505,12 @@ module Clause =
             // compute clauses W from literals of ~Dθ
         let clausesW =
             clauseD.Literals
-                |> Array.map (
+                |> Seq.map (
                     apply substTheta
                         >> Literal.negate
                         >> Seq.singleton
                         >> create)
+                |> Seq.toArray
 
             // compute set of clauses U(k+1) from U(k)
         let rec loop clausesU =
