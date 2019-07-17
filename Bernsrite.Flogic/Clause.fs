@@ -3,7 +3,7 @@
 open System
 
 /// A collection of literals that are implicitly ORed together.
-[<StructuredFormatDisplay("{String}"); CustomEquality; CustomComparison>]
+[<StructuredFormatDisplay("{String}")>]
 type Clause =
     {
         /// Literals in this set.
@@ -31,46 +31,6 @@ type Clause =
     member this.SymbolCount =
         this.Literals
             |> Seq.sumBy Literal.symbolCount
-
-    /// Indicates whether the given clause is equal to the receiver.
-    member this.Equals(clause : Clause) =
-        this.Literals = clause.Literals
-
-    /// Indicates whether the given object is equal to the receiver.
-    override this.Equals(obj) =
-        this.Equals(obj :?> Clause)
-
-    /// Hash function.
-    override this.GetHashCode() =
-        this.Literals.GetHashCode()
-
-    interface IEquatable<Clause> with
-
-        /// Indicates whether the given clause is equal to the receiver.
-        member this.Equals(clause) =
-            this.Equals(clause)
-
-    /// Compares the given clauses by their symbol count.
-    member this.CompareTo(clause : Clause) =
-        match compare this.SymbolCount clause.SymbolCount with
-            | 0 -> compare this.Literals clause.Literals
-            | result -> result
-
-    interface IComparable with
-
-        /// Compares the given object to the receiver.
-        member this.CompareTo(obj) =
-            match obj with
-                | :? Clause as clause ->
-                    this.CompareTo(clause)
-                | _ -> failwith "Not supported"
-
-    interface IComparable<Clause> with
-
-        /// Compares the given clause to the receiver.
-        member this.CompareTo(clause) =
-            this.CompareTo(clause)
-        
 
 /// http://intrologic.stanford.edu/public/section.php?section=section_05_02
 /// http://www.cs.miami.edu/home/geoff/Courses/COMP6210-10M/Content/FOFToCNF.shtml
