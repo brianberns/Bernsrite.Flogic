@@ -66,7 +66,7 @@ module Peano =
             [|
                 successor
                 Function ("+", 2)
-                Function ("*", 2)
+                // Function ("*", 2)
             |]
             [| Equality.predicate |]
             axiomGenerator

@@ -4,12 +4,12 @@
 [<StructuredFormatDisplay("{String}")>]
 type Substitution =
     {
-        SubstMap : (string (*variable name*) * Term)[]
+        Bindings : (string (*variable name*) * Term)[]
     }
 
     /// Display string.
     member this.String =
-        this.SubstMap
+        this.Bindings
             |> Seq.sort
             |> Seq.map (fun (variableName, term) ->
                 sprintf "%s <- %A" variableName term)
@@ -24,23 +24,23 @@ module Substitution =
     /// The empty substitution.
     let empty =
         {
-            SubstMap = Array.empty
+            Bindings = Array.empty
         }
 
     /// Creates a substitution containing only the given mapping.
     let create (Variable name) term =
         {
-            SubstMap = [| name, term |]
+            Bindings = [| name, term |]
         }
 
     /// Applies the given substitution to the given term.
     let rec applyTerm subst term =
-        if subst.SubstMap.Length = 0 then
+        if subst.Bindings.Length = 0 then
             term
         else
             match term with
                 | VariableTerm (Variable name) ->
-                    subst.SubstMap
+                    subst.Bindings
                         |> Array.tryPick (fun (name', term') ->
                             if name' = name then Some term'
                             else None)
@@ -54,13 +54,13 @@ module Substitution =
 
     /// Answers names of variables in the domain of the given substitution.
     let getDomainVariableNames subst =
-        subst.SubstMap
+        subst.Bindings
             |> Seq.map fst
             |> set
 
     /// Answers names of variables in the range of the given substitution.
     let getRangeVariableNames subst =
-        subst.SubstMap
+        subst.Bindings
             |> Seq.collect (
                 snd
                     >> Term.getVariables
@@ -88,13 +88,13 @@ module Substitution =
         assert(isPure subst2)
         assert(composable subst1 subst2)
         {
-            SubstMap =
+            Bindings =
                 [|
-                    for (name1, term1) in subst1.SubstMap do
+                    for (name1, term1) in subst1.Bindings do
                         yield name1, (term1 |> applyTerm subst2)
-                    for (name2, term2) in subst2.SubstMap do
+                    for (name2, term2) in subst2.Bindings do
                         let exists =
-                            subst1.SubstMap
+                            subst1.Bindings
                                 |> Array.exists (fun (name, _) ->
                                     name = name2)
                         if not exists then

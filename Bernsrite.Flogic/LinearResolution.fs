@@ -27,25 +27,19 @@ type LinearResolutionDerivationStep =
 [<StructuredFormatDisplay("{String}")>]
 type LinearResolutionDerivation =
     {
-        /// Input clauses: premises plus negatated goal.
-        InputClauses : Clause[]
-
         /// Current center clause.
         CenterClause : Clause
 
         /// Steps leading to current state, in reverse order.
         Steps : List<LinearResolutionDerivationStep>
+
+        /// Database of active clauses.
+        Database : Database
     }
 
     /// Display string.
     member this.ToString(level) =
         seq {
-
-            yield ""
-            yield "Input clauses:" |> Print.indent level
-            for clause in this.InputClauses do
-                yield clause |> Print.indent (level + 1)
-
             yield ""
             yield "Steps:" |> Print.indent level
             let steps =
@@ -59,7 +53,7 @@ type LinearResolutionDerivation =
                     |> Print.indent (level + 1)
                 yield sprintf "with %A" step.SideClause
                     |> Print.indent (level + 3)
-                for (variableName, term) in step.Substitution.SubstMap do
+                for (variableName, term) in step.Substitution.Bindings do
                     yield sprintf "%s <- %A" variableName term
                         |> Print.indent (level + 4)
 
@@ -82,11 +76,11 @@ module LinearResolutionDerivation =
     let create premiseClauses goalClauses topClause =
         assert(goalClauses |> Seq.contains topClause)
         {
-            InputClauses =
+            Database =
                 [|
                     yield! premiseClauses
                     yield! goalClauses
-                |]
+                |] |> Database.create
             CenterClause = topClause
             Steps = List.empty
         }
@@ -102,12 +96,7 @@ module LinearResolution =
             if depth < maxDepth then
 
                     // resolve with all possible side clauses
-                let sideClauses =
-                    let centerClauses =
-                        derivation.Steps
-                            |> Seq.map (fun step -> step.CenterClause)
-                    Seq.append derivation.InputClauses centerClauses
-                sideClauses
+                derivation.Database.Clauses
                     |> Seq.tryPick (fun sideClause ->
                         Clause.resolve derivation.CenterClause sideClause
                             |> Seq.tryPick (fun (resolvent, substitution) ->
@@ -115,16 +104,18 @@ module LinearResolution =
                                     None
                                 else
                                     let nextDerivation =
-                                        let step =
-                                            {
-                                                CenterClause = derivation.CenterClause
-                                                SideClause = sideClause
-                                                Substitution = substitution
-                                            }
                                         {
                                             derivation with
                                                 CenterClause = resolvent
-                                                Steps = step :: derivation.Steps
+                                                Steps =
+                                                    {
+                                                        CenterClause = derivation.CenterClause
+                                                        SideClause = sideClause
+                                                        Substitution = substitution
+                                                    } :: derivation.Steps
+                                                Database =
+                                                    derivation.Database
+                                                        |> Database.add resolvent
                                         }
                                     if resolvent.Literals.Length = 0 then   // success: empty clause is a contradiction
                                         Some nextDerivation

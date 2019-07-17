@@ -113,7 +113,7 @@ type UnitTest() =
                     None
                 else
                     Some {
-                        SubstMap =
+                        Bindings =
                             expectedStrs
                                 |> Seq.map (fun (oldStr, newStr) ->
                                     let term = newStr |> Parser.run parseTerm

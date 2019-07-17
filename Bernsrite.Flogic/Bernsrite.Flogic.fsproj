@@ -14,8 +14,9 @@
     <Compile Include="Substitution.fs" />
     <Compile Include="Literal.fs" />
     <Compile Include="Clause.fs" />
-    <Compile Include="Language.fs" />
+    <Compile Include="Database.fs" />
     <Compile Include="LinearResolution.fs" />
+    <Compile Include="Language.fs" />
     <Compile Include="Proof.fs" />
     <Compile Include="Equality.fs" />
     <Compile Include="Peano.fs" />
