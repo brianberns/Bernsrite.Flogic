@@ -179,6 +179,27 @@ type UnitTest() =
 
     [<TestMethod>]
     member __.Induction1() =
+        let language =
+            Language.create
+                [| Constant "a" |]
+                [| Function ("f", 1) |]
+                [| Predicate ("P", 1) |]
+        let parse = Language.parse language
+        let premises =
+            [|
+                "P(a)"
+                "(P(x) -> P(f(x)))"
+            |] |> Array.map parse
+        let proofOpt =
+            parse "∀x.P(x)"
+                |> Proof.tryProve language premises
+        printfn "%A" proofOpt
+        match proofOpt with
+            | Some proof -> Assert.IsTrue(proof.Result)
+            | _ -> Assert.Fail()
+
+    [<TestMethod>]
+    member __.Induction2() =
         let parse = Language.parse Peano.language
         let premises =
             [|
@@ -195,7 +216,7 @@ type UnitTest() =
 
     (*
     [<TestMethod>]
-    member __.Induction2() =
+    member __.Induction3() =
 
         let parser = Parser.makeParser ["0"]
         let parse = Parser.run parser
