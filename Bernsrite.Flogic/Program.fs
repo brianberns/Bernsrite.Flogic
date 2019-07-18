@@ -19,7 +19,6 @@ module Program =
         let dtStart = DateTime.Now
         let proofOpt =
             // "∀x.=(+(0,x), x)"
-            // "=(+(0,0), 0)"
             "(=(+(0,a), a) -> =(+(0,s(a)), s(a)))"
             // "(=(+(0,a), a) -> =(s(+(0,a)), s(a)))"
                 |> Language.parse Peano.language

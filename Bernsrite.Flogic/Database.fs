@@ -9,7 +9,7 @@ type Database =
         /// Clauses are sorted by symbol count, so smaller clauses are enumerated
         /// first. This is the "least symbol count" heuristic.
         /// http://www.cs.miami.edu/home/geoff/Courses/CSC648-12S/Content/GeneralHeuristics.shtml
-        Clauses : ImmutableSortedSet<Clause>
+        ClauseMap : Map<(bool * Predicate), ImmutableSortedSet<Clause>>
     }
 
 module Database =
@@ -23,12 +23,39 @@ module Database =
                         | result -> result
         }
 
-    let create (clauses : _[]) =
-        {
-            Clauses = ImmutableSortedSet.Create(clauseComparer, clauses)
-        }
+    let empty =
+        { ClauseMap = Map.empty }
+
+    let private emptyBucket =
+        ImmutableSortedSet.Create<Clause>(clauseComparer)
     
+    let private getDistinctKeys clause =
+        clause.Literals
+            |> Seq.map (fun literal ->
+                literal.IsPositive, literal.Predicate)
+            |> Seq.distinct
+
     let add clause database =
         {
-            Clauses = database.Clauses.Add(clause)
+            ClauseMap =
+                (database.ClauseMap, getDistinctKeys clause)
+                    ||> Seq.fold (fun acc key ->
+                        let clauses =
+                            acc
+                                |> Map.tryFind key
+                                |> Option.defaultValue emptyBucket
+                        acc.Add(key, clauses.Add(clause)))
         }
+
+    let create clauses =
+        (empty, clauses)
+            ||> Seq.fold (fun acc clause ->
+                acc |> add clause)
+
+    let getPossibleResolutionClauses clause database =
+        clause
+            |> getDistinctKeys
+            |> Seq.collect (fun (isPositive, predicate) ->
+                database.ClauseMap
+                    |> Map.tryFind (not isPositive, predicate)
+                    |> Option.defaultValue emptyBucket)

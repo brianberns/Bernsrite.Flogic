@@ -61,11 +61,6 @@ type LinearResolutionDerivation =
             yield sprintf "Center clause: %A" this.CenterClause
                 |> Print.indent level
 
-            yield ""
-            yield "Database:" |> Print.indent level
-            for clause in this.Database.Clauses do
-                yield clause |> Print.indent (level + 1)
-
         } |> String.join "\r\n"
 
     /// Display string.
@@ -101,31 +96,29 @@ module LinearResolution =
             if depth < maxDepth then
 
                     // resolve with all possible side clauses
-                derivation.Database.Clauses
+                derivation.Database
+                    |> Database.getPossibleResolutionClauses derivation.CenterClause
                     |> Seq.tryPick (fun sideClause ->
                         Clause.resolve derivation.CenterClause sideClause
                             |> Seq.tryPick (fun (resolvent, substitution) ->
-                                if resolvent |> Clause.isTautology then
-                                    None
+                                let derivation' =
+                                    {
+                                        derivation with
+                                            CenterClause = resolvent
+                                            Steps =
+                                                {
+                                                    CenterClause = derivation.CenterClause
+                                                    SideClause = sideClause
+                                                    Substitution = substitution
+                                                } :: derivation.Steps
+                                            Database =
+                                                derivation.Database
+                                                    |> Database.add resolvent
+                                    }
+                                if resolvent.IsEmpty then   // success: empty clause is a contradiction
+                                    Some derivation'
                                 else
-                                    let derivation' =
-                                        {
-                                            derivation with
-                                                CenterClause = resolvent
-                                                Steps =
-                                                    {
-                                                        CenterClause = derivation.CenterClause
-                                                        SideClause = sideClause
-                                                        Substitution = substitution
-                                                    } :: derivation.Steps
-                                                Database =
-                                                    derivation.Database
-                                                        |> Database.add resolvent
-                                        }
-                                    if resolvent.IsEmpty then   // success: empty clause is a contradiction
-                                        Some derivation'
-                                    else
-                                        derivation' |> loop (depth + 1)))
+                                    derivation' |> loop (depth + 1)))
             else None
 
         derivation |> loop 0
@@ -134,6 +127,7 @@ module LinearResolution =
     /// resolution.
     let tryProve maxDepth premiseClauses goalClauses =
         goalClauses
+            |> Seq.rev   // guess that the last goal clause is most likely to lead to contradiction (e.g. if plausible-assumption then incorrect-conclusion)
             |> Seq.tryPick (fun topClause ->
                 LinearResolutionDerivation.create
                     premiseClauses goalClauses topClause

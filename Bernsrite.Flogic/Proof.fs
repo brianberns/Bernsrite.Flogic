@@ -93,7 +93,7 @@ module Proof =
                 |> Seq.toArray
 
             // iterative deepening
-        [ 4; 10 ]
+        [ 5; 7 ]
             |> Seq.collect (fun maxDepth ->
                 seq {
                     yield maxDepth, proofGoalClauses, true
