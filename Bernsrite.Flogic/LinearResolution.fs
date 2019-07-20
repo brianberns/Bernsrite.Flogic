@@ -51,7 +51,7 @@ type LinearResolutionDerivation =
                         |> Print.indent (level + 4)
 
             yield ""
-            yield sprintf "Center clause: %A %A" this.CenterClause this.CenterClauseRole
+            yield sprintf "Center clause: %A, %A" this.CenterClause this.CenterClauseRole
                 |> Print.indent level
 
             yield this.Database.ToString(level + 1)
@@ -83,10 +83,16 @@ module LinearResolutionDerivation =
     /// Initializes derivations for the given clauses.
     let generate annotatedClauses =
         [|
-            for (clause, role) in annotatedClauses do
-                if role = Goal then
-                    yield create annotatedClauses clause
+            let goalClauses =
+                annotatedClauses
+                    |> Seq.where (fun (_, role) ->
+                        role = Goal)
+                    |> Seq.map fst
+                    |> Seq.rev   // guess that the last goal clause is most likely to lead to contradiction (e.g. if plausible-assumption then incorrect-conclusion)
+            for clause in goalClauses do
+                yield create annotatedClauses clause
         |]
+
 
 /// http://www.cs.miami.edu/home/geoff/Courses/CSC648-12S/Content/LinearResolution.shtml
 module LinearResolution =
@@ -116,7 +122,7 @@ module LinearResolution =
                                                 } :: derivation.Steps
                                             Database =
                                                 derivation.Database
-                                                    |> Database.add resolvent Axiom
+                                                    |> Database.add resolvent Step
                                     }
                                 if resolvent.IsEmpty then   // success: empty clause is a contradiction
                                     Some derivation'

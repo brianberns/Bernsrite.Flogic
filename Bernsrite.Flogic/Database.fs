@@ -17,6 +17,7 @@ type ClauseRole =
     | InductionAntecedent
     | InductionConsequent
     | Goal
+    | Step
 
 /// Clauses that are known/assumed true.
 [<StructuredFormatDisplay("{String}")>]
@@ -68,6 +69,7 @@ module Database =
                     InductionAntecedent, emptyBucket false
                     InductionConsequent, emptyBucket false
                     Goal, emptyBucket true
+                    Step, emptyBucket true
                 ]
         }
 
