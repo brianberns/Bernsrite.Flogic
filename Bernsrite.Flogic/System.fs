@@ -87,13 +87,15 @@ module System =
                 if language.Constants.Length = 1 then
                     let constant =
                         language.Constants |> Array.exactlyOne
-                    let functions =
+                    let predicates =
                         goal
-                            |> Formula.getFunctions
+                            |> Formula.getPredicates
                             |> Map.keys
-                    for (Function (_, arity)) as func in language.Functions do
-                        if arity = 1 && functions.Contains(func) then
-                            for axiom in linearInductionAxioms constant func goal do
-                                yield axiom, InductionFormula
+                            |> Set.remove Equality.predicate
+                    if predicates.Count > 0 then
+                        for (Function (_, arity)) as func in language.Functions do
+                            if arity = 1 then
+                                for axiom in linearInductionAxioms constant func goal do
+                                    yield axiom, InductionFormula
             }
         Proof.tryProveAnnotated annotatedPremises goal

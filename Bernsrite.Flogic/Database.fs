@@ -19,8 +19,9 @@ type FormulaRole =
 
 type ClauseRole =
     | AxiomClause
-    | InductionAntecedentClause
-    | InductionConsequentClause
+    | InductionClause
+    // | InductionAntecedentClause
+    // | InductionConsequentClause
     | GoalClause
     | StepClause
 
@@ -71,8 +72,9 @@ module Database =
             ClauseMap =
                 Map [
                     AxiomClause, emptyBucket true
-                    InductionAntecedentClause, emptyBucket false
-                    InductionConsequentClause, emptyBucket false
+                    // InductionAntecedentClause, emptyBucket false
+                    // InductionConsequentClause, emptyBucket false
+                    InductionClause, emptyBucket false
                     GoalClause, emptyBucket true
                     StepClause, emptyBucket true
                 ]

@@ -86,6 +86,7 @@ module Proof =
                         formula |> Clause.toClauses
                     seq {
                         match formulaRole with
+                            (*
                             | InductionFormula ->
                                 let groups =
                                     clauses
@@ -101,6 +102,8 @@ module Proof =
                                 assert(groups.Length = 2)
                                 yield! mapTo groups.[0] InductionAntecedentClause
                                 yield! mapTo groups.[1] InductionConsequentClause
+                            *)
+                            | InductionFormula -> yield! mapTo clauses InductionClause
                             | AxiomFormula -> yield! mapTo clauses AxiomClause
                             | GoalFormula -> yield! mapTo clauses GoalClause
                     })
