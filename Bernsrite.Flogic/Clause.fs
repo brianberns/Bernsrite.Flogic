@@ -328,6 +328,10 @@ module Clause =
             |> Seq.reduce (fun formula1 formula2 ->
                 Or (formula1, formula2))
 
+    /// Number of symbols in the given clause.
+    let symbolCount clause =
+        clause.SymbolCount
+
     /// Applies the given mapping to all literals in the given clause.
     let map mapping clause =
         clause.Literals

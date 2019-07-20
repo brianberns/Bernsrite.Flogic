@@ -223,56 +223,74 @@ module Formula =
         assert(result |> getFreeVariables |> Set.isEmpty)
         result
 
+    /// Converts the given collection of items to a bag (i.e. multi-set).
+    let private toBag items =
+        items
+            |> Seq.groupBy id
+            |> Seq.map (fun (func, group) ->
+                let count = group |> Seq.length
+                func, count)
+            |> Map.ofSeq
+
     /// Finds all functions contained in the given formula.
     let getFunctions formula =
 
-        let rec loopTerm functions = function
-            | Application (func, terms) ->
-                let functions' =
-                    functions |> Set.add func
-                loopTerms functions' terms
-            | _ -> functions
+        let rec loopTerm term =
+            seq {
+                match term with
+                    | Application (func, terms) ->
+                        yield func
+                        yield! terms |> loopTerms
+                    | _ -> ()
+            }
 
-        and loopTerms functions terms =
-            Seq.fold loopTerm functions terms
+        and loopTerms terms =
+            terms |> Seq.collect loopTerm
 
-        let rec loopPredicate functions = function
-            | Atom (_, terms) ->
-                loopTerms functions terms
-                    |> Set.union functions
-            | Not formula
-            | Exists (_, formula)
-            | ForAll (_, formula) ->
-                formula |> loopPredicate functions
-            | And (formula1, formula2)
-            | Or (formula1, formula2)
-            | Implication (formula1, formula2)
-            | Biconditional (formula1, formula2) ->
-                let functions' =
-                    formula1 |> loopPredicate functions
-                formula2 |> loopPredicate functions'
+        let rec loopFormula formula =
+            seq {
+                match formula with
+                    | Atom (_, terms) ->
+                        yield! terms |> loopTerms
+                    | Not formula
+                    | Exists (_, formula)
+                    | ForAll (_, formula) ->
+                        yield! formula |> loopFormula
+                    | And (formula1, formula2)
+                    | Or (formula1, formula2)
+                    | Implication (formula1, formula2)
+                    | Biconditional (formula1, formula2) ->
+                        yield! formula1 |> loopFormula
+                        yield! formula2 |> loopFormula
+            }
 
-        formula |> loopPredicate Set.empty
+        formula
+            |> loopFormula
+            |> toBag
 
     /// Finds all predicates contained in the given formula.
     let getPredicates formula =
 
-        let rec loop predicates = function
-            | Atom (predicate, _) ->
-                predicates |> Set.add predicate
-            | Not formula
-            | Exists (_, formula)
-            | ForAll (_, formula) ->
-                formula |> loop predicates
-            | And (formula1, formula2)
-            | Or (formula1, formula2)
-            | Implication (formula1, formula2)
-            | Biconditional (formula1, formula2) ->
-                let predicates' =
-                    formula1 |> loop predicates
-                formula2 |> loop predicates'
+        let rec loop formula =
+            seq {
+                match formula with
+                    | Atom (predicate, _) ->
+                        yield predicate
+                    | Not formula
+                    | Exists (_, formula)
+                    | ForAll (_, formula) ->
+                        yield! formula |> loop
+                    | And (formula1, formula2)
+                    | Or (formula1, formula2)
+                    | Implication (formula1, formula2)
+                    | Biconditional (formula1, formula2) ->
+                        yield! formula1 |> loop
+                        yield! formula2 |> loop
+            }
 
-        formula |> loop Set.empty
+        formula
+            |> loop
+            |> toBag
 
     /// Maps over immediate children. (Easier to understand and work with
     /// than catamorphism.)

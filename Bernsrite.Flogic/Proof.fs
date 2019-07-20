@@ -5,7 +5,7 @@
 type Proof =
     {
         /// Premises of this proof.
-        AnnotatedPremises : (Formula * ClauseRole)[]
+        AnnotatedPremises : (Formula * FormulaRole)[]
 
         /// Goal of this proof.
         Goal : Formula
@@ -29,15 +29,17 @@ type Proof =
 
             yield ""
             yield "Premises:" |> Print.indent level
-            for (premise, role) in this.AnnotatedPremises do
-                yield sprintf "%A: %A" premise role
-                    |> Print.indent (level + 1)
+            for role, group in this.AnnotatedPremises |> Seq.groupBy snd do
+                yield sprintf "%A:" role |> Print.indent (level + 1)
+                for premise, _ in group do
+                    yield premise |> Print.indent (level + 2)
 
             yield ""
             yield "Initial clauses:" |> Print.indent level
-            for (clause, role) in this.AnnotatedInitialClauses do
-                yield sprintf "%A: %A" clause role
-                    |> Print.indent (level + 1)
+            for role, group in this.AnnotatedInitialClauses |> Seq.groupBy snd do
+                yield sprintf "%A:" role |> Print.indent (level + 1)
+                for clause, _ in group do
+                    yield clause |> Print.indent (level + 2)
 
             yield this.Derivation.ToString(level)
 
@@ -72,22 +74,48 @@ module Proof =
     
             // convert premises to clause normal form (CNF)
         let annotatedPremiseClauses =
+
+            let mapTo clauses clauseRole =
+                clauses
+                    |> Seq.map (fun clause ->
+                        clause, clauseRole)
+
             annotatedPremises
-                |> Seq.collect (fun (formula, role) ->
-                    formula
-                        |> Clause.toClauses
-                        |> Seq.map (fun clause -> clause, role))
+                |> Seq.collect (fun (formula, formulaRole) ->
+                    let clauses =
+                        formula |> Clause.toClauses
+                    seq {
+                        match formulaRole with
+                            | InductionFormula ->
+                                let groups =
+                                    clauses
+                                        |> Seq.groupBy (fun clause ->
+                                            clause
+                                                |> Clause.toFormula
+                                                |> Formula.getFunctions
+                                                |> Map.toSeq
+                                                |> Seq.sumBy snd)
+                                        |> Seq.sortBy fst
+                                        |> Seq.map snd
+                                        |> Seq.toArray
+                                assert(groups.Length = 2)
+                                yield! mapTo groups.[0] InductionAntecedentClause
+                                yield! mapTo groups.[1] InductionConsequentClause
+                            | AxiomFormula -> yield! mapTo clauses AxiomClause
+                            | GoalFormula -> yield! mapTo clauses GoalClause
+                    })
                 |> Seq.toArray
 
             // ensure explicit quantification before negating
         let goal' =
             goal |> Formula.quantifyUniversally
 
+            // annotates the given goal formula as clauses
         let annotateGoal formula =
             formula
                 |> Clause.toClauses
                 |> Seq.map (fun clause ->
-                    clause, Goal)
+                    clause, GoalClause)
                 |> Seq.append annotatedPremiseClauses
                 |> Seq.toArray
 
@@ -120,5 +148,5 @@ module Proof =
         let annotatedPremises =
             premises
                 |> Seq.map (fun premise ->
-                    premise, Axiom)
+                    premise, AxiomFormula)
         tryProveAnnotated annotatedPremises goal

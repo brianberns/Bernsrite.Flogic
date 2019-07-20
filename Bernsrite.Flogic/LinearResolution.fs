@@ -76,7 +76,7 @@ module LinearResolutionDerivation =
         {
             Database = Database.create annotatedClauses
             CenterClause = topClause
-            CenterClauseRole = Goal
+            CenterClauseRole = GoalClause
             Steps = List.empty
         }
 
@@ -86,7 +86,7 @@ module LinearResolutionDerivation =
             let goalClauses =
                 annotatedClauses
                     |> Seq.where (fun (_, role) ->
-                        role = Goal)
+                        role = GoalClause)
                     |> Seq.map fst
                     |> Seq.rev   // guess that the last goal clause is most likely to lead to contradiction (e.g. if plausible-assumption then incorrect-conclusion)
             for clause in goalClauses do
@@ -122,7 +122,7 @@ module LinearResolution =
                                                 } :: derivation.Steps
                                             Database =
                                                 derivation.Database
-                                                    |> Database.add resolvent Step
+                                                    |> Database.add resolvent StepClause
                                     }
                                 if resolvent.IsEmpty then   // success: empty clause is a contradiction
                                     Some derivation'

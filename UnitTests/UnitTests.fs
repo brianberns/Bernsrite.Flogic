@@ -174,7 +174,7 @@ type UnitTest() =
                         |> Parser.run parser
                         |> Clause.toClauses
                         |> Seq.exactlyOne
-                goalClause, Goal)
+                goalClause, GoalClause)
         let goalClause = fst annotatedGoalClauses.[0]
         let derivationOpt =
             LinearResolutionDerivation.create
@@ -265,11 +265,11 @@ type Peano() =
     member __.EqualitySymmetric() =
         test ("∀x.∀y.(=(x, y) ⇒ =(y, x))", true)
 
-    (*
     [<TestMethod>]
     member __.EqualityTransitive() =
         test ("∀x.∀y.∀z.((=(x, y) ∧ =(y, z)) ⇒ =(x, z))", true)
 
+    (*
     [<TestMethod>]
     member __.EqualityFalse() =
         test ("∀x.∀y.=(x, y)", false)

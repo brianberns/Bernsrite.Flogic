@@ -79,8 +79,7 @@ module System =
                         |> Seq.where (fun (Function (_, arity)) ->
                             arity = 1)
                 for func in functions do
-                    for axiom in linearInductionAxioms constant func formula do
-                        yield func, axiom
+                    yield! linearInductionAxioms constant func formula
         |]
 
     let tryProve system goal =
@@ -88,29 +87,17 @@ module System =
             seq {
                     // core system axioms
                 for axiom in system.Axioms do
-                    yield axiom, Axiom
+                    yield axiom, AxiomFormula
 
                     // equality axioms for this system's language
                 if system.Language.Predicates |> Seq.contains Equality.predicate then
                     for axiom in Equality.equivalenceAxioms do
-                        yield axiom, Axiom
+                        yield axiom, AxiomFormula
                     for axiom in system.Language |> Equality.substitutionAxioms do
-                        yield axiom, Axiom
+                        yield axiom, AxiomFormula
 
                     // induction axioms
-                for func, axiom in inductionAxioms system.Language goal do
-                    let formulas =
-                        axiom
-                            |> Clause.toClauses
-                            |> Seq.map Clause.toFormula
-                    for formula in formulas do
-                        let containsFunction =
-                            formula
-                                |> Formula.getFunctions
-                                |> Seq.contains func
-                        let role =
-                            if containsFunction then InductionConsequent
-                            else InductionAntecedent
-                        yield formula, role
+                for axiom in inductionAxioms system.Language goal do
+                    yield axiom, InductionFormula
             }
         Proof.tryProveAnnotated annotatedPremises goal

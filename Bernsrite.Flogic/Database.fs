@@ -12,12 +12,17 @@ module Print =
             (String(' ', 3 * level))
             (obj.ToString())
 
+type FormulaRole =
+    | AxiomFormula
+    | InductionFormula
+    | GoalFormula
+
 type ClauseRole =
-    | Axiom
-    | InductionAntecedent
-    | InductionConsequent
-    | Goal
-    | Step
+    | AxiomClause
+    | InductionAntecedentClause
+    | InductionConsequentClause
+    | GoalClause
+    | StepClause
 
 /// Clauses that are known/assumed true.
 [<StructuredFormatDisplay("{String}")>]
@@ -65,11 +70,11 @@ module Database =
         {
             ClauseMap =
                 Map [
-                    Axiom, emptyBucket true
-                    InductionAntecedent, emptyBucket false
-                    InductionConsequent, emptyBucket false
-                    Goal, emptyBucket true
-                    Step, emptyBucket true
+                    AxiomClause, emptyBucket true
+                    InductionAntecedentClause, emptyBucket false
+                    InductionConsequentClause, emptyBucket false
+                    GoalClause, emptyBucket true
+                    StepClause, emptyBucket true
                 ]
         }
 
