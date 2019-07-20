@@ -5,13 +5,13 @@
 type Proof =
     {
         /// Premises of this proof.
-        Premises : Formula[]
+        AnnotatedPremises : (Formula * ClauseRole)[]
 
         /// Goal of this proof.
         Goal : Formula
 
         /// Initial clauses (from premises and negated goal)
-        InitialClauses : Clause[]
+        AnnotatedInitialClauses : (Clause * ClauseRole)[]
 
         /// Result of this proof: proved or disproved.
         Result : bool
@@ -29,13 +29,15 @@ type Proof =
 
             yield ""
             yield "Premises:" |> Print.indent level
-            for premise in this.Premises do
-                yield premise |> Print.indent (level + 1)
+            for (premise, role) in this.AnnotatedPremises do
+                yield sprintf "%A: %A" premise role
+                    |> Print.indent (level + 1)
 
             yield ""
             yield "Initial clauses:" |> Print.indent level
-            for clause in this.InitialClauses do
-                yield clause |> Print.indent (level + 1)
+            for (clause, role) in this.AnnotatedInitialClauses do
+                yield sprintf "%A: %A" clause role
+                    |> Print.indent (level + 1)
 
             yield this.Derivation.ToString(level)
 
@@ -54,57 +56,69 @@ type Proof =
 module Proof =
 
     /// Creates a proof.
-    let create premises goal initialClauses result derivation =
+    let create annotatedPremises goal annotatedInitialClauses result derivation =
         {
-            Premises = premises |> Seq.toArray
+            AnnotatedPremises =
+                annotatedPremises |> Seq.toArray
             Goal = goal
-            InitialClauses = initialClauses |> Seq.toArray
+            AnnotatedInitialClauses =
+                annotatedInitialClauses |> Seq.toArray
             Result = result
             Derivation = derivation
         }
 
     /// Tries to prove the given goal from the given premises.
-    let tryProve language premises goal =
+    let tryProveAnnotated annotatedPremises goal =
     
             // convert premises to clause normal form (CNF)
-        let premiseClauses =
-            [|
-                yield! premises
-                yield! Language.generateAxioms language goal
-            |]
-                |> Seq.collect Clause.toClauses
+        let annotatedPremiseClauses =
+            annotatedPremises
+                |> Seq.collect (fun (formula, role) ->
+                    formula
+                        |> Clause.toClauses
+                        |> Seq.map (fun clause -> clause, role))
                 |> Seq.toArray
 
             // ensure explicit quantification before negating
         let goal' =
             goal |> Formula.quantifyUniversally
 
-            // convert goal to CNF for proof
-        let proofGoalClauses =
-            goal'
-                |> Not   // proof by refutation: negate goal
+        let annotateGoal formula =
+            formula
                 |> Clause.toClauses
+                |> Seq.map (fun clause ->
+                    clause, Goal)
+                |> Seq.append annotatedPremiseClauses
                 |> Seq.toArray
 
+            // convert goal to CNF for proof
+            // proof by refutation: negate goal
+        let annotatedProofClauses =
+            Not goal' |> annotateGoal
+
             // convert goal to CNF for disproof
-        let disproofGoalClauses =
-            goal'
-                |> Clause.toClauses
-                |> Seq.toArray
+        let annotatedDisproofClauses =
+            goal' |> annotateGoal
 
             // iterative deepening
         [ 5; 7 ]
             |> Seq.collect (fun maxDepth ->
                 seq {
-                    yield maxDepth, proofGoalClauses, true
-                    yield maxDepth, disproofGoalClauses, false
+                    yield maxDepth, annotatedProofClauses, true
+                    yield maxDepth, annotatedDisproofClauses, false
                 })
-            |> Seq.tryPick (fun (maxDepth, goalClauses, flag) ->
-                LinearResolution.tryProve maxDepth premiseClauses goalClauses
-                    |> Option.map (fun derivation ->
-                        let initialClauses =
-                            seq {
-                                yield! premiseClauses
-                                yield! goalClauses
-                            }
-                        create premises goal initialClauses flag derivation))
+            |> Seq.tryPick (fun (maxDepth, annotatedInitialClauses, flag) ->
+                LinearResolution.tryProve maxDepth annotatedInitialClauses
+                    |> Option.map (create
+                        annotatedPremises
+                        goal
+                        annotatedInitialClauses
+                        flag))
+
+    /// Tries to prove the given goal from the given premises.
+    let tryProve premises goal =
+        let annotatedPremises =
+            premises
+                |> Seq.map (fun premise ->
+                    premise, Axiom)
+        tryProveAnnotated annotatedPremises goal

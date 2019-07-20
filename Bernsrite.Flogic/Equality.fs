@@ -9,8 +9,8 @@ module Equality =
     /// Simple parser.
     let private parser = Parser.makeParser Array.empty
 
-    /// Basic equality axioms.
-    let basicAxioms =
+    /// Equivalence axioms.
+    let equivalenceAxioms =
         [|
             "∀x.=(x,x)"                                   // reflexive
             "∀x.∀y.(=(x,y) ⇒ =(y,x))"                   // symmetric
@@ -18,7 +18,7 @@ module Equality =
         |] |> Array.map (Parser.run parser)
 
     /// Tries to create a substitution axiom for the given predicate.
-    let private tryGetPredicateAxiom (Predicate (name, arity)) =
+    let private tryCreatePredicateAxiom (Predicate (name, arity)) =
         match arity with
             | 0 -> None
             | 2 -> sprintf "∀u.∀v.∀x.∀y.(((%s(u,v) ∧ =(u,x)) ∧ =(v,y)) ⇒ %s(x,y))" name name
@@ -27,7 +27,7 @@ module Equality =
             | _ -> failwith "Not yet supported"
 
     /// Tries to create a substitution axiom for the given function.
-    let private tryGetFunctionAxiom (Function (name, arity)) =
+    let private tryCreateFunctionAxiom (Function (name, arity)) =
         match arity with
             | 0 -> None
             | 1 -> sprintf "∀x.∀y.∀z.((=(%s(x),z) ∧ =(x,y)) ⇒ =(%s(y),z))" name name
@@ -38,13 +38,12 @@ module Equality =
                     |> Some
             | _ -> failwith "Not yet supported"
 
-    /// Basic axioms plus substitution axioms for the given language.
-    let getAxioms language =
+    /// Substitution axioms for the given language.
+    let substitutionAxioms language =
         [|
-            yield! basicAxioms
             yield! language.Predicates
                 |> Seq.where ((<>) predicate)
-                |> Seq.choose tryGetPredicateAxiom
+                |> Seq.choose tryCreatePredicateAxiom
             yield! language.Functions
-                |> Seq.choose tryGetFunctionAxiom
+                |> Seq.choose tryCreateFunctionAxiom
         |]

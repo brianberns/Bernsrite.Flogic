@@ -131,7 +131,7 @@ type UnitTest() =
                 "∀u.∀v.∀w.(loves(v,w) ⇒ loves(u,v))"
             |] |> Array.map (Parser.run parser)
         let goal = "∀x.∀y.loves(x,y)" |> Parser.run parser
-        let proofOpt = Proof.tryProve Language.empty premises goal
+        let proofOpt = Proof.tryProve premises goal
         printfn "%A" proofOpt
         match proofOpt with
             | Some proof ->
@@ -152,7 +152,7 @@ type UnitTest() =
                 "r(ralph)"
             |] |> Array.map (Parser.run parser)
         let goal = "f(harry, ralph)" |> Parser.run parser
-        let proofOpt = Proof.tryProve Language.empty premises goal
+        let proofOpt = Proof.tryProve premises goal
         printfn "%A" proofOpt
         match proofOpt with
             | Some proof ->
@@ -164,15 +164,21 @@ type UnitTest() =
     /// This test requires factoring (or something similar).
     member __.Derivation() =
         let parser = Parser.makeParser Array.empty
-        let goalClauses =
+        let annotatedGoalClauses =
             [|
                 "(p(x) | p(y))"
                 "(¬p(u) | ¬p(v))"
-            |] |> Array.map (
-                Parser.run parser >> Clause.toClauses >> Seq.exactlyOne)
+            |] |> Array.map (fun str ->
+                let goalClause =
+                    str
+                        |> Parser.run parser
+                        |> Clause.toClauses
+                        |> Seq.exactlyOne
+                goalClause, Goal)
+        let goalClause = fst annotatedGoalClauses.[0]
         let derivationOpt =
             LinearResolutionDerivation.create
-                Array.empty goalClauses goalClauses.[0]
+                annotatedGoalClauses goalClause
                     |> LinearResolution.search 6
         printfn "%A" derivationOpt
         Assert.IsTrue(derivationOpt.IsSome)
@@ -185,30 +191,18 @@ type UnitTest() =
                 [| Function ("f", 1) |]
                 [| Predicate ("P", 1) |]
         let parse = Language.parse language
-        let premises =
-            [|
-                "P(a)"
-                "(P(x) -> P(f(x)))"
-            |] |> Array.map parse
+        let system =
+            {
+                Language = language
+                Axioms =
+                    [|
+                        "P(a)"
+                        "(P(x) -> P(f(x)))"
+                    |] |> Array.map parse
+            }
         let proofOpt =
             parse "∀x.P(x)"
-                |> Proof.tryProve language premises
-        printfn "%A" proofOpt
-        match proofOpt with
-            | Some proof -> Assert.IsTrue(proof.Result)
-            | _ -> Assert.Fail()
-
-    [<TestMethod>]
-    member __.Induction2() =
-        let parse = Language.parse Peano.language
-        let premises =
-            [|
-                "∀y.=(+(0,y), y)"
-                "∀x.∀y.∀z.(=(+(x,y), z) ⇒ =(+(s(x),y), s(z)))"
-            |] |> Array.map parse
-        let proofOpt =
-            parse "∀x.=(+(x,0), x)"
-                |> Proof.tryProve Peano.language premises
+                |> System.tryProve system
         printfn "%A" proofOpt
         match proofOpt with
             | Some proof -> Assert.IsTrue(proof.Result)
@@ -216,7 +210,7 @@ type UnitTest() =
 
     (*
     [<TestMethod>]
-    member __.Induction3() =
+    member __.Induction2() =
 
         let parser = Parser.makeParser ["0"]
         let parse = Parser.run parser
@@ -257,7 +251,7 @@ type Peano() =
         let proofOpt =
             goalStr
                 |> Language.parse Peano.language
-                |> Proof.tryProve Peano.language Peano.axioms
+                |> System.tryProve Peano.system
         printfn "%A" proofOpt
         match proofOpt with
             | Some proof -> Assert.AreEqual(flag, proof.Result)

@@ -223,6 +223,57 @@ module Formula =
         assert(result |> getFreeVariables |> Set.isEmpty)
         result
 
+    /// Finds all functions contained in the given formula.
+    let getFunctions formula =
+
+        let rec loopTerm functions = function
+            | Application (func, terms) ->
+                let functions' =
+                    functions |> Set.add func
+                loopTerms functions' terms
+            | _ -> functions
+
+        and loopTerms functions terms =
+            Seq.fold loopTerm functions terms
+
+        let rec loopPredicate functions = function
+            | Atom (_, terms) ->
+                loopTerms functions terms
+                    |> Set.union functions
+            | Not formula
+            | Exists (_, formula)
+            | ForAll (_, formula) ->
+                formula |> loopPredicate functions
+            | And (formula1, formula2)
+            | Or (formula1, formula2)
+            | Implication (formula1, formula2)
+            | Biconditional (formula1, formula2) ->
+                let functions' =
+                    formula1 |> loopPredicate functions
+                formula2 |> loopPredicate functions'
+
+        formula |> loopPredicate Set.empty
+
+    /// Finds all predicates contained in the given formula.
+    let getPredicates formula =
+
+        let rec loop predicates = function
+            | Atom (predicate, _) ->
+                predicates |> Set.add predicate
+            | Not formula
+            | Exists (_, formula)
+            | ForAll (_, formula) ->
+                formula |> loop predicates
+            | And (formula1, formula2)
+            | Or (formula1, formula2)
+            | Implication (formula1, formula2)
+            | Biconditional (formula1, formula2) ->
+                let predicates' =
+                    formula1 |> loop predicates
+                formula2 |> loop predicates'
+
+        formula |> loop Set.empty
+
     /// Maps over immediate children. (Easier to understand and work with
     /// than catamorphism.)
     /// http://t0yv0.blogspot.com/2011/09/transforming-large-unions-in-f.html

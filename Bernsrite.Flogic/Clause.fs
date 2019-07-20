@@ -317,6 +317,17 @@ module Clause =
             >> distributeDisjunctions
             >> convertToClauses
 
+    /// Converts a clause to literals.
+    let toLiterals clause =
+        clause.Literals |> Seq.toArray
+
+    /// Converts a clause to a formula.
+    let toFormula clause =
+        clause.Literals
+            |> Seq.map Literal.toFormula
+            |> Seq.reduce (fun formula1 formula2 ->
+                Or (formula1, formula2))
+
     /// Applies the given mapping to all literals in the given clause.
     let map mapping clause =
         clause.Literals
@@ -342,10 +353,6 @@ module Clause =
                 literal1.Predicate = literal2.Predicate
                     && literal1.IsPositive <> literal2.IsPositive
                     && literal1.Terms = literal2.Terms)
-
-    /// Converts a clause to literals.
-    let toLiterals clause =
-        clause.Literals |> Seq.toArray
 
     /// Applies the given substitution to the given literal.
     let private apply subst literal =

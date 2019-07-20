@@ -48,6 +48,12 @@ module Literal =
             create predicate terms false
         | _ -> failwith "Not a literal"
 
+    /// Converts a literal to a formula.
+    let toFormula literal =
+        let atom = Atom (literal.Predicate, literal.Terms)
+        if literal.IsPositive then atom
+        else Not atom
+
     /// Negates the given literal.
     let negate literal =
         {

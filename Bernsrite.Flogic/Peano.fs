@@ -26,6 +26,11 @@ module Peano =
 
     let axioms =
         [|
-            yield! Equality.getAxioms language
             yield! plusAxioms
         |]
+
+    let system =
+        {
+            Language = language
+            Axioms = axioms
+        }

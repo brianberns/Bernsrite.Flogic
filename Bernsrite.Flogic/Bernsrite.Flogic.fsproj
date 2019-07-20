@@ -16,10 +16,10 @@
     <Compile Include="Clause.fs" />
     <Compile Include="Database.fs" />
     <Compile Include="LinearResolution.fs" />
-    <Compile Include="Induction.fs" />
-    <Compile Include="Language.fs" />
     <Compile Include="Proof.fs" />
+    <Compile Include="Language.fs" />
     <Compile Include="Equality.fs" />
+    <Compile Include="System.fs" />
     <Compile Include="Peano.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

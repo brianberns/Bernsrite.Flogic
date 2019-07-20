@@ -1,15 +1,5 @@
 ﻿namespace Bernsrite.Flogic
 
-open System
-
-module Print =
-
-    /// Indents the given object to the given level.
-    let indent level obj =
-        sprintf "%s%s"
-            (String(' ', 3 * level))
-            (obj.ToString())
-
 /// One step in a linear resolution derivation.
 type LinearResolutionDerivationStep =
     {
@@ -29,6 +19,9 @@ type LinearResolutionDerivation =
     {
         /// Current center clause.
         CenterClause : Clause
+
+        /// Current center clause role.
+        CenterClauseRole : ClauseRole
 
         /// Steps leading to current state, in reverse order.
         Steps : List<LinearResolutionDerivationStep>
@@ -58,8 +51,10 @@ type LinearResolutionDerivation =
                         |> Print.indent (level + 4)
 
             yield ""
-            yield sprintf "Center clause: %A" this.CenterClause
+            yield sprintf "Center clause: %A %A" this.CenterClause this.CenterClauseRole
                 |> Print.indent level
+
+            yield this.Database.ToString(level + 1)
 
         } |> String.join "\r\n"
 
@@ -72,18 +67,26 @@ type LinearResolutionDerivation =
 
 module LinearResolutionDerivation =
 
-    /// Initializes a derivation from the given clauses.
-    let create premiseClauses goalClauses topClause =
-        assert(goalClauses |> Seq.contains topClause)
+    /// Creates a derivation for the given clauses.
+    let create annotatedClauses topClause =
+        assert(
+            annotatedClauses
+                |> Seq.map fst
+                |> Seq.contains topClause)
         {
-            Database =
-                [|
-                    yield! premiseClauses
-                    yield! goalClauses
-                |] |> Database.create
+            Database = Database.create annotatedClauses
             CenterClause = topClause
+            CenterClauseRole = Goal
             Steps = List.empty
         }
+
+    /// Initializes derivations for the given clauses.
+    let generate annotatedClauses =
+        [|
+            for (clause, role) in annotatedClauses do
+                if role = Goal then
+                    yield create annotatedClauses clause
+        |]
 
 /// http://www.cs.miami.edu/home/geoff/Courses/CSC648-12S/Content/LinearResolution.shtml
 module LinearResolution =
@@ -97,7 +100,7 @@ module LinearResolution =
 
                     // resolve with all possible side clauses
                 derivation.Database
-                    |> Database.getPossibleResolutionClauses derivation.CenterClause
+                    |> Database.getPossibleResolutionClauses derivation.CenterClauseRole
                     |> Seq.tryPick (fun sideClause ->
                         Clause.resolve derivation.CenterClause sideClause
                             |> Seq.tryPick (fun (resolvent, substitution) ->
@@ -113,7 +116,7 @@ module LinearResolution =
                                                 } :: derivation.Steps
                                             Database =
                                                 derivation.Database
-                                                    |> Database.add resolvent
+                                                    |> Database.add resolvent Axiom
                                     }
                                 if resolvent.IsEmpty then   // success: empty clause is a contradiction
                                     Some derivation'
@@ -125,10 +128,6 @@ module LinearResolution =
 
     /// Tries to prove the given goal from the given premises via linear
     /// resolution.
-    let tryProve maxDepth premiseClauses goalClauses =
-        goalClauses
-            |> Seq.rev   // guess that the last goal clause is most likely to lead to contradiction (e.g. if plausible-assumption then incorrect-conclusion)
-            |> Seq.tryPick (fun topClause ->
-                LinearResolutionDerivation.create
-                    premiseClauses goalClauses topClause
-                        |> search maxDepth)
+    let tryProve maxDepth annotatedClauses =
+        LinearResolutionDerivation.generate annotatedClauses
+                |> Seq.tryPick (search maxDepth)
