@@ -42,22 +42,17 @@ module Language =
     /// Parses the given string using the given language.
     let parse language str =
         let formula = Parser.run language.Parser str
-        let toSet bag =
-            bag
-                |> Map.toSeq
-                |> Seq.map fst
-                |> set
         let undeclaredFunctions =
             let functions =
                 formula
                     |> Formula.getFunctions
-                    |> toSet
+                    |> Map.keys
             Set.difference functions (set language.Functions)
         let undeclaredPredicates =
             let predicates =
                 formula
                     |> Formula.getPredicates
-                    |> toSet
+                    |> Map.keys
             Set.difference predicates (set language.Predicates)
         if undeclaredFunctions.IsEmpty then
             if undeclaredPredicates.IsEmpty then

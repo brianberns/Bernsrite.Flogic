@@ -102,3 +102,12 @@ module String =
         let strs =
             items |> Seq.map (fun item -> item.ToString())
         String.Join(separator, strs)
+
+module Map =
+
+    /// Answers the set of keys present in the given map.
+    let keys map =
+        map
+            |> Map.toSeq
+            |> Seq.map fst
+            |> set

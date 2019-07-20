@@ -68,20 +68,6 @@ module System =
             |> loop
             |> Seq.toArray
 
-    /// Generates induction axioms for the given formula.
-    let private inductionAxioms language formula =
-        [|
-            if language.Constants.Length = 1 then
-                let constant =
-                    language.Constants |> Array.exactlyOne
-                let functions =
-                    language.Functions
-                        |> Seq.where (fun (Function (_, arity)) ->
-                            arity = 1)
-                for func in functions do
-                    yield! linearInductionAxioms constant func formula
-        |]
-
     let tryProve system goal =
         let annotatedPremises =
             seq {
@@ -90,14 +76,24 @@ module System =
                     yield axiom, AxiomFormula
 
                     // equality axioms for this system's language
-                if system.Language.Predicates |> Seq.contains Equality.predicate then
+                let language = system.Language
+                if language.Predicates |> Seq.contains Equality.predicate then
                     for axiom in Equality.equivalenceAxioms do
                         yield axiom, AxiomFormula
-                    for axiom in system.Language |> Equality.substitutionAxioms do
+                    for axiom in language |> Equality.substitutionAxioms do
                         yield axiom, AxiomFormula
 
                     // induction axioms
-                for axiom in inductionAxioms system.Language goal do
-                    yield axiom, InductionFormula
+                if language.Constants.Length = 1 then
+                    let constant =
+                        language.Constants |> Array.exactlyOne
+                    let functions =
+                        goal
+                            |> Formula.getFunctions
+                            |> Map.keys
+                    for (Function (_, arity)) as func in language.Functions do
+                        if arity = 1 && functions.Contains(func) then
+                            for axiom in linearInductionAxioms constant func goal do
+                                yield axiom, InductionFormula
             }
         Proof.tryProveAnnotated annotatedPremises goal
