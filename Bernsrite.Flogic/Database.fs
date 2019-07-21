@@ -12,18 +12,18 @@ module Print =
             (String(' ', 3 * level))
             (obj.ToString())
 
-type FormulaRole =
-    | AxiomFormula
-    | InductionFormula
-    | GoalFormula
+[<StructuredFormatDisplay("{Name}")>]
+type RoleTag =
+    | Tag of string
 
-type ClauseRole =
-    | AxiomClause
-    | InductionClause
-    // | InductionAntecedentClause
-    // | InductionConsequentClause
-    | GoalClause
-    | StepClause
+    /// Display string.
+    member this.Name =
+        let (Tag name) = this
+        name
+
+    /// Display string.
+    override this.ToString() =
+        this.Name
 
 /// Clauses that are known/assumed true.
 [<StructuredFormatDisplay("{String}")>]
@@ -32,7 +32,7 @@ type Database =
         /// Clauses are sorted by symbol count, so smaller clauses are enumerated
         /// first. This is the "least symbol count" heuristic.
         /// http://www.cs.miami.edu/home/geoff/Courses/CSC648-12S/Content/GeneralHeuristics.shtml
-        ClauseMap : Map<ClauseRole, ImmutableSortedSet<Clause>>
+        ClauseMap : Map<RoleTag, ImmutableSortedSet<Clause>>
     }
 
     /// Display string.
@@ -40,8 +40,8 @@ type Database =
         seq {
             yield ""
             yield "Database:" |> Print.indent level
-            for (role, clauses) in this.ClauseMap |> Map.toSeq do
-                yield sprintf "%A:" role |> Print.indent (level + 1)
+            for tag, clauses in this.ClauseMap |> Map.toSeq do
+                yield sprintf "%As:" tag |> Print.indent (level + 1)
                 for clause in clauses do
                     yield clause |> Print.indent (level + 2)
         } |> String.join "\r\n"
@@ -53,50 +53,55 @@ type Database =
     /// Display string.
     member this.String = this.ToString()
 
+module ImmutableSortedSet =
+
+    let add value (set : ImmutableSortedSet<_>) =
+        set.Add(value)
+
 module Database =
 
-    let clauseComparer isAscending =
+    let clauseComparer =
         {
             new IComparer<Clause> with
                 member __.Compare(clause1, clause2) =
                     match compare clause1.SymbolCount clause2.SymbolCount with
                         | 0 -> compare clause1 clause2
-                        | result -> if isAscending then result else -result
+                        | result -> result
         }
 
-    let private emptyBucket isAscending =
-        ImmutableSortedSet.Create<Clause>(clauseComparer isAscending)
+    let private emptyBucket =
+        ImmutableSortedSet.Create<Clause>(clauseComparer)
 
     let empty =
-        {
-            ClauseMap =
-                Map [
-                    AxiomClause, emptyBucket true
-                    // InductionAntecedentClause, emptyBucket false
-                    // InductionConsequentClause, emptyBucket false
-                    InductionClause, emptyBucket false
-                    GoalClause, emptyBucket true
-                    StepClause, emptyBucket true
-                ]
-        }
+        { ClauseMap = Map.empty }
 
-    let add clause role database =
+    let add clause tag database =
         {
             ClauseMap =
-                let bucket = database.ClauseMap.[role].Add(clause)
+                let bucket =
+                    database.ClauseMap
+                        |> Map.tryFind tag
+                        |> Option.defaultValue emptyBucket
+                        |> ImmutableSortedSet.add clause
                 database.ClauseMap
-                    |> Map.add role bucket
+                    |> Map.add tag bucket
         }
 
-    let create annotatedClauses =
-        (empty, annotatedClauses)
-            ||> Seq.fold (fun acc (clause, role) ->
-                acc |> add clause role)
+    let create taggedClauses =
+        (empty, taggedClauses)
+            ||> Seq.fold (fun acc (clause, tag) ->
+                acc |> add clause tag)
 
-    let getPossibleResolutionClauses role database =
+    let getPossibleResolutionClauses clause tag database =
+        let preferredTag = tag
+        (*
+            match tag with
+                | "GoalClause" -> "InductionClause"
+                | _ -> tag
+        *)
         [|
-            yield! database.ClauseMap.[role]
-            for (role', clauses) in database.ClauseMap |> Map.toSeq do
-                if role' <> role then
+            yield! database.ClauseMap.[preferredTag]
+            for otherTag, clauses in database.ClauseMap |> Map.toSeq do
+                if otherTag <> preferredTag then
                     yield! clauses
         |]

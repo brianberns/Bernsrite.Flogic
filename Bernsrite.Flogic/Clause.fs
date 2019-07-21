@@ -429,8 +429,8 @@ module Clause =
                 |> createAllButArray Literal.negate   // negate for unification
 
         seq {
-            for (literal1, allBut1) in allButArray1 do
-                for (literal2, allBut2) in allButArray2 do
+            for literal1, allBut1 in allButArray1 do
+                for literal2, allBut2 in allButArray2 do
                     match Literal.tryUnify literal1 literal2 with
                         | Some subst ->
                             let resolvent =

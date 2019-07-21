@@ -5,13 +5,13 @@
 type Proof =
     {
         /// Premises of this proof.
-        AnnotatedPremises : (Formula * FormulaRole)[]
+        TaggedPremises : (Formula * RoleTag)[]
 
         /// Goal of this proof.
         Goal : Formula
 
         /// Initial clauses (from premises and negated goal)
-        AnnotatedInitialClauses : (Clause * ClauseRole)[]
+        TaggedInitialClauses : (Clause * RoleTag)[]
 
         /// Result of this proof: proved or disproved.
         Result : bool
@@ -29,15 +29,15 @@ type Proof =
 
             yield ""
             yield "Premises:" |> Print.indent level
-            for role, group in this.AnnotatedPremises |> Seq.groupBy snd do
-                yield sprintf "%A:" role |> Print.indent (level + 1)
+            for tag, group in this.TaggedPremises |> Seq.groupBy snd do
+                yield sprintf "%As:" tag |> Print.indent (level + 1)
                 for premise, _ in group do
                     yield premise |> Print.indent (level + 2)
 
             yield ""
             yield "Initial clauses:" |> Print.indent level
-            for role, group in this.AnnotatedInitialClauses |> Seq.groupBy snd do
-                yield sprintf "%A:" role |> Print.indent (level + 1)
+            for tag, group in this.TaggedInitialClauses |> Seq.groupBy snd do
+                yield sprintf "%As:" tag |> Print.indent (level + 1)
                 for clause, _ in group do
                     yield clause |> Print.indent (level + 2)
 
@@ -58,98 +58,72 @@ type Proof =
 module Proof =
 
     /// Creates a proof.
-    let create annotatedPremises goal annotatedInitialClauses result derivation =
+    let create taggedPremises goal taggedInitialClauses result derivation =
         {
-            AnnotatedPremises =
-                annotatedPremises |> Seq.toArray
+            TaggedPremises =
+                taggedPremises |> Seq.toArray
             Goal = goal
-            AnnotatedInitialClauses =
-                annotatedInitialClauses |> Seq.toArray
+            TaggedInitialClauses =
+                taggedInitialClauses |> Seq.toArray
             Result = result
             Derivation = derivation
         }
 
     /// Tries to prove the given goal from the given premises.
-    let tryProveAnnotated annotatedPremises goal =
+    let tryProveTagged taggedPremises goal =
     
             // convert premises to clause normal form (CNF)
-        let annotatedPremiseClauses =
+        let taggedPremiseClauses =
 
-            let mapTo clauses clauseRole =
-                clauses
-                    |> Seq.map (fun clause ->
-                        clause, clauseRole)
-
-            annotatedPremises
-                |> Seq.collect (fun (formula, formulaRole) ->
-                    let clauses =
-                        formula |> Clause.toClauses
-                    seq {
-                        match formulaRole with
-                            (*
-                            | InductionFormula ->
-                                let groups =
-                                    clauses
-                                        |> Seq.groupBy (fun clause ->
-                                            clause
-                                                |> Clause.toFormula
-                                                |> Formula.getFunctions
-                                                |> Map.toSeq
-                                                |> Seq.sumBy snd)
-                                        |> Seq.sortBy fst
-                                        |> Seq.map snd
-                                        |> Seq.toArray
-                                assert(groups.Length = 2)
-                                yield! mapTo groups.[0] InductionAntecedentClause
-                                yield! mapTo groups.[1] InductionConsequentClause
-                            *)
-                            | InductionFormula -> yield! mapTo clauses InductionClause
-                            | AxiomFormula -> yield! mapTo clauses AxiomClause
-                            | GoalFormula -> yield! mapTo clauses GoalClause
-                    })
+            taggedPremises
+                |> Seq.collect (fun (formula, tag) ->
+                    formula
+                        |> Clause.toClauses
+                        |> Seq.map (fun clause ->
+                            clause, tag))
                 |> Seq.toArray
 
             // ensure explicit quantification before negating
         let goal' =
             goal |> Formula.quantifyUniversally
 
-            // annotates the given goal formula as clauses
-        let annotateGoal formula =
+            // tags the given goal formula as clauses
+        let tagGoal formula =
             formula
                 |> Clause.toClauses
                 |> Seq.map (fun clause ->
-                    clause, GoalClause)
-                |> Seq.append annotatedPremiseClauses
+                    clause, Tag "Goal")
+                |> Seq.append taggedPremiseClauses
                 |> Seq.toArray
 
             // convert goal to CNF for proof
             // proof by refutation: negate goal
-        let annotatedProofClauses =
-            Not goal' |> annotateGoal
+        let taggedProofClauses =
+            Not goal' |> tagGoal
 
             // convert goal to CNF for disproof
-        let annotatedDisproofClauses =
-            goal' |> annotateGoal
+        let taggedDisproofClauses =
+            goal' |> tagGoal
 
             // iterative deepening
         [ 5; 7 ]
             |> Seq.collect (fun maxDepth ->
                 seq {
-                    yield maxDepth, annotatedProofClauses, true
-                    yield maxDepth, annotatedDisproofClauses, false
+                    yield maxDepth, taggedProofClauses, true
+                    yield maxDepth, taggedDisproofClauses, false
                 })
-            |> Seq.tryPick (fun (maxDepth, annotatedInitialClauses, flag) ->
-                LinearResolution.tryProve maxDepth annotatedInitialClauses
+            |> Seq.tryPick (fun (maxDepth, taggedInitialClauses, flag) ->
+                LinearResolution.tryProve maxDepth taggedInitialClauses
                     |> Option.map (create
-                        annotatedPremises
+                        taggedPremises
                         goal
-                        annotatedInitialClauses
+                        taggedInitialClauses
                         flag))
 
     /// Tries to prove the given goal from the given premises.
     let tryProve premises goal =
-        let annotatedPremises =
+        let taggedPremises =
             premises
                 |> Seq.map (fun premise ->
-                    premise, AxiomFormula)
-        tryProveAnnotated annotatedPremises goal
+                    premise, Tag "Premise")
+        tryProveTagged taggedPremises goal

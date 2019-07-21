@@ -164,7 +164,7 @@ type UnitTest() =
     /// This test requires factoring (or something similar).
     member __.Derivation() =
         let parser = Parser.makeParser Array.empty
-        let annotatedGoalClauses =
+        let taggedGoalClauses =
             [|
                 "(p(x) | p(y))"
                 "(¬p(u) | ¬p(v))"
@@ -174,11 +174,11 @@ type UnitTest() =
                         |> Parser.run parser
                         |> Clause.toClauses
                         |> Seq.exactlyOne
-                goalClause, GoalClause)
-        let goalClause = fst annotatedGoalClauses.[0]
+                goalClause, Tag "Goal")
+        let goalClause = fst taggedGoalClauses.[0]
         let derivationOpt =
             LinearResolutionDerivation.create
-                annotatedGoalClauses goalClause
+                taggedGoalClauses goalClause
                     |> LinearResolution.search 6
         printfn "%A" derivationOpt
         Assert.IsTrue(derivationOpt.IsSome)
@@ -269,16 +269,27 @@ type Peano() =
     member __.EqualityTransitive() =
         test ("∀x.∀y.∀z.((=(x, y) ∧ =(y, z)) ⇒ =(x, z))", true)
 
+    [<TestMethod>]
+    member __.Successor1() =
+        test ("∀x.∀y.(=(x, y) -> =(s(x), s(y)))", true)
+        test ("∀x.∀y.(=(x, y) <- =(s(x), s(y)))", true)
+        // test ("∀x.∀y.(=(x, y) <-> =(s(x), s(y)))", true)
+
+    [<TestMethod>]
+    member __.Successor2() =
+        test ("∀x.~=(s(x), 0)", true)
+        test ("∃x.=(s(x), 0)", false)
+
     (*
     [<TestMethod>]
     member __.EqualityFalse() =
         test ("∀x.∀y.=(x, y)", false)
+    *)
 
     [<TestMethod>]
     member __.AdditionIdentity() =
         test ("∀x.=(+(x,0), x)", true)
-        test ("∀x.=(+(0,x), x)", true)
-    *)
+        // test ("∀x.=(+(0,x), x)", true)
 
     [<TestMethod>]
     member __.AdditionSuccessor() =

@@ -2,7 +2,10 @@
 
 type System =
     {
+        /// Language used by this system.
         Language : Language
+
+        /// Axioms defined explicitly by this system.
         Axioms : Formula[]
     }
 
@@ -69,33 +72,37 @@ module System =
             |> Seq.toArray
 
     let tryProve system goal =
-        let annotatedPremises =
+        let taggedPremises =
             seq {
-                    // core system axioms
+                    // explicit system axioms
                 for axiom in system.Axioms do
-                    yield axiom, AxiomFormula
+                    yield axiom, Tag "Axiom"
 
                     // equality axioms for this system's language
                 let language = system.Language
                 if language.Predicates |> Seq.contains Equality.predicate then
                     for axiom in Equality.equivalenceAxioms do
-                        yield axiom, AxiomFormula
+                        yield axiom, Tag "Equivalence axiom"
                     for axiom in language |> Equality.substitutionAxioms do
-                        yield axiom, AxiomFormula
+                        yield axiom, Tag "Substitution axiom"
 
                     // induction axioms
                 if language.Constants.Length = 1 then
                     let constant =
                         language.Constants |> Array.exactlyOne
+                    let functions =
+                        goal
+                            |> Formula.getFunctions
+                            |> Map.keys
                     let predicates =
                         goal
                             |> Formula.getPredicates
                             |> Map.keys
                             |> Set.remove Equality.predicate
-                    if predicates.Count > 0 then
+                    if functions.Count + predicates.Count > 0 then   // don't generate induction axioms for a goal that seems to be solely about equality
                         for (Function (_, arity)) as func in language.Functions do
                             if arity = 1 then
                                 for axiom in linearInductionAxioms constant func goal do
-                                    yield axiom, InductionFormula
+                                    yield axiom, Tag "Induction axiom"
             }
-        Proof.tryProveAnnotated annotatedPremises goal
+        Proof.tryProveTagged taggedPremises goal

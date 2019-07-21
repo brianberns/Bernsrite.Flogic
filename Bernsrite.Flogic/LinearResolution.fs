@@ -20,8 +20,8 @@ type LinearResolutionDerivation =
         /// Current center clause.
         CenterClause : Clause
 
-        /// Current center clause role.
-        CenterClauseRole : ClauseRole
+        /// Current center clause tag.
+        CenterClauseTag : RoleTag
 
         /// Steps leading to current state, in reverse order.
         Steps : List<LinearResolutionDerivationStep>
@@ -46,12 +46,12 @@ type LinearResolutionDerivation =
                     |> Print.indent (level + 1)
                 yield sprintf "with %A" step.SideClause
                     |> Print.indent (level + 3)
-                for (variableName, term) in step.Substitution.Bindings do
+                for variableName, term in step.Substitution.Bindings do
                     yield sprintf "%s <- %A" variableName term
                         |> Print.indent (level + 4)
 
             yield ""
-            yield sprintf "Center clause: %A, %A" this.CenterClause this.CenterClauseRole
+            yield sprintf "Center clause: %A, %A" this.CenterClause this.CenterClauseTag
                 |> Print.indent level
 
             yield this.Database.ToString(level + 1)
@@ -68,29 +68,29 @@ type LinearResolutionDerivation =
 module LinearResolutionDerivation =
 
     /// Creates a derivation for the given clauses.
-    let create annotatedClauses topClause =
+    let create taggedClauses topClause =
         assert(
-            annotatedClauses
+            taggedClauses
                 |> Seq.map fst
                 |> Seq.contains topClause)
         {
-            Database = Database.create annotatedClauses
+            Database = Database.create taggedClauses
             CenterClause = topClause
-            CenterClauseRole = GoalClause
+            CenterClauseTag = Tag "Goal"
             Steps = List.empty
         }
 
     /// Initializes derivations for the given clauses.
-    let generate annotatedClauses =
+    let generate taggedClauses =
         [|
             let goalClauses =
-                annotatedClauses
-                    |> Seq.where (fun (_, role) ->
-                        role = GoalClause)
+                taggedClauses
+                    |> Seq.where (fun (_, tag) ->
+                        tag = Tag "Goal")
                     |> Seq.map fst
                     |> Seq.rev   // guess that the last goal clause is most likely to lead to contradiction (e.g. if plausible-assumption then incorrect-conclusion)
             for clause in goalClauses do
-                yield create annotatedClauses clause
+                yield create taggedClauses clause
         |]
 
 
@@ -100,13 +100,17 @@ module LinearResolution =
     /// Depth-first search.
     let search maxDepth derivation =
 
+        let stepTag = Tag "Step"
+
         let rec loop depth derivation =
             assert(depth = (derivation.Steps |> Seq.length))
             if depth < maxDepth then
 
                     // resolve with all possible side clauses
                 derivation.Database
-                    |> Database.getPossibleResolutionClauses derivation.CenterClauseRole
+                    |> Database.getPossibleResolutionClauses
+                        derivation.CenterClause
+                        derivation.CenterClauseTag
                     |> Seq.tryPick (fun sideClause ->
                         Clause.resolve derivation.CenterClause sideClause
                             |> Seq.tryPick (fun (resolvent, substitution) ->
@@ -114,6 +118,7 @@ module LinearResolution =
                                     {
                                         derivation with
                                             CenterClause = resolvent
+                                            CenterClauseTag = stepTag
                                             Steps =
                                                 {
                                                     CenterClause = derivation.CenterClause
@@ -122,7 +127,7 @@ module LinearResolution =
                                                 } :: derivation.Steps
                                             Database =
                                                 derivation.Database
-                                                    |> Database.add resolvent StepClause
+                                                    |> Database.add resolvent stepTag
                                     }
                                 if resolvent.IsEmpty then   // success: empty clause is a contradiction
                                     Some derivation'
@@ -134,6 +139,6 @@ module LinearResolution =
 
     /// Tries to prove the given goal from the given premises via linear
     /// resolution.
-    let tryProve maxDepth annotatedClauses =
-        LinearResolutionDerivation.generate annotatedClauses
+    let tryProve maxDepth taggedClauses =
+        LinearResolutionDerivation.generate taggedClauses
                 |> Seq.tryPick (search maxDepth)
