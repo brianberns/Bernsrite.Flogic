@@ -5,14 +5,14 @@
 [<StructuredFormatDisplay("{String}")>]
 type Literal =
     {
+        /// False for negated atoms.
+        IsPositive : bool
+
         /// E.g. P, Q.
         Predicate : Predicate
 
         /// E.g. (x), (y,z).
         Terms : Term[]
-
-        /// False for negated atoms.
-        IsPositive : bool
     }
 
     /// Display string.
@@ -35,9 +35,9 @@ module Literal =
     /// Creates a literal.
     let private create predicate terms isPositive =
         {
+            IsPositive = isPositive
             Predicate = predicate
             Terms = terms
-            IsPositive = isPositive
         }
 
     /// Converts a formula to a literal.

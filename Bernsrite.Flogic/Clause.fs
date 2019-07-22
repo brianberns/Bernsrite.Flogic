@@ -6,11 +6,11 @@ open System
 [<StructuredFormatDisplay("{String}")>]
 type Clause =
     {
+        /// Number of symbols in this clause. (Declared first in order to optimize comparisons.)
+        SymbolCount : int
+
         /// Literals in this set.
         Literals : Set<Literal>
-
-        /// Number of symbols in this clause.
-        SymbolCount : int
     }
 
     /// Indicates whether the receiver is empty.
@@ -38,18 +38,18 @@ module Clause =
     /// The empty clause.
     let empty =
         {
-            Literals = Set.empty
             SymbolCount = 0
+            Literals = Set.empty
         }
 
     /// Creates a clause from the given literals.
     let create literals =
         let literalSet = set literals
         {
-            Literals = literalSet
             SymbolCount =
                 literalSet
                     |> Seq.sumBy Literal.symbolCount
+            Literals = literalSet
         }
 
     /// Converts a formula to clauses.

@@ -124,28 +124,31 @@ module LinearResolution =
                     |> Seq.tryPick (fun sideClause ->
                         Clause.resolve derivation.CenterClause sideClause
                             |> Seq.tryPick (fun (resolvent, substitution) ->
-                                let derivation' =
-                                    {
-                                        derivation with
-                                            CenterClause = resolvent
-                                            CenterClauseTag = Tag.Step
-                                            Steps =
-                                                {
-                                                    CenterClause = derivation.CenterClause
-                                                    SideClause = sideClause
-                                                    Substitution = substitution
-                                                } :: derivation.Steps
-                                            Database =
-                                                derivation.Database
-                                                    |> Database.add resolvent
-                                    }
-                                if resolvent.IsEmpty then   // success: empty clause is a contradiction
-                                    Some derivation'
-                                elif resolvent.Literals.Count > config.MaxLiteralCount
+                                if resolvent.Literals.Count > config.MaxLiteralCount
                                     || resolvent.SymbolCount > config.MaxSymbolCount then
                                     None
+                                elif derivation.Database.Clauses |> Seq.contains resolvent then
+                                    None
                                 else
-                                    derivation' |> loop (depth + 1)))
+                                    let derivation' =
+                                        {
+                                            derivation with
+                                                CenterClause = resolvent
+                                                CenterClauseTag = Tag.Step
+                                                Steps =
+                                                    {
+                                                        CenterClause = derivation.CenterClause
+                                                        SideClause = sideClause
+                                                        Substitution = substitution
+                                                    } :: derivation.Steps
+                                                Database =
+                                                    derivation.Database
+                                                        |> Database.add resolvent
+                                        }
+                                    if resolvent.IsEmpty then   // success: empty clause is a contradiction
+                                        Some derivation'
+                                    else
+                                        derivation' |> loop (depth + 1)))
             else None
 
         derivation |> loop 0
