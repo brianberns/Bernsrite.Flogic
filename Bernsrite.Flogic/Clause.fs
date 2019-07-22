@@ -17,18 +17,19 @@ type Clause =
         Variables : Lazy<Set<Variable>>
     }
 
-    /// Equality.
+    /// Strongly-typed equality.
     member this.Equals(clause) =
         clause.SymbolCount = this.SymbolCount
             && clause.Literals = this.Literals
 
-    /// Equality.
+    /// Weakly-typed equality.
+    /// Sadly, F# uses this: https://zeckul.wordpress.com/2015/07/09/how-to-avoid-boxing-value-types-in-f-equality-comparisons/
     override this.Equals(obj) =
         this.Equals(obj :?> Clause)
 
     interface IEquatable<Clause> with
 
-        /// Equality.
+        /// Strongly-typed equality.
         member this.Equals(clause) =
             this.Equals(clause)
 
@@ -36,7 +37,7 @@ type Clause =
     override this.GetHashCode() =
         this.Literals.GetHashCode()
 
-    /// Comparison.
+    /// Strongly-type comparison.
     member this.CompareTo(clause) =
         match compare this.SymbolCount clause.SymbolCount with
             | 0 -> compare this.Literals clause.Literals
@@ -44,13 +45,13 @@ type Clause =
 
     interface IComparable with
 
-        /// Comparison.
+        /// Weakly-typed comparison.
         member this.CompareTo(obj) =
             this.CompareTo(obj :?> Clause)
 
     interface IComparable<Clause> with
 
-        /// Comparison.
+        /// Strongly-type comparison.
         member this.CompareTo(clause) =
             this.CompareTo(clause)
 
