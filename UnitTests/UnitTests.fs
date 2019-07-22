@@ -20,7 +20,8 @@ type UnitTest() =
                 |> Parser.run parser
                 |> Clause.toClauses
                 |> Seq.map (fun clause ->
-                    clause.Literals
+                    clause
+                        |> Clause.toLiterals
                         |> Seq.map Literal.toString
                         |> Seq.toArray)
                 |> Seq.toArray

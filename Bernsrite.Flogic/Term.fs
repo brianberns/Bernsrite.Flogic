@@ -30,9 +30,14 @@ module Variable =
         if seen |> Set.contains(variable) then
             { Variable.Name = variable.Name + "'" }
                 |> deconflict seen
-        else
-            let seen' = seen |> Set.add variable
-            variable, seen'
+        else variable
+
+    /// Renames the given variable if necessary to avoid conflict
+    /// with the given variables.
+    let deconflictAdd seen (variable : Variable) =
+        let variable' = variable |> deconflict seen
+        let seen' = seen |> Set.add variable'
+        variable', seen'
 
 /// A specific object in the world.
 [<StructuredFormatDisplay("{ConstantName}"); RequireQualifiedAccess; Struct>]

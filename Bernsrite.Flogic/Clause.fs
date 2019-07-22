@@ -3,15 +3,56 @@
 open System
 
 /// A collection of literals that are implicitly ORed together.
-[<StructuredFormatDisplay("{String}")>]
+[<StructuredFormatDisplay("{String}"); CustomEquality; CustomComparison>]
 type Clause =
-    {
-        /// Number of symbols in this clause. (Declared first in order to optimize comparisons.)
-        SymbolCount : int
+    private {
 
         /// Literals in this set.
         Literals : Set<Literal>
+
+        /// Number of symbols in this clause.
+        SymbolCount : int
+
+        /// Variables contained in this clause.
+        Variables : Lazy<Set<Variable>>
     }
+
+    /// Equality.
+    member this.Equals(clause) =
+        clause.SymbolCount = this.SymbolCount
+            && clause.Literals = this.Literals
+
+    /// Equality.
+    override this.Equals(obj) =
+        this.Equals(obj :?> Clause)
+
+    interface IEquatable<Clause> with
+
+        /// Equality.
+        member this.Equals(clause) =
+            this.Equals(clause)
+
+    /// Hash code.
+    override this.GetHashCode() =
+        this.Literals.GetHashCode()
+
+    /// Comparison.
+    member this.CompareTo(clause) =
+        match compare this.SymbolCount clause.SymbolCount with
+            | 0 -> compare this.Literals clause.Literals
+            | result -> result
+
+    interface IComparable with
+
+        /// Comparison.
+        member this.CompareTo(obj) =
+            this.CompareTo(obj :?> Clause)
+
+    interface IComparable<Clause> with
+
+        /// Comparison.
+        member this.CompareTo(clause) =
+            this.CompareTo(clause)
 
     /// Indicates whether the receiver is empty.
     member this.IsEmpty =
@@ -40,6 +81,7 @@ module Clause =
         {
             SymbolCount = 0
             Literals = Set.empty
+            Variables = lazy Set.empty
         }
 
     /// Creates a clause from the given literals.
@@ -50,6 +92,12 @@ module Clause =
                 literalSet
                     |> Seq.sumBy Literal.symbolCount
             Literals = literalSet
+            Variables =
+                lazy (seq {
+                    for literal in literals do
+                        for term in literal.Terms do
+                            yield! term |> Term.getVariables
+                } |> set)
         }
 
     /// Converts a formula to clauses.
@@ -144,7 +192,7 @@ module Clause =
 
                 let quantified variable inner constructor =
                     let variable', seen' =
-                        variable |> Variable.deconflict seen
+                        variable |> Variable.deconflictAdd seen
                     let variableMap' =
                         variableMap |> Map.add variable variable'
                     let inner', seen'' =
@@ -380,23 +428,10 @@ module Clause =
         /// variables in the second clause as needed.
         let deconflict clauseToKeep clauseToRename =
 
-                // find all variables used in the first clause
-            let seen =
-                seq {
-                    for literal in clauseToKeep.Literals do
-                        for term in literal.Terms do
-                            yield! term |> Term.getVariables
-                } |> set
-
-            let deconflictVariable variable =
-                variable
-                    |> Variable.deconflict seen
-                    |> fst
-
             let rec deconflictTerm = function
                 | VariableTerm variable ->
                     variable
-                        |> deconflictVariable
+                        |> Variable.deconflict clauseToKeep.Variables.Value
                         |> VariableTerm
                 | ConstantTerm _ as term -> term
                 | Application (func, terms) ->
