@@ -28,9 +28,9 @@ module Substitution =
         }
 
     /// Creates a substitution containing only the given mapping.
-    let create (Variable name) term =
+    let create (variable : Variable) term =
         {
-            Bindings = [| name, term |]
+            Bindings = [| variable.Name, term |]
         }
 
     /// Applies the given substitution to the given term.
@@ -39,10 +39,10 @@ module Substitution =
             term
         else
             match term with
-                | VariableTerm (Variable name) ->
+                | VariableTerm variable ->
                     subst.Bindings
                         |> Array.tryPick (fun (name', term') ->
-                            if name' = name then Some term'
+                            if name' = variable.Name then Some term'
                             else None)
                         |> Option.defaultValue term
                 | ConstantTerm _ -> term
@@ -64,7 +64,7 @@ module Substitution =
             |> Seq.collect (
                 snd
                     >> Term.getVariables
-                    >> Seq.map (fun (Variable name) -> name))
+                    >> Seq.map Variable.name)
             |> set
 
     /// Indicates whether the given subtitution is pure.

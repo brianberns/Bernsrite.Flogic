@@ -3,14 +3,12 @@
 open System
 
 /// An unspecified object in the world.
-[<StructuredFormatDisplay("{Name}")>]
+[<StructuredFormatDisplay("{VariableName}"); RequireQualifiedAccess; Struct>]
 type Variable =
-    | Variable of name : string
-
-    /// Variable's name.
-    member this.Name =
-        let (Variable name) = this
-        name
+    {
+        /// Name of this variable.
+        Name : string
+    }
 
     /// Display string.
     override this.ToString() =
@@ -18,31 +16,65 @@ type Variable =
 
 module Variable =
 
+    /// Creates a variable with the given name.
+    let create name =
+        { Variable.Name = name }
+
+    /// Answers the name of the given variable.
+    let name (variable : Variable) =
+        variable.Name
+
     /// Renames the given variable if necessary to avoid conflict
     /// with the given variables.
-    let rec deconflict seen ((Variable name) as variable) =
+    let rec deconflict seen (variable : Variable) =
         if seen |> Set.contains(variable) then
-            Variable (name + "'") |> deconflict seen
+            { Variable.Name = variable.Name + "'" }
+                |> deconflict seen
         else
             let seen' = seen |> Set.add variable
             variable, seen'
 
 /// A specific object in the world.
-[<StructuredFormatDisplay("{Name}")>]
+[<StructuredFormatDisplay("{ConstantName}"); RequireQualifiedAccess; Struct>]
 type Constant =
-    | Constant of name : string
-
-    /// Constant's name.
-    member this.Name =
-        let (Constant name) = this
-        name
+    {
+        /// Name of this constant.
+        Name : string
+    }
 
     /// Display string.
     override this.ToString() =
         this.Name
 
+module Constant =
+
+    /// Creates a constant with the given name.
+    let create name =
+        { Constant.Name = name }
+
+    /// Answers the name of the given constant.
+    let name (constant : Constant) =
+        constant.Name
+
 /// A function that takes some number of arguments.
-type Function = Function of name : string * arity : int
+[<RequireQualifiedAccess; Struct>]
+type Function =
+    {
+        /// Name of this function.
+        Name : string
+
+        /// Number of arguments.
+        Arity : int
+    }
+
+module Function =
+
+    /// Creates a function with the given name and arity.
+    let create name arity =
+        {
+            Function.Name = name
+            Function.Arity = arity
+        }
 
 /// A term typically denotes an object that exists in the world.
 /// E.g.
@@ -66,10 +98,10 @@ type Term =
         match this with
             | VariableTerm variable -> variable.Name
             | ConstantTerm constant -> constant.Name
-            | Application (Function (name, arity), terms) ->
-                if (arity <> terms.Length) then
+            | Application (func, terms) ->
+                if (func.Arity <> terms.Length) then
                     failwith "Arity mismatch"
-                sprintf "%s(%s)" name <| String.Join(",", terms)
+                sprintf "%s(%s)" func.Name <| String.Join(",", terms)
 
     /// Display string.
     override this.ToString() =
@@ -135,8 +167,8 @@ module Skolem =
             counter <- counter + 1
             sprintf "skolem%d" counter
         if terms.Length = 0 then
-            ConstantTerm (Constant name)
+            ConstantTerm (Constant.create name)
         else
             Application (
-                Function (name, terms.Length),
+                Function.create name terms.Length,
                 terms)

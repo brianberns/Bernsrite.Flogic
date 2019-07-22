@@ -193,9 +193,9 @@ type UnitTest() =
     member __.Induction1() =
         let language =
             Language.create
-                [| Constant "a" |]
-                [| Function ("f", 1) |]
-                [| Predicate ("P", 1) |]
+                [| Constant.create "a" |]
+                [| Function.create "f" 1 |]
+                [| Predicate.create "P" 1 |]
         let parse = Language.parse language
         let system =
             {

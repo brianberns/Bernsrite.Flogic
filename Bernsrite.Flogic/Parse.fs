@@ -29,7 +29,7 @@ module Parser =
 
     /// Parses a variable.
     let parseVariable =
-        parseName |>> Variable
+        parseName |>> Variable.create
 
     /// Skips any of the given strings.
     let skipAnyOfStr strs : Parser<_> =
@@ -53,7 +53,7 @@ module Parser =
             parse {
                 let! name = parseName
                 if constantsSet.Contains(name) then
-                    return Constant name
+                    return Constant.create name
             }
 
         /// Parses a term recursively.
@@ -78,7 +78,7 @@ module Parser =
             pipe2 parseName (parseTerms false)
                 (fun name (terms : _[]) ->
                     Application (
-                        Function (name, terms.Length),
+                        Function.create name terms.Length,
                         terms))
 
         /// Parses a term.
@@ -92,7 +92,7 @@ module Parser =
         let parseAtomic =
             pipe2 parseName (parseTerms true)
                 (fun name (terms : _[]) ->
-                    Atom (Predicate (name, terms.Length), terms))
+                    Atom ((Predicate.create name terms.Length), terms))
 
         /// Parses a formula recursively.
         let parseFormula, parseFormulaRef =

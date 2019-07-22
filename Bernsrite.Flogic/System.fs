@@ -13,11 +13,11 @@ module System =
 
     /// Generates linear induction axioms for the given formula.
     let private linearInductionAxioms
-        baseConstant                             // e.g. 0
-        (Function (_, arity) as unaryFunction)   // e.g. s(x)
-        formula =                                // e.g. ∀x.pred(x,0,x)
+        baseConstant                 // e.g. 0
+        (unaryFunction : Function)   // e.g. s(x)
+        formula =                    // e.g. ∀x.pred(x,0,x)
 
-        assert(arity = 1)
+        assert(unaryFunction.Arity = 1)
 
         let rec loop formula =
             seq {
@@ -89,8 +89,8 @@ module System =
                             |> Map.keys
                             |> Set.remove Equality.predicate
                     if functions.Count + predicates.Count > 0 then   // don't generate induction axioms for a goal that seems to be solely about equality
-                        for (Function (_, arity)) as func in language.Functions do
-                            if arity = 1 then
+                        for func in language.Functions do
+                            if func.Arity = 1 then
                                 for axiom in linearInductionAxioms constant func goal do
                                     yield axiom, Tag.Induction
 

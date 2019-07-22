@@ -35,7 +35,7 @@ module Language =
             Predicates = predicates
             Parser =
                 constants
-                    |> Array.map (fun (Constant name) -> name)
+                    |> Array.map Constant.name
                     |> Parser.makeParser
         }
 

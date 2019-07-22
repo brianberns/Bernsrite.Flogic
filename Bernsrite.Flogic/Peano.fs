@@ -3,17 +3,17 @@
 /// Peano arithmetic on the natural numbers.
 module Peano =
 
-    let zero = Constant "0"
+    let zero = Constant.create "0"
 
-    let successor = Function ("s", 1)
+    let successor = Function.create "s" 1
 
     let language =
         Language.create
             [| zero |]
             [|
                 successor
-                Function ("+", 2)
-                // Function ("*", 2)
+                Function.create "+" 2
+                // Function.create "*" 2
             |]
             [| Equality.predicate |]
 

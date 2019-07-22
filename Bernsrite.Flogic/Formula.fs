@@ -3,7 +3,24 @@
 open System
 
 /// E.g. Mortal(x) is a predicate of arity 1.
-type Predicate = Predicate of name : string * arity : int
+[<RequireQualifiedAccess; Struct>]
+type Predicate =
+    {
+        /// Name of this predicate.
+        Name : string
+
+        /// Number of arguments.
+        Arity : int
+    }
+
+module Predicate =
+
+    /// Creates a predicate with the given name and arity.
+    let create name arity =
+        {
+            Predicate.Name = name
+            Predicate.Arity = arity
+        }
 
 /// E.g. Man(Socrates) -> Mortal(Socrates).
 [<StructuredFormatDisplay("{String}")>]
@@ -39,28 +56,27 @@ type Formula =
        (predicate : Predicate,
         args : _[],
         isPositive : bool) =
-        let (Predicate (name, arity)) = predicate
-        if (arity <> args.Length) then
+        if (predicate.Arity <> args.Length) then
             failwith "Arity mismatch"
-        match arity, Char.IsLetterOrDigit(name.[0]) with
-            | 0, _ -> name
+        match predicate.Arity, Char.IsLetterOrDigit(predicate.Name.[0]) with
+            | 0, _ -> predicate.Name
             | 2, false ->
                 sprintf "(%A %s%s %A)"
                     args.[0]
                     (if isPositive then "" else "~")
-                    name
+                    predicate.Name
                     args.[1]
             | 3, false ->
                 sprintf "(%A %s %A %s %A)"
                     args.[0]
-                    name
+                    predicate.Name
                     args.[1]
                     (if isPositive then "=" else "~=")
                     args.[2]
             | _ ->
                 sprintf "%s%s(%s)"
                     (if isPositive then "" else "~")
-                    name
+                    predicate.Name
                     (args |> String.join ", ")
 
     /// Display string.
@@ -91,13 +107,13 @@ type Formula =
                     infix "⇒" formula1 formula2
                 | Biconditional (formula1, formula2) ->
                     infix "⇔" formula1 formula2
-                | Exists (Variable variable, formula) ->
+                | Exists (variable, formula) ->
                     sprintf "∃%s.%s"
-                        variable
+                        variable.Name
                         (formula |> loop false)
-                | ForAll (Variable variable, formula) ->
+                | ForAll (variable, formula) ->
                     sprintf "∀%s.%s"
-                        variable
+                        variable.Name
                         (formula |> loop false)
 
         this |> loop true
