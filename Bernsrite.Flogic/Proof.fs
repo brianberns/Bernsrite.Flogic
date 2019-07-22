@@ -5,13 +5,13 @@
 type Proof =
     {
         /// Premises of this proof.
-        TaggedPremises : (Formula * RoleTag)[]
+        TaggedPremises : (Formula * Tag)[]
 
         /// Goal of this proof.
         Goal : Formula
 
         /// Initial clauses (from premises and negated goal)
-        TaggedInitialClauses : (Clause * RoleTag)[]
+        TaggedInitialClauses : (Clause * Tag)[]
 
         /// Result of this proof: proved or disproved.
         Result : bool
@@ -30,14 +30,14 @@ type Proof =
             yield ""
             yield "Premises:" |> Print.indent level
             for tag, group in this.TaggedPremises |> Seq.groupBy snd do
-                yield sprintf "%As:" tag |> Print.indent (level + 1)
+                yield sprintf "%A:" tag |> Print.indent (level + 1)
                 for premise, _ in group do
                     yield premise |> Print.indent (level + 2)
 
             yield ""
             yield "Initial clauses:" |> Print.indent level
             for tag, group in this.TaggedInitialClauses |> Seq.groupBy snd do
-                yield sprintf "%As:" tag |> Print.indent (level + 1)
+                yield sprintf "%A:" tag |> Print.indent (level + 1)
                 for clause, _ in group do
                     yield clause |> Print.indent (level + 2)
 
@@ -74,7 +74,6 @@ module Proof =
     
             // convert premises to clause normal form (CNF)
         let taggedPremiseClauses =
-
             taggedPremises
                 |> Seq.collect (fun (formula, tag) ->
                     formula
@@ -92,7 +91,7 @@ module Proof =
             formula
                 |> Clause.toClauses
                 |> Seq.map (fun clause ->
-                    clause, Tag "Goal")
+                    clause, Tag.Goal)
                 |> Seq.append taggedPremiseClauses
                 |> Seq.toArray
 
@@ -113,7 +112,13 @@ module Proof =
                     yield maxDepth, taggedDisproofClauses, false
                 })
             |> Seq.tryPick (fun (maxDepth, taggedInitialClauses, flag) ->
-                LinearResolution.tryProve maxDepth taggedInitialClauses
+                let config =
+                    {
+                        MaxDepth = maxDepth
+                        MaxLiteralCount = 3
+                        MaxSymbolCount = 18
+                    }
+                LinearResolution.tryProve config taggedInitialClauses
                     |> Option.map (create
                         taggedPremises
                         goal
@@ -125,5 +130,5 @@ module Proof =
         let taggedPremises =
             premises
                 |> Seq.map (fun premise ->
-                    premise, Tag "Premise")
+                    premise, Tag.Premise)
         tryProveTagged taggedPremises goal

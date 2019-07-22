@@ -73,19 +73,8 @@ module System =
 
     let tryProve system goal =
         let taggedPremises =
-            seq {
-                    // explicit system axioms
-                for axiom in system.Axioms do
-                    yield axiom, Tag "Axiom"
-
-                    // equality axioms for this system's language
-                let language = system.Language
-                if language.Predicates |> Seq.contains Equality.predicate then
-                    for axiom in Equality.equivalenceAxioms do
-                        yield axiom, Tag "Equivalence axiom"
-                    for axiom in language |> Equality.substitutionAxioms do
-                        yield axiom, Tag "Substitution axiom"
-
+            let language = system.Language
+            [|
                     // induction axioms
                 if language.Constants.Length = 1 then
                     let constant =
@@ -103,6 +92,17 @@ module System =
                         for (Function (_, arity)) as func in language.Functions do
                             if arity = 1 then
                                 for axiom in linearInductionAxioms constant func goal do
-                                    yield axiom, Tag "Induction axiom"
-            }
+                                    yield axiom, Tag.Induction
+
+                    // equality axioms for this system's language
+                if language.Predicates |> Seq.contains Equality.predicate then
+                    for axiom in Equality.equivalenceAxioms do
+                        yield axiom, Tag.Axiom
+                    for axiom in language |> Equality.substitutionAxioms do
+                        yield axiom, Tag.Axiom
+
+                    // explicit system axioms
+                for axiom in system.Axioms do
+                    yield axiom, Tag.Axiom
+            |]
         Proof.tryProveTagged taggedPremises goal

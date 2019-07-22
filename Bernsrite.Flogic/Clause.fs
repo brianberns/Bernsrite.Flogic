@@ -278,15 +278,17 @@ module Clause =
         let convertToClauses formulaCnf =
 
             let rec removeAnds formulas = function
+
+                    // maintain order of formulas
                 | And (p, q) ->
-                    let formulas' = p |> removeAnds formulas
-                    q |> removeAnds formulas'
+                    let formulas' = q |> removeAnds formulas
+                    p |> removeAnds formulas'
                 | Or _ as formula ->
-                    formulas |> Set.add formula
+                    formula :: formulas
                 | Atom _ as formula ->
-                    formulas |> Set.add formula
+                    formula :: formulas
                 | Not (Atom _) as formula ->
-                    formulas |> Set.add formula
+                    formula :: formulas
                 | _ -> failwith "Not in conjunctive normal form"
 
             let rec removeOrs literals = function
@@ -302,10 +304,11 @@ module Clause =
                 | _ -> failwith "Not in conjunctive normal form"
 
             formulaCnf
-                |> removeAnds Set.empty
-                |> Set.map (
+                |> removeAnds List.empty
+                |> Seq.map (
                     (removeOrs Set.empty)
                         >> create)
+                |> Seq.toArray
 
             // main function starts here
         eliminateBiconditionals

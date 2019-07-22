@@ -21,7 +21,7 @@ type LinearResolutionDerivation =
         CenterClause : Clause
 
         /// Current center clause tag.
-        CenterClauseTag : RoleTag
+        CenterClauseTag : Tag
 
         /// Steps leading to current state, in reverse order.
         Steps : List<LinearResolutionDerivationStep>
@@ -65,6 +65,19 @@ type LinearResolutionDerivation =
     /// Display string.
     member this.String = this.ToString()
 
+/// Restrictions to avoid runaway search.
+type LinearResolutionConfiguration =
+    {
+        /// Maximum depth of the search tree.
+        MaxDepth : int
+
+        /// Maximum # of literals in a clause.
+        MaxLiteralCount : int
+
+        /// Maximum # of symbols in a clause.
+        MaxSymbolCount : int
+    }
+
 module LinearResolutionDerivation =
 
     /// Creates a derivation for the given clauses.
@@ -76,7 +89,7 @@ module LinearResolutionDerivation =
         {
             Database = Database.create taggedClauses
             CenterClause = topClause
-            CenterClauseTag = Tag "Goal"
+            CenterClauseTag = Tag.Goal
             Steps = List.empty
         }
 
@@ -86,7 +99,7 @@ module LinearResolutionDerivation =
             let goalClauses =
                 taggedClauses
                     |> Seq.where (fun (_, tag) ->
-                        tag = Tag "Goal")
+                        tag = Tag.Goal)
                     |> Seq.map fst
                     |> Seq.rev   // guess that the last goal clause is most likely to lead to contradiction (e.g. if plausible-assumption then incorrect-conclusion)
             for clause in goalClauses do
@@ -98,19 +111,16 @@ module LinearResolutionDerivation =
 module LinearResolution =
             
     /// Depth-first search.
-    let search maxDepth derivation =
-
-        let stepTag = Tag "Step"
+    let search config derivation =
 
         let rec loop depth derivation =
             assert(depth = (derivation.Steps |> Seq.length))
-            if depth < maxDepth then
+            if depth < config.MaxDepth then
 
                     // resolve with all possible side clauses
                 derivation.Database
                     |> Database.getPossibleResolutionClauses
                         derivation.CenterClause
-                        derivation.CenterClauseTag
                     |> Seq.tryPick (fun sideClause ->
                         Clause.resolve derivation.CenterClause sideClause
                             |> Seq.tryPick (fun (resolvent, substitution) ->
@@ -118,7 +128,7 @@ module LinearResolution =
                                     {
                                         derivation with
                                             CenterClause = resolvent
-                                            CenterClauseTag = stepTag
+                                            CenterClauseTag = Tag.Step
                                             Steps =
                                                 {
                                                     CenterClause = derivation.CenterClause
@@ -127,10 +137,13 @@ module LinearResolution =
                                                 } :: derivation.Steps
                                             Database =
                                                 derivation.Database
-                                                    |> Database.add resolvent stepTag
+                                                    |> Database.add resolvent
                                     }
                                 if resolvent.IsEmpty then   // success: empty clause is a contradiction
                                     Some derivation'
+                                elif resolvent.Literals.Count > config.MaxLiteralCount
+                                    || resolvent.SymbolCount > config.MaxSymbolCount then
+                                    None
                                 else
                                     derivation' |> loop (depth + 1)))
             else None
@@ -139,6 +152,6 @@ module LinearResolution =
 
     /// Tries to prove the given goal from the given premises via linear
     /// resolution.
-    let tryProve maxDepth taggedClauses =
+    let tryProve limits taggedClauses =
         LinearResolutionDerivation.generate taggedClauses
-                |> Seq.tryPick (search maxDepth)
+                |> Seq.tryPick (search limits)

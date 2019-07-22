@@ -174,12 +174,18 @@ type UnitTest() =
                         |> Parser.run parser
                         |> Clause.toClauses
                         |> Seq.exactlyOne
-                goalClause, Tag "Goal")
+                goalClause, Tag.Goal)
         let goalClause = fst taggedGoalClauses.[0]
+        let config =
+            {
+                MaxDepth = 6
+                MaxLiteralCount = 10
+                MaxSymbolCount = 100
+            }
         let derivationOpt =
             LinearResolutionDerivation.create
                 taggedGoalClauses goalClause
-                    |> LinearResolution.search 6
+                    |> LinearResolution.search config
         printfn "%A" derivationOpt
         Assert.IsTrue(derivationOpt.IsSome)
 
