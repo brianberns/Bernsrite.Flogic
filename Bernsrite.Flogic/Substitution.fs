@@ -4,6 +4,7 @@
 [<StructuredFormatDisplay("{String}")>]
 type Substitution =
     {
+        /// Since most bindings are short, using an array is actually faster than a map.
         Bindings : (string (*variable name*) * Term)[]
     }
 
@@ -23,15 +24,11 @@ module Substitution =
 
     /// The empty substitution.
     let empty =
-        {
-            Bindings = Array.empty
-        }
+        { Bindings = Array.empty }
 
     /// Creates a substitution containing only the given mapping.
     let create (variable : Variable) term =
-        {
-            Bindings = [| variable.Name, term |]
-        }
+        { Bindings = [| variable.Name, term |] }
 
     /// Applies the given substitution to the given term.
     let rec applyTerm subst term =
