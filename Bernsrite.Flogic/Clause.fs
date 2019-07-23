@@ -3,7 +3,7 @@
 open System
 
 /// A collection of literals that are implicitly ORed together.
-[<StructuredFormatDisplay("{String}"); CustomEquality; CustomComparison>]
+[<CustomEquality; CustomComparison; StructuredFormatDisplay("{String}")>]
 type Clause =
     private {
 
@@ -80,19 +80,19 @@ module Clause =
     /// The empty clause.
     let empty =
         {
-            SymbolCount = 0
             Literals = Set.empty
+            SymbolCount = 0
             Variables = lazy Set.empty
         }
 
-    /// Creates a clause from the given literals.
-    let create literals =
-        let literalSet = set literals
+    /// Creates a clause.
+    let private createRaw literals symbolCount =
+        assert(
+            symbolCount =
+                (literals |> Seq.sumBy Literal.symbolCount))
         {
-            SymbolCount =
-                literalSet
-                    |> Seq.sumBy Literal.symbolCount
-            Literals = literalSet
+            Literals = literals
+            SymbolCount = symbolCount
             Variables =
                 lazy (seq {
                     for literal in literals do
@@ -100,6 +100,34 @@ module Clause =
                             yield! term |> Term.getVariables
                 } |> set)
         }
+
+    /// Creates a clause from the given literals.
+    let create literals =
+        let literalSet = set literals
+        let symbolCount =
+            literalSet |> Seq.sumBy Literal.symbolCount
+        createRaw literalSet symbolCount
+
+    /// Applies the given mapping to all literals in the given clause.
+    let map mapping clause =
+        clause.Literals
+            |> Seq.map mapping
+            |> create
+
+    /// Number of symbols in the given clause.
+    let symbolCount clause =
+        clause.SymbolCount
+
+    /// Converts a clause to literals.
+    let toLiterals clause =
+        clause.Literals |> Seq.toArray
+
+    /// Converts a clause to a formula.
+    let toFormula clause =
+        clause.Literals
+            |> Seq.map Literal.toFormula
+            |> Seq.reduce (fun formula1 formula2 ->
+                Or (formula1, formula2))
 
     /// Converts a formula to clauses.
     let toClauses =
@@ -369,27 +397,6 @@ module Clause =
             >> distributeDisjunctions
             >> convertToClauses
 
-    /// Converts a clause to literals.
-    let toLiterals clause =
-        clause.Literals |> Seq.toArray
-
-    /// Converts a clause to a formula.
-    let toFormula clause =
-        clause.Literals
-            |> Seq.map Literal.toFormula
-            |> Seq.reduce (fun formula1 formula2 ->
-                Or (formula1, formula2))
-
-    /// Number of symbols in the given clause.
-    let symbolCount clause =
-        clause.SymbolCount
-
-    /// Applies the given mapping to all literals in the given clause.
-    let map mapping clause =
-        clause.Literals
-            |> Seq.map mapping
-            |> create
-
     /// Permutes the literals in the given clause.
     let private permute clause =
         let literals =
@@ -441,8 +448,16 @@ module Clause =
                         terms |> Array.map deconflictTerm)
 
                 // rename variables used in the second clause as needed
-            clauseToRename
-                |> map (Literal.map deconflictTerm)
+                // (avoid calling "map" for performance)
+            let result =
+                let literals =
+                    clauseToRename.Literals
+                        |> Set.map (Literal.map deconflictTerm)
+                createRaw literals clauseToRename.SymbolCount
+            assert(
+                result =
+                    (clauseToRename |> map (Literal.map deconflictTerm)))
+            result
 
             // isolates each item in the given array
         let createAllButArray mapping items =
