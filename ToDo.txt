@@ -1,0 +1,2 @@
+* Settle on a single substitution mechanism
+* Implement factoring

@@ -68,6 +68,14 @@ module Literal =
                 Terms = literal.Terms |> Array.map mapping
         }
 
+    /// Substitutes the given term for the given variable in the
+    /// given literal.
+    let rec substitute variable term literal =
+        let terms =
+            literal.Terms
+                |> Term.substituteTerms variable term
+        { literal with Terms = terms }
+
     /// Answers the number of symbols in the given literal.
     let symbolCount literal =
         let nTermSymbols =

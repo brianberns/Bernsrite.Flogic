@@ -423,12 +423,6 @@ module Clause =
             |> Literal.map (Substitution.applyTerm subst)
 
     /// Derives new clauses from the given clauses using the resolution principle.
-    ///
-    /// Sources state that factoring is required to resolve some inputs to the
-    /// empty clause (see unit test). However, this implementation succeeds in
-    /// many (all?) cases without full-blown factoring because it eliminates
-    /// duplicate literals within clauses.
-    /// Issue: Are there still cases where factoring is necessary?
     /// https://www.doc.ic.ac.uk/~kb/MACTHINGS/SLIDES/2013Notes/6LSub4up13.pdf
     let resolve clause1 clause2 =
 
@@ -436,28 +430,28 @@ module Clause =
         /// variables in the second clause as needed.
         let deconflict clauseToKeep clauseToRename =
 
-            let rec deconflictTerm = function
-                | VariableTerm variable ->
-                    variable
-                        |> Variable.deconflict clauseToKeep.Variables.Value
-                        |> VariableTerm
-                | ConstantTerm _ as term -> term
-                | Application (func, terms) ->
-                    Application (
-                        func,
-                        terms |> Array.map deconflictTerm)
-
-                // rename variables used in the second clause as needed
-                // (avoid calling "map" for performance)
-            let result =
-                let literals =
-                    clauseToRename.Literals
-                        |> Set.map (Literal.map deconflictTerm)
+            let intersection =
+                Set.intersect
+                    clauseToKeep.Variables.Value
+                    clauseToRename.Variables.Value
+            if intersection.IsEmpty then clauseToRename
+            else
+                let union =
+                    Set.union
+                        clauseToKeep.Variables.Value
+                        clauseToRename.Variables.Value
+                let literals, _, _ =
+                    ((clauseToRename.Literals, union, Map.empty), intersection)
+                        ||> Seq.fold (fun (literals, variables, variableMap) variable ->
+                            let variable', variables' =
+                                variable |> Variable.deconflictAdd variables
+                            let variableMap' =
+                                variableMap |> Map.add variable variable'
+                            let literals' =
+                                literals
+                                    |> Set.map (Literal.substitute variable (VariableTerm variable'))
+                            literals', variables', variableMap')
                 createRaw literals clauseToRename.SymbolCount
-            assert(
-                result =
-                    (clauseToRename |> map (Literal.map deconflictTerm)))
-            result
 
             // isolates each item in the given array
         let createAllButArray mapping items =
