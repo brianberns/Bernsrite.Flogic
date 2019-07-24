@@ -452,16 +452,21 @@ module Clause =
                             |> Set.toSeq
                     ((literals, union, Map.empty), intersection)
                         ||> Seq.fold (fun (literals, variables, variableMap) variable ->
-                            let variable', variables' =
-                                variable |> Variable.deconflict variables
-                            let variableMap' =
-                                variableMap |> Map.add variable variable'
+                            let variable', variables', variableMap' =
+                                match variableMap |> Map.tryFind variable with
+                                    | Some variable' ->
+                                        variable', variables, variableMap
+                                    | None ->
+                                        let variable', variables' =
+                                            variable |> Variable.deconflict variables   // could save a little time here, since we already know the variable is in conflict
+                                        let variableMap' =
+                                            variableMap |> Map.add variable variable'
+                                        variable', variables', variableMap'
                             let literals' =
+                                let term = VariableTerm variable'
                                 literals
                                     |> Seq.map (
-                                        Literal.substitute
-                                            variable
-                                            (VariableTerm variable'))
+                                        Literal.substitute variable term)
                             literals', variables', variableMap')
 
                 createRaw
