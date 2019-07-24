@@ -80,7 +80,7 @@ type OptionBuilder() =
 [<AutoOpen>]
 module OptionAutoOpen =
 
-    /// Build for option monad.
+    /// Builder for option monad.
     let opt = OptionBuilder()
 
 module Seq =
