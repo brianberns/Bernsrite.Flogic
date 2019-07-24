@@ -24,15 +24,56 @@ module Variable =
     let name (variable : Variable) =
         variable.Name
 
+    /// Proposes a new name for the given variable.
+    let private rename (variable : Variable) =
+        create (variable.Name + "'")
+
     /// Renames the given variable if necessary to avoid conflict
     /// with the given variables.
-    let rec deconflict (variables : Set<_>) (variable : Variable) =
-        if variables.Contains(variable) then
-            create (variable.Name + "'")
-                |> deconflict variables
+    let rec deconflictSet variables variable =
+        if variables |> Set.contains(variable) then
+            variable
+                |> rename
+                |> deconflictSet variables
         else
             let variables' = variables |> Set.add variable
             variable, variables'
+
+    /// Renames the given variable if necessary to avoid conflict
+    /// with the given variables.
+    let deconflictMap variableMap variable =
+
+        let rec deconflict (variable : Variable) =
+            let variable' = rename variable
+            if variableMap |> Map.containsKey(variable') then
+                variable' |> deconflict
+            else
+                variable'
+
+        let variable', isAdd =
+            match variableMap |> Map.tryFind variable with
+
+                    // variable has been previously renamed
+                | Some (Some variable') ->
+                    variable', false
+
+                    // conflict, must rename
+                | Some None ->
+                    deconflict variable, true
+
+                    // no conflict
+                | None ->
+                    variable, true
+
+        let variableMap' =
+            if isAdd then
+                variableMap
+                    |> Map.add variable (Some variable')
+                    |> Map.add variable' None
+            else
+                variableMap
+
+        variable', variableMap'
 
 /// A specific object in the world.
 [<StructuredFormatDisplay("{ConstantName}"); RequireQualifiedAccess; Struct>]

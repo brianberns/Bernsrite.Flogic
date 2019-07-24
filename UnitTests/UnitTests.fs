@@ -84,6 +84,27 @@ type UnitTest() =
                 printfn "%s" <| String.Join(" | ", clause)
 
     [<TestMethod>]
+    member __.Deconflict() =
+        let parser = Parser.makeParser ["0"]
+        let clause1 =
+            "((=(x', y) | =(x', y')) | =(0, s(y')))"
+                |> Parser.run parser
+                |> Clause.toClauses
+                |> Seq.exactlyOne
+        let clause2 =
+            clause1
+                |> Clause.map (fun literal ->
+                    { literal with IsPositive = not literal.IsPositive})
+        printfn "%A" clause1
+        printfn "%A" clause2
+        let pairs = Clause.resolve clause1 clause2
+        for (resolvent, subst) in pairs do
+            printfn ""
+            printfn "%A" resolvent
+            printfn "   %A" subst
+        Assert.AreEqual(9, pairs.Length)
+
+    [<TestMethod>]
     member __.Unification() =
         let parseTerm, parseFormula = Parser.makeParsers [ "a"; "b" ]
         let inputs =

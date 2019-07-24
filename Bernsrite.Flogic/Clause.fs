@@ -223,7 +223,7 @@ module Clause =
 
                 let quantified variable inner constructor =
                     let variable', seen' =
-                        variable |> Variable.deconflict seen
+                        variable |> Variable.deconflictSet seen
                     let variableMap' =
                         variableMap |> Map.add variable variable'
                     let inner', seen'' =
@@ -433,41 +433,38 @@ module Clause =
         let deconflict clauseToKeep clauseToRename =
 
                 // find conflicting variables
-            let intersection =
+            let conflicts =
                 Set.intersect
                     clauseToKeep.Variables.Value
                     clauseToRename.Variables.Value
-            if intersection.IsEmpty then clauseToRename
+            if conflicts.IsEmpty then clauseToRename
             else
-                    // find variables already in use
-                let union =
-                    Set.union
-                        clauseToKeep.Variables.Value
-                        clauseToRename.Variables.Value
+                    // protect variables already in use
+                let variableMap =
+                    seq {
+                        yield! clauseToKeep.Variables.Value
+                        yield! clauseToRename.Variables.Value
+                    }
+                        |> Seq.map (fun variable ->
+                            variable, None)
+                        |> Map.ofSeq
 
                     // resolve each conflict one at a time
-                let literals, _, _ =
+                let literals, _ =
                     let literals =
                         clauseToRename.Literals
                             |> Set.toSeq
-                    ((literals, union, Map.empty), intersection)
-                        ||> Seq.fold (fun (literals, variables, variableMap) variable ->
-                            let variable', variables', variableMap' =
-                                match variableMap |> Map.tryFind variable with
-                                    | Some variable' ->
-                                        variable', variables, variableMap
-                                    | None ->
-                                        let variable', variables' =
-                                            variable |> Variable.deconflict variables   // could save a little time here, since we already know the variable is in conflict
-                                        let variableMap' =
-                                            variableMap |> Map.add variable variable'
-                                        variable', variables', variableMap'
+                    ((literals, variableMap), conflicts)
+                        ||> Seq.fold (fun (literals, variableMap) variable ->
+                            let variable', variableMap' =
+                                variable
+                                    |> Variable.deconflictMap variableMap
                             let literals' =
                                 let term = VariableTerm variable'
                                 literals
                                     |> Seq.map (
                                         Literal.substitute variable term)
-                            literals', variables', variableMap')
+                            literals', variableMap')
 
                 createRaw
                     (set literals)
