@@ -10,10 +10,12 @@ type Clause =
         /// Literals in this set.
         Literals : Set<Literal>
 
-        /// Number of symbols in this clause.
+        /// Number of symbols in this clause. (Cached for
+        /// performance.)
         SymbolCount : int
 
-        /// Variables contained in this clause.
+        /// Variables contained in this clause. (Cached for
+        /// performance).
         Variables : Lazy<Set<Variable>>
     }
 
@@ -221,7 +223,7 @@ module Clause =
 
                 let quantified variable inner constructor =
                     let variable', seen' =
-                        variable |> Variable.deconflictAdd seen
+                        variable |> Variable.deconflict seen
                     let variableMap' =
                         variableMap |> Map.add variable variable'
                     let inner', seen'' =
@@ -430,21 +432,25 @@ module Clause =
         /// variables in the second clause as needed.
         let deconflict clauseToKeep clauseToRename =
 
+                // find conflicting variables
             let intersection =
                 Set.intersect
                     clauseToKeep.Variables.Value
                     clauseToRename.Variables.Value
             if intersection.IsEmpty then clauseToRename
             else
+                    // find variables already in use
                 let union =
                     Set.union
                         clauseToKeep.Variables.Value
                         clauseToRename.Variables.Value
+
+                    // resolve each conflict one at a time
                 let literals, _, _ =
                     ((clauseToRename.Literals, union, Map.empty), intersection)
                         ||> Seq.fold (fun (literals, variables, variableMap) variable ->
                             let variable', variables' =
-                                variable |> Variable.deconflictAdd variables
+                                variable |> Variable.deconflict variables
                             let variableMap' =
                                 variableMap |> Map.add variable variable'
                             let literals' =

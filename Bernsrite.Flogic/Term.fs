@@ -26,18 +26,13 @@ module Variable =
 
     /// Renames the given variable if necessary to avoid conflict
     /// with the given variables.
-    let rec deconflict seen (variable : Variable) =
-        if seen |> Set.contains(variable) then
-            { Variable.Name = variable.Name + "'" }
-                |> deconflict seen
-        else variable
-
-    /// Renames the given variable if necessary to avoid conflict
-    /// with the given variables.
-    let deconflictAdd seen (variable : Variable) =
-        let variable' = variable |> deconflict seen
-        let seen' = seen |> Set.add variable'
-        variable', seen'
+    let rec deconflict (variables : Set<_>) (variable : Variable) =
+        if variables.Contains(variable) then
+            create (variable.Name + "'")
+                |> deconflict variables
+        else
+            let variables' = variables |> Set.add variable
+            variable, variables'
 
 /// A specific object in the world.
 [<StructuredFormatDisplay("{ConstantName}"); RequireQualifiedAccess; Struct>]

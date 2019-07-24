@@ -63,10 +63,8 @@ module Literal =
 
     /// Applies the given mapping to the given literal's terms.
     let map mapping literal =
-        {
-            literal with
-                Terms = literal.Terms |> Array.map mapping
-        }
+        let terms = literal.Terms |> Array.map mapping
+        { literal with Terms = terms }
 
     /// Substitutes the given term for the given variable in the
     /// given literal.
