@@ -447,7 +447,10 @@ module Clause =
 
                     // resolve each conflict one at a time
                 let literals, _, _ =
-                    ((clauseToRename.Literals, union, Map.empty), intersection)
+                    let literals =
+                        clauseToRename.Literals
+                            |> Set.toSeq
+                    ((literals, union, Map.empty), intersection)
                         ||> Seq.fold (fun (literals, variables, variableMap) variable ->
                             let variable', variables' =
                                 variable |> Variable.deconflict variables
@@ -455,9 +458,15 @@ module Clause =
                                 variableMap |> Map.add variable variable'
                             let literals' =
                                 literals
-                                    |> Set.map (Literal.substitute variable (VariableTerm variable'))
+                                    |> Seq.map (
+                                        Literal.substitute
+                                            variable
+                                            (VariableTerm variable'))
                             literals', variables', variableMap')
-                createRaw literals clauseToRename.SymbolCount
+
+                createRaw
+                    (set literals)
+                    clauseToRename.SymbolCount
 
             // isolates each item in the given array
         let createAllButArray mapping items =
