@@ -1,68 +1,147 @@
 Goal: ∀x.(+(0,x) = x)
 
 Premises:
-   Induction:
-      ((+(0,0) = 0) & ∀x.((+(0,x) = x) ⇒ (+(0,s(x)) = s(x)))) ⇒ ∀x.(+(0,x) = x)
-   Axiom:
+   ∀x.∀y.((x = y) ⇔ (s(x) = s(y)))
+   ∀x.(s(x) ~= 0)
+   ∀x.(+(x,0) = x)
+   ∀x.∀y.(+(x,s(y)) = s(+(x,y)))
+   ∀x.(x = x)
+   ∀x.∀y.((x = y) ⇒ (y = x))
+   ∀x.∀y.∀z.(((x = y) & (y = z)) ⇒ (x = z))
+   ∀x.∀y.∀z.(((s(x) = z) & (x = y)) ⇒ (s(y) = z))
+   ∀u.∀v.∀x.∀y.∀z.((((+(u,v) = z) & (u = x)) & (v = y)) ⇒ (+(x,y) = z))
+
+Base case:
+
+   Goal: (+(0,0) = 0)
+
+   Premises:
+      ∀x.∀y.((x = y) ⇔ (s(x) = s(y)))
+      ∀x.(s(x) ~= 0)
+      ∀x.(+(x,0) = x)
+      ∀x.∀y.(+(x,s(y)) = s(+(x,y)))
       ∀x.(x = x)
       ∀x.∀y.((x = y) ⇒ (y = x))
       ∀x.∀y.∀z.(((x = y) & (y = z)) ⇒ (x = z))
       ∀x.∀y.∀z.(((s(x) = z) & (x = y)) ⇒ (s(y) = z))
       ∀u.∀v.∀x.∀y.∀z.((((+(u,v) = z) & (u = x)) & (v = y)) ⇒ (+(x,y) = z))
-      ∀x.∀y.((x = y) ⇔ (s(x) = s(y)))
-      ∀x.(s(x) ~= 0)
-      ∀x.(+(x,0) = x)
-      ∀x.∀y.(+(x,s(y)) = s(+(x,y)))
 
-Initial clauses:
-   Induction:
-      (+(0,0) ~= 0) | (+(0,x') = x') | (+(0,skolem1(x')) = skolem1(x'))
-      (+(0,0) ~= 0) | (+(0,s(skolem1(x'))) ~= s(skolem1(x'))) | (+(0,x') = x')
-   Axiom:
-      (x = x)
-      (x ~= y) | (y = x)
-      (x ~= y) | (y ~= z) | (x = z)
-      (x ~= y) | (s(x) ~= z) | (s(y) = z)
-      (u ~= x) | (v ~= y) | (+(u,v) ~= z) | (+(x,y) = z)
+   Initial clauses:
       (x ~= y) | (s(x) = s(y))
       (s(x) ~= s(y)) | (x = y)
       (s(x) ~= 0)
       (+(x,0) = x)
       (+(x,s(y)) = s(+(x,y)))
-   Negated goal:
-      (+(0,skolem2) ~= skolem2)
+      (x = x)
+      (x ~= y) | (y = x)
+      (x ~= y) | (y ~= z) | (x = z)
+      (x ~= y) | (s(x) ~= z) | (s(y) = z)
+      (u ~= x) | (v ~= y) | (+(u,v) ~= z) | (+(x,y) = z)
+      (+(0,0) ~= 0)
 
-Steps:
+   Steps:
 
-   1. (+(0,skolem2) ~= skolem2)
-         with (+(0,0) ~= 0) | (+(0,x') = x') | (+(0,skolem1(x')) = skolem1(x'))
-            x' <- skolem2
+      1. (+(0,0) ~= 0)
+            with (+(x,0) = x)
+               x <- 0
 
-   2. (+(0,0) ~= 0) | (+(0,skolem1(skolem2)) = skolem1(skolem2))
-         with (x ~= y) | (s(x) = s(y))
-            x <- +(0,skolem1(skolem2))
-            y <- skolem1(skolem2)
+   Center clause: Contradiction
 
-   3. (+(0,0) ~= 0) | (s(+(0,skolem1(skolem2))) = s(skolem1(skolem2)))
-         with (x ~= y) | (y ~= z) | (x = z)
-            y <- s(+(0,skolem1(skolem2)))
-            z <- s(skolem1(skolem2))
+      Database:
+         (x ~= y) | (s(x) = s(y))
+         (s(x) ~= s(y)) | (x = y)
+         (s(x) ~= 0)
+         (+(x,0) = x)
+         (+(x,s(y)) = s(+(x,y)))
+         (x = x)
+         (x ~= y) | (y = x)
+         (x ~= y) | (y ~= z) | (x = z)
+         (x ~= y) | (s(x) ~= z) | (s(y) = z)
+         (u ~= x) | (v ~= y) | (+(u,v) ~= z) | (+(x,y) = z)
+         (+(0,0) ~= 0)
+         Contradiction
 
-   4. (x ~= s(+(0,skolem1(skolem2)))) | (+(0,0) ~= 0) | (x = s(skolem1(skolem2)))
-         with (+(x,s(y)) = s(+(x,y)))
-            x <- +(0,s(skolem1(skolem2)))
-            x' <- 0
-            y <- skolem1(skolem2)
+   Proved
 
-   5. (+(0,0) ~= 0) | (+(0,s(skolem1(skolem2))) = s(skolem1(skolem2)))
-         with (+(0,0) ~= 0) | (+(0,s(skolem1(x'))) ~= s(skolem1(x'))) | (+(0,x') = x')
-            x' <- skolem2
+Inductive case:
 
-   6. (+(0,0) ~= 0) | (+(0,skolem2) = skolem2)
-         with (+(x,0) = x)
-            x <- 0
+   Goal: (+(0,x) = x) ⇒ (+(0,s(x)) = s(x))
 
-   7. (+(0,skolem2) = skolem2)
-         with (+(0,skolem2) ~= skolem2)
+   Premises:
+      ∀x.∀y.((x = y) ⇔ (s(x) = s(y)))
+      ∀x.(s(x) ~= 0)
+      ∀x.(+(x,0) = x)
+      ∀x.∀y.(+(x,s(y)) = s(+(x,y)))
+      ∀x.(x = x)
+      ∀x.∀y.((x = y) ⇒ (y = x))
+      ∀x.∀y.∀z.(((x = y) & (y = z)) ⇒ (x = z))
+      ∀x.∀y.∀z.(((s(x) = z) & (x = y)) ⇒ (s(y) = z))
+      ∀u.∀v.∀x.∀y.∀z.((((+(u,v) = z) & (u = x)) & (v = y)) ⇒ (+(x,y) = z))
+      (+(0,0) = 0)
 
-      Contradiction
+   Initial clauses:
+      (x ~= y) | (s(x) = s(y))
+      (s(x) ~= s(y)) | (x = y)
+      (s(x) ~= 0)
+      (+(x,0) = x)
+      (+(x,s(y)) = s(+(x,y)))
+      (x = x)
+      (x ~= y) | (y = x)
+      (x ~= y) | (y ~= z) | (x = z)
+      (x ~= y) | (s(x) ~= z) | (s(y) = z)
+      (u ~= x) | (v ~= y) | (+(u,v) ~= z) | (+(x,y) = z)
+      (+(0,0) = 0)
+      (+(0,skolem1) = skolem1)
+      (+(0,s(skolem1)) ~= s(skolem1))
+
+   Steps:
+
+      1. (+(0,s(skolem1)) ~= s(skolem1))
+            with (x ~= y) | (y = x)
+               y <- +(0,s(skolem1))
+               x <- s(skolem1)
+
+      2. (s(skolem1) ~= +(0,s(skolem1)))
+            with (x ~= y) | (s(x) ~= z) | (s(y) = z)
+               y <- skolem1
+               z <- +(0,s(skolem1))
+
+      3. (x ~= skolem1) | (s(x) ~= +(0,s(skolem1)))
+            with (x ~= y) | (y = x)
+               y <- s(x)
+               x' <- +(0,s(skolem1))
+
+      4. (x ~= skolem1) | (+(0,s(skolem1)) ~= s(x))
+            with (+(x,s(y)) = s(+(x,y)))
+               x' <- 0
+               y <- skolem1
+               x <- +(0,skolem1)
+
+      5. (+(0,skolem1) ~= skolem1)
+            with (+(0,skolem1) = skolem1)
+
+   Center clause: Contradiction
+
+      Database:
+         (x ~= y) | (s(x) = s(y))
+         (s(x) ~= s(y)) | (x = y)
+         (s(x) ~= 0)
+         (+(x,0) = x)
+         (+(x,s(y)) = s(+(x,y)))
+         (x = x)
+         (x ~= y) | (y = x)
+         (x ~= y) | (y ~= z) | (x = z)
+         (x ~= y) | (s(x) ~= z) | (s(y) = z)
+         (u ~= x) | (v ~= y) | (+(u,v) ~= z) | (+(x,y) = z)
+         (+(0,0) = 0)
+         (+(0,skolem1) = skolem1)
+         (+(0,s(skolem1)) ~= s(skolem1))
+         (s(skolem1) ~= +(0,s(skolem1)))
+         (x ~= skolem1) | (s(x) ~= +(0,s(skolem1)))
+         (x ~= skolem1) | (+(0,s(skolem1)) ~= s(x))
+         (+(0,skolem1) ~= skolem1)
+         Contradiction
+
+   Proved
+
+Proved
