@@ -119,3 +119,9 @@ module Print =
         sprintf "%s%s"
             (String(' ', 3 * level))
             (obj.ToString())
+
+/// Interface for pretty printing.
+type Printable =
+    {
+        ToString : int (*level, 0-based*) -> string
+    }

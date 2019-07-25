@@ -10,14 +10,11 @@ type Proof =
         /// Goal of this proof.
         Goal : Formula
 
-        /// Initial clauses (from premises and negated goal)
-        InitialClauses : Clause[]
-
         /// Result of this proof: proved or disproved.
         Result : bool
 
         /// Derivation of this proof.
-        Derivation : LinearResolutionDerivation
+        Derivation : Printable
     }
 
     /// Display string.
@@ -31,11 +28,6 @@ type Proof =
             yield "Premises:" |> Print.indent level
             for premise in this.Premises  do
                 yield premise |> Print.indent (level + 1)
-
-            yield ""
-            yield "Initial clauses:" |> Print.indent level
-            for clause in this.InitialClauses do
-                yield clause |> Print.indent (level + 1)
 
             yield this.Derivation.ToString(level)
 
@@ -51,56 +43,41 @@ type Proof =
     /// Display string.
     member this.String = this.ToString()
 
+    /// Printable implementation.
+    member this.Printable =
+        { ToString = this.ToString }
+
 module Proof =
 
     /// Creates a proof.
-    let create premises goal initialClauses result derivation =
+    let create premises goal result derivation =
         {
             Premises = premises |> Seq.toArray
             Goal = goal
-            InitialClauses = initialClauses |> Seq.toArray
             Result = result
             Derivation = derivation
         }
 
-    /// Tries to prove the given goal from the given premises.
-    let tryProve premises goal =
-    
-            // convert premises to clause normal form (CNF)
-        let premiseClauses =
-            premises
-                |> Seq.collect Clause.toClauses
-                |> Seq.toArray
+/// A prover is a function that can attempt proofs.
+type Prover = seq<Formula> (*premises*) -> Formula (*goal*) -> Option<Proof>
 
-            // ensure explicit quantification before negating
-        let goal' =
-            goal |> Formula.quantifyUniversally
+module Prover =
 
-            // convert goal to CNF for proof
-            // proof by refutation: negate goal
-        let proofGoalClauses =
-            Not goal' |> Clause.toClauses
+    /// Creates a serial prover from the given provers.
+    let serial provers : Prover =
+        fun premises goal ->
+            provers
+                |> Seq.tryPick (fun (prover : Prover) ->
+                    prover premises goal)
 
-            // convert goal to CNF for disproof
-        let disproofGoalClauses =
-            goal' |> Clause.toClauses
+    /// Combines the given provers in series.
+    let combine prover1 prover2 : Prover =
+        [ prover1; prover2 ] |> serial
 
-            // iterative deepening
-        [ 5; 7 ]
-            |> Seq.collect (fun maxDepth ->
-                seq {
-                    yield maxDepth, proofGoalClauses, true
-                    yield maxDepth, disproofGoalClauses, false
-                })
-            |> Seq.tryPick (fun (maxDepth, goalClauses, flag) ->
-                let config =
-                    {
-                        MaxDepth = maxDepth
-                        MaxLiteralCount = 3
-                        MaxSymbolCount = 18
-                    }
-                LinearResolution.tryProve config premiseClauses goalClauses
-                    |> Option.map (fun derivation ->
-                        let initialClauses =
-                            Seq.append premiseClauses goalClauses
-                        create premises goal initialClauses flag derivation))
+    /// Picks only a successful proof.
+    let pickSuccess prover premises goal =
+        opt {
+            let! proof = prover premises goal
+            if proof.Result then
+                return proof
+        }

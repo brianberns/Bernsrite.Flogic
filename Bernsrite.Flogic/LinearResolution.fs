@@ -17,6 +17,9 @@ type LinearResolutionDerivationStep =
 [<StructuredFormatDisplay("{String}")>]
 type LinearResolutionDerivation =
     {
+        /// Initial clauses (from premises and negated goal)
+        InitialClauses : Clause[]
+
         /// Current center clause.
         CenterClause : Clause
 
@@ -30,6 +33,11 @@ type LinearResolutionDerivation =
     /// Display string.
     member this.ToString(level) =
         seq {
+            yield ""
+            yield "Initial clauses:" |> Print.indent level
+            for clause in this.InitialClauses do
+                yield clause |> Print.indent (level + 1)
+
             yield ""
             yield "Steps:" |> Print.indent level
             let steps =
@@ -62,6 +70,10 @@ type LinearResolutionDerivation =
     /// Display string.
     member this.String = this.ToString()
 
+    /// Printable implementation.
+    member this.Printable =
+        { ToString = this.ToString }
+
 /// Restrictions to avoid runaway search.
 type LinearResolutionConfiguration =
     {
@@ -81,6 +93,7 @@ module LinearResolutionDerivation =
     let create clauses topClause =
         assert(clauses |> Seq.contains topClause)
         {
+            InitialClauses = clauses
             Database = Database.create clauses
             CenterClause = topClause
             Steps = List.empty
@@ -141,8 +154,48 @@ module LinearResolution =
 
         derivation |> loop 0
 
-    /// Tries to prove the given goal from the given premises via linear
-    /// resolution.
-    let tryProve limits premiseClauses goalClauses =
+    /// Tries to derive the given goal from the given premises.
+    let private tryDerive limits premiseClauses goalClauses =
         LinearResolutionDerivation.generate premiseClauses goalClauses
             |> Seq.tryPick (search limits)
+
+    /// Tries to prove the given goal from the given premises.
+    let tryProve premises goal =
+    
+            // convert premises to clause normal form (CNF)
+        let premiseClauses =
+            premises
+                |> Seq.collect Clause.toClauses
+                |> Seq.toArray
+
+            // ensure explicit quantification before negating
+        let goal' =
+            goal |> Formula.quantifyUniversally
+
+            // convert goal to CNF for proof
+            // proof by refutation: negate goal
+        let proofGoalClauses =
+            Not goal' |> Clause.toClauses
+
+            // convert goal to CNF for disproof
+        let disproofGoalClauses =
+            goal' |> Clause.toClauses
+
+            // iterative deepening
+        [ 5; 7 ]
+            |> Seq.collect (fun maxDepth ->
+                seq {
+                    yield maxDepth, proofGoalClauses, true
+                    yield maxDepth, disproofGoalClauses, false
+                })
+            |> Seq.tryPick (fun (maxDepth, goalClauses, flag) ->
+                let config =
+                    {
+                        MaxDepth = maxDepth
+                        MaxLiteralCount = 3
+                        MaxSymbolCount = 18
+                    }
+                opt {
+                    let! derivation = tryDerive config premiseClauses goalClauses
+                    return Proof.create premises goal flag derivation.Printable
+                })
