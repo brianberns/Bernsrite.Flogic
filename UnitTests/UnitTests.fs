@@ -227,9 +227,13 @@ type UnitTest() =
                 Axioms =
                     [|
                         "P(a)"
-                        "(P(x) -> P(f(x)))"
+                        "∀x.(P(x) -> P(f(x)))"
                     |] |> Array.map parse
             }
+        for axiom in system.Axioms do
+            printfn "%A" axiom
+            for clause in axiom |> Clause.toClauses do
+                printfn "   %A" clause
         let proofOpt =
             parse "∀x.P(x)"
                 |> System.tryProve system

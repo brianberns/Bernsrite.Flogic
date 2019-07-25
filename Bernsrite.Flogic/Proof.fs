@@ -5,13 +5,13 @@
 type Proof =
     {
         /// Premises of this proof.
-        TaggedPremises : (Formula * Tag)[]
+        Premises : Formula[]
 
         /// Goal of this proof.
         Goal : Formula
 
         /// Initial clauses (from premises and negated goal)
-        TaggedInitialClauses : (Clause * Tag)[]
+        InitialClauses : Clause[]
 
         /// Result of this proof: proved or disproved.
         Result : bool
@@ -29,17 +29,13 @@ type Proof =
 
             yield ""
             yield "Premises:" |> Print.indent level
-            for tag, group in this.TaggedPremises |> Seq.groupBy snd do
-                yield sprintf "%A:" tag |> Print.indent (level + 1)
-                for premise, _ in group do
-                    yield premise |> Print.indent (level + 2)
+            for premise in this.Premises  do
+                yield premise |> Print.indent (level + 1)
 
             yield ""
             yield "Initial clauses:" |> Print.indent level
-            for tag, group in this.TaggedInitialClauses |> Seq.groupBy snd do
-                yield sprintf "%A:" tag |> Print.indent (level + 1)
-                for clause, _ in group do
-                    yield clause |> Print.indent (level + 2)
+            for clause in this.InitialClauses do
+                yield clause |> Print.indent (level + 1)
 
             yield this.Derivation.ToString(level)
 
@@ -58,77 +54,53 @@ type Proof =
 module Proof =
 
     /// Creates a proof.
-    let create taggedPremises goal taggedInitialClauses result derivation =
+    let create premises goal initialClauses result derivation =
         {
-            TaggedPremises =
-                taggedPremises |> Seq.toArray
+            Premises = premises |> Seq.toArray
             Goal = goal
-            TaggedInitialClauses =
-                taggedInitialClauses |> Seq.toArray
+            InitialClauses = initialClauses |> Seq.toArray
             Result = result
             Derivation = derivation
         }
 
     /// Tries to prove the given goal from the given premises.
-    let tryProveTagged taggedPremises goal =
+    let tryProve premises goal =
     
             // convert premises to clause normal form (CNF)
-        let taggedPremiseClauses =
-            taggedPremises
-                |> Seq.collect (fun (formula, tag) ->
-                    formula
-                        |> Clause.toClauses
-                        |> Seq.map (fun clause ->
-                            clause, tag))
+        let premiseClauses =
+            premises
+                |> Seq.collect Clause.toClauses
                 |> Seq.toArray
 
             // ensure explicit quantification before negating
         let goal' =
             goal |> Formula.quantifyUniversally
 
-            // tags the given goal formula as clauses
-        let tagGoal formula =
-            formula
-                |> Clause.toClauses
-                |> Seq.map (fun clause ->
-                    clause, Tag.Goal)
-                |> Seq.append taggedPremiseClauses
-                |> Seq.toArray
-
             // convert goal to CNF for proof
             // proof by refutation: negate goal
-        let taggedProofClauses =
-            Not goal' |> tagGoal
+        let proofGoalClauses =
+            Not goal' |> Clause.toClauses
 
             // convert goal to CNF for disproof
-        let taggedDisproofClauses =
-            goal' |> tagGoal
+        let disproofGoalClauses =
+            goal' |> Clause.toClauses
 
             // iterative deepening
         [ 5; 7 ]
             |> Seq.collect (fun maxDepth ->
                 seq {
-                    yield maxDepth, taggedProofClauses, true
-                    yield maxDepth, taggedDisproofClauses, false
+                    yield maxDepth, proofGoalClauses, true
+                    yield maxDepth, disproofGoalClauses, false
                 })
-            |> Seq.tryPick (fun (maxDepth, taggedInitialClauses, flag) ->
+            |> Seq.tryPick (fun (maxDepth, goalClauses, flag) ->
                 let config =
                     {
                         MaxDepth = maxDepth
                         MaxLiteralCount = 3
                         MaxSymbolCount = 18
                     }
-                LinearResolution.tryProve config taggedInitialClauses
-                    |> Option.map (create
-                        taggedPremises
-                        goal
-                        taggedInitialClauses
-                        flag))
-
-    /// Tries to prove the given goal from the given premises.
-    let tryProve premises goal =
-        let taggedPremises =
-            premises
-                |> Seq.map (fun premise ->
-                    premise, Tag.Premise)
-        tryProveTagged taggedPremises goal
+                LinearResolution.tryProve config premiseClauses goalClauses
+                    |> Option.map (fun derivation ->
+                        let initialClauses =
+                            Seq.append premiseClauses goalClauses
+                        create premises goal initialClauses flag derivation))

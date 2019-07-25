@@ -20,9 +20,6 @@ type LinearResolutionDerivation =
         /// Current center clause.
         CenterClause : Clause
 
-        /// Current center clause tag.
-        CenterClauseTag : Tag
-
         /// Steps leading to current state, in reverse order.
         Steps : List<LinearResolutionDerivationStep>
 
@@ -51,7 +48,7 @@ type LinearResolutionDerivation =
                         |> Print.indent (level + 4)
 
             yield ""
-            yield sprintf "Center clause: %A, %A" this.CenterClause this.CenterClauseTag
+            yield sprintf "Center clause: %A" this.CenterClause
                 |> Print.indent level
 
             yield this.Database.ToString(level + 1)
@@ -81,31 +78,25 @@ type LinearResolutionConfiguration =
 module LinearResolutionDerivation =
 
     /// Creates a derivation for the given clauses.
-    let create taggedClauses topClause =
-        assert(
-            taggedClauses
-                |> Seq.map fst
-                |> Seq.contains topClause)
+    let create clauses topClause =
+        assert(clauses |> Seq.contains topClause)
         {
-            Database = Database.create taggedClauses
+            Database = Database.create clauses
             CenterClause = topClause
-            CenterClauseTag = Tag.Goal
             Steps = List.empty
         }
 
     /// Initializes derivations for the given clauses.
-    let generate taggedClauses =
+    let generate premiseClauses goalClauses =
+        let clauses =
+            Seq.append premiseClauses goalClauses
+                |> Seq.toArray
         [|
-            let goalClauses =
-                taggedClauses
-                    |> Seq.where (fun (_, tag) ->
-                        tag = Tag.Goal)
-                    |> Seq.map fst
-                    |> Seq.rev   // guess that the last goal clause is most likely to lead to contradiction (e.g. if plausible-assumption then incorrect-conclusion)
-            for clause in goalClauses do
-                yield create taggedClauses clause
+                // guess that the last goal clause is most likely to lead to
+                // contradiction (e.g. if plausible-assumption then incorrect-conclusion)
+            for topClause in goalClauses |> Seq.rev do
+                yield create clauses topClause
         |]
-
 
 /// http://www.cs.miami.edu/home/geoff/Courses/CSC648-12S/Content/LinearResolution.shtml
 module LinearResolution =
@@ -118,9 +109,7 @@ module LinearResolution =
             if depth < config.MaxDepth then
 
                     // resolve with all possible side clauses
-                derivation.Database
-                    |> Database.getPossibleResolutionClauses
-                        derivation.CenterClause
+                derivation.Database.Clauses
                     |> Seq.tryPick (fun sideClause ->
                         Clause.resolve derivation.CenterClause sideClause
                             |> Seq.tryPick (fun (resolvent, substitution) ->
@@ -134,7 +123,6 @@ module LinearResolution =
                                         {
                                             derivation with
                                                 CenterClause = resolvent
-                                                CenterClauseTag = Tag.Step
                                                 Steps =
                                                     {
                                                         CenterClause = derivation.CenterClause
@@ -155,6 +143,6 @@ module LinearResolution =
 
     /// Tries to prove the given goal from the given premises via linear
     /// resolution.
-    let tryProve limits taggedClauses =
-        LinearResolutionDerivation.generate taggedClauses
-                |> Seq.tryPick (search limits)
+    let tryProve limits premiseClauses goalClauses =
+        LinearResolutionDerivation.generate premiseClauses goalClauses
+            |> Seq.tryPick (search limits)

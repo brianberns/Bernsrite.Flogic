@@ -441,10 +441,9 @@ module Clause =
             else
                     // protect variables already in use
                 let variableMap =
-                    seq {
-                        yield! clauseToKeep.Variables.Value
-                        yield! clauseToRename.Variables.Value
-                    }
+                    Seq.append
+                        clauseToKeep.Variables.Value
+                        clauseToRename.Variables.Value
                         |> Seq.map (fun variable ->
                             variable, None)
                         |> Map.ofSeq

@@ -34,10 +34,11 @@ module Peano =
         |]
 
     let axioms =
-        [|
-            yield! successorAxioms
-            yield! plusAxioms
-        |]
+        Array.concat
+            [|
+                successorAxioms
+                plusAxioms
+            |]
 
     let system =
         {

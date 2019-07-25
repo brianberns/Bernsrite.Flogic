@@ -72,7 +72,7 @@ module System =
             |> Seq.toArray
 
     let tryProve system goal =
-        let taggedPremises =
+        let premises =
             let language = system.Language
             [|
                     // induction axioms
@@ -91,18 +91,13 @@ module System =
                     if functions.Count + predicates.Count > 0 then   // don't generate induction axioms for a goal that seems to be solely about equality
                         for func in language.Functions do
                             if func.Arity = 1 then
-                                for axiom in linearInductionAxioms constant func goal do
-                                    yield axiom, Tag.Induction
+                                yield! linearInductionAxioms constant func goal
 
                     // equality axioms for this system's language
                 if language.Predicates |> Seq.contains Equality.predicate then
-                    for axiom in Equality.equivalenceAxioms do
-                        yield axiom, Tag.Axiom
-                    for axiom in language |> Equality.substitutionAxioms do
-                        yield axiom, Tag.Axiom
+                    yield! Equality.equivalenceAxioms
 
                     // explicit system axioms
-                for axiom in system.Axioms do
-                    yield axiom, Tag.Axiom
+                yield! system.Axioms
             |]
-        Proof.tryProveTagged taggedPremises goal
+        Proof.tryProve premises goal

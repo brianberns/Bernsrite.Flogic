@@ -1,23 +1,5 @@
 ﻿namespace Bernsrite.Flogic
 
-open System
-
-module Print =
-
-    /// Indents the given object to the given level.
-    let indent level obj =
-        sprintf "%s%s"
-            (String(' ', 3 * level))
-            (obj.ToString())
-
-[<RequireQualifiedAccess>]
-type Tag =
-    | Axiom
-    | Premise
-    | Induction
-    | Goal
-    | Step
-
 /// Clauses that are known/assumed true.
 [<StructuredFormatDisplay("{String}")>]
 type Database =
@@ -26,11 +8,11 @@ type Database =
         AddedClauses : List<Clause>
     }
 
+    /// All clauses in this database, in order.
     member this.Clauses =
-        seq {
-            yield! this.InitialClauses
-            yield! this.AddedClauses |> List.rev
-        }
+        Seq.append
+            this.InitialClauses
+            (this.AddedClauses |> List.rev)
 
     /// Display string.
     member this.ToString(level) =
@@ -50,12 +32,9 @@ type Database =
 
 module Database =
 
-    let create taggedClauses =
+    let create clauses =
         {
-            InitialClauses =
-                taggedClauses
-                    |> Seq.map fst
-                    |> Seq.toArray
+            InitialClauses = clauses |> Seq.toArray
             AddedClauses = List.empty
         }
 
@@ -65,6 +44,3 @@ module Database =
                 AddedClauses =
                     clause :: database.AddedClauses
         }
-
-    let getPossibleResolutionClauses (clause : Clause) (database : Database) =
-        database.Clauses

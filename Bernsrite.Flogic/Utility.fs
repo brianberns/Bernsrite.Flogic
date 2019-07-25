@@ -111,3 +111,11 @@ module Map =
             |> Map.toSeq
             |> Seq.map fst
             |> set
+
+module Print =
+
+    /// Indents the given object to the given level.
+    let indent level obj =
+        sprintf "%s%s"
+            (String(' ', 3 * level))
+            (obj.ToString())
