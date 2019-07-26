@@ -329,11 +329,11 @@ type Peano() =
     member __.AdditionSuccessor() =
         test ("∀x.∀y.=(+(x,s(y)), s(+(x,y)))", true)
 
+    (*
     [<TestMethod>]
     member __.AdditionCommutative() =
         test ("∀x.∀y.=(+(x,y), +(y,x))", true)
 
-    (*
     [<TestMethod>]
     member __.AdditionCancellative() =
         test ("∀x.∀y.∀z.(=(+(x,z), +(y,z)) ⇒ =(x, y))", true)

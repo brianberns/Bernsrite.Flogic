@@ -74,6 +74,19 @@ type LinearResolutionDerivation =
     member this.Printable =
         { ToString = this.ToString }
 
+/// Restrictions to avoid runaway search.
+type LinearResolutionConfiguration =
+    {
+        /// Maximum depth of the search tree.
+        MaxDepth : int
+
+        /// Maximum # of literals in a clause.
+        MaxLiteralCount : int
+
+        /// Maximum # of symbols in a clause.
+        MaxSymbolCount : int
+    }
+
 module LinearResolutionDerivation =
 
     /// Creates a derivation for the given clauses.
@@ -102,18 +115,21 @@ module LinearResolutionDerivation =
 module LinearResolution =
             
     /// Depth-first search.
-    let search maxDepth derivation =
+    let search config derivation =
 
         let rec loop depth derivation =
             assert(depth = (derivation.Steps |> Seq.length))
-            if depth < maxDepth then
+            if depth < config.MaxDepth then
 
                     // resolve with all possible side clauses
                 derivation.Database.Clauses
                     |> Seq.tryPick (fun sideClause ->
                         Clause.resolve derivation.CenterClause sideClause
                             |> Seq.tryPick (fun (resolvent, substitution) ->
-                                if derivation.Database.Clauses |> Seq.contains resolvent then
+                                if resolvent.Literals.Count > config.MaxLiteralCount
+                                    || resolvent.SymbolCount > config.MaxSymbolCount then
+                                    None
+                                elif derivation.Database.Clauses |> Seq.contains resolvent then
                                     None
                                 else
                                     let derivation' =
@@ -173,7 +189,13 @@ module LinearResolution =
                     yield maxDepth, disproofGoalClauses, false
                 })
             |> Seq.tryPick (fun (maxDepth, goalClauses, flag) ->
+                let config =
+                    {
+                        MaxDepth = maxDepth
+                        MaxLiteralCount = 3
+                        MaxSymbolCount = 15
+                    }
                 opt {
-                    let! derivation = tryDerive maxDepth premiseClauses goalClauses
+                    let! derivation = tryDerive config premiseClauses goalClauses
                     return Proof.create premises goal flag derivation.Printable
                 })
