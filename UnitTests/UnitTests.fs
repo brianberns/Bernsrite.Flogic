@@ -314,11 +314,13 @@ type Peano() =
         test ("∀x.~=(s(x), 0)", true)
         test ("∃x.=(s(x), 0)", false)
 
-    (*
+    [<TestMethod>]
+    member __.Successor3() =
+        test ("∀x.=(+(x,s(0)), s(x))", true)
+
     [<TestMethod>]
     member __.EqualityFalse() =
         test ("∀x.∀y.=(x, y)", false)
-    *)
 
     [<TestMethod>]
     member __.AdditionIdentity() =
