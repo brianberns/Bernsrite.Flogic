@@ -1,33 +1,41 @@
 ﻿namespace Bernsrite.Flogic
 
-type System =
+type Theory =
     {
-        /// Language used by this system.
+        /// Language used by this theory.
         Language : Language
 
-        /// Axioms defined explicitly by this system.
+        /// Axioms defined explicitly by this theory.
         Axioms : Formula[]
     }
 
 module System =
 
-    /// Tries to prove the given formula.
-    let tryProve system =
+    /// Linear induction prover for the given language.
+    let inductionProver language : Prover =
+        LinearInduction.tryProve language LinearResolution.tryProve
 
-        let language = system.Language
+    /// Tries to prove the given formula.
+    let tryProve theory =
+
+        let language = theory.Language
 
         let prover =
             Prover.serial [|
-                LinearInduction.tryProve language LinearResolution.tryProve
+
+                    // induction + resolution
+                inductionProver theory.Language
+
+                    // resolution alone
                 LinearResolution.tryProve
             |]
 
         let premises =
             [|
                     // explicit premises
-                yield! system.Axioms
+                yield! theory.Axioms
 
-                    // equality axioms for this system's language
+                    // equality axioms for this theory's language
                 if language.Predicates |> Seq.contains Equality.predicate then
                     yield! Equality.equivalenceAxioms
                     yield! language |> Equality.substitutionAxioms

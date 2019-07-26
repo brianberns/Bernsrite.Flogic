@@ -75,9 +75,10 @@ module Prover =
         [ prover1; prover2 ] |> serial
 
     /// Picks only a successful proof.
-    let pickSuccess prover premises goal =
-        opt {
-            let! proof = prover premises goal
-            if proof.Result then
-                return proof
-        }
+    let pickSuccess (prover : Prover) : Prover =
+        fun premises goal ->
+            opt {
+                let! proof = prover premises goal
+                if proof.Result then
+                    return proof
+            }

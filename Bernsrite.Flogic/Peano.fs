@@ -3,10 +3,13 @@
 /// Peano arithmetic on the natural numbers.
 module Peano =
 
+    /// Zero constant.
     let zero = Constant.create "0"
 
+    /// Successor function.
     let successor = Function.create "s" 1
 
+    /// Peano language. E.g. ∀x.(x + s(0) = s(x)).
     let language =
         Language.create
             [| zero |]
@@ -17,6 +20,7 @@ module Peano =
             |]
             [| Equality.predicate |]
 
+    /// Peano parser.
     let private parse = Array.map (Language.parse language)
 
     /// Axioms that define the successor function in terms of equality.
@@ -33,6 +37,7 @@ module Peano =
             "∀x.∀y.=(+(x,s(y)), s(+(x,y)))"
         |]
 
+    /// Explicit Peano axioms.
     let axioms =
         Array.concat
             [|
@@ -40,7 +45,8 @@ module Peano =
                 plusAxioms
             |]
 
-    let system =
+    /// Peano arithmetic.
+    let theory =
         {
             Language = language
             Axioms = axioms

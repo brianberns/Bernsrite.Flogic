@@ -285,7 +285,7 @@ type Peano() =
         let proofOpt =
             goalStr
                 |> Language.parse Peano.language
-                |> System.tryProve Peano.system
+                |> System.tryProve Peano.theory
         printfn "%A" proofOpt
         match proofOpt with
             | Some proof -> Assert.AreEqual(flag, proof.Result)

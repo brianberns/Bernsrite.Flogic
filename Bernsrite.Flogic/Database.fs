@@ -4,7 +4,10 @@
 [<StructuredFormatDisplay("{String}")>]
 type Database =
     {
+        /// Initial database contents.
         InitialClauses : Clause[]
+
+        /// Clauses added to the database after creation.
         AddedClauses : List<Clause>
     }
 
@@ -32,12 +35,14 @@ type Database =
 
 module Database =
 
+    /// Initializes a database with the given clauses.
     let create clauses =
         {
             InitialClauses = clauses |> Seq.toArray
             AddedClauses = List.empty
         }
 
+    /// Adds the given clause to the given database.
     let add clause database =
         {
             database with

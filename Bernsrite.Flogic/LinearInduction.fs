@@ -94,6 +94,7 @@ module LinearInduction =
 
         goal |> loop premises
 
+    /// Tries to prove the given formula using linear induction.
     let tryProve language subprover premises goal =
         let constantOpt =
             language.Constants

@@ -43,7 +43,7 @@ We can then use the resolution principle to prove our goal:
 
 ```F#
 let goal = Parser.run parser "f(harry, ralph)"
-let proofOpt = Derivation.tryProve [1..10] premises goal
+let proofOpt = LinearResolution.tryProve premises goal
 ```
 
 This works by negating the goal and deriving a contradiction. In this case, `proofOpt` will hold the following steps:

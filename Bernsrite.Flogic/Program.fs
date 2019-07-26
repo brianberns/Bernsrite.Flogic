@@ -12,7 +12,7 @@ module Program =
             "∀x.=(+(0,x), x)"
             // "(=(+(0,a), a) -> =(+(0,s(a)), s(a)))"
                 |> Language.parse Peano.language
-                |> System.tryProve Peano.system
+                |> System.tryProve Peano.theory
         printfn "%A" proofOpt
         printfn "%A" (DateTime.Now - dtStart)
 
