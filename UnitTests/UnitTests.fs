@@ -305,9 +305,9 @@ type Peano() =
 
     [<TestMethod>]
     member __.Successor1() =
-        test ("∀x.∀y.(=(x, y) -> =(s(x), s(y)))", true)
-        test ("∀x.∀y.(=(x, y) <- =(s(x), s(y)))", true)
-        // test ("∀x.∀y.(=(x, y) <-> =(s(x), s(y)))", true)
+        // test ("∀x.∀y.(=(x, y) -> =(s(x), s(y)))", true)
+        // test ("∀x.∀y.(=(x, y) <- =(s(x), s(y)))", true)
+        test ("∀x.∀y.(=(x, y) <-> =(s(x), s(y)))", true)
 
     [<TestMethod>]
     member __.Successor2() =

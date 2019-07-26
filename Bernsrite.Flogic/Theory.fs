@@ -15,20 +15,17 @@ module System =
     let inductionProver language : Prover =
         LinearInduction.tryProve language LinearResolution.tryProve
 
+    /// Creates a strategic prover for the given language.
+    let strategicProver language : Prover =
+        Prover.serial [|
+            inductionProver language
+            LinearResolution.tryProve
+        |] |> ConjuctionProver.tryProve
+
     /// Tries to prove the given formula.
     let tryProve theory =
 
         let language = theory.Language
-
-        let prover =
-            Prover.serial [|
-
-                    // induction + resolution
-                inductionProver theory.Language
-
-                    // resolution alone
-                LinearResolution.tryProve
-            |]
 
         let premises =
             [|
@@ -41,4 +38,4 @@ module System =
                     yield! language |> Equality.substitutionAxioms
             |]
 
-        prover premises
+        strategicProver language premises

@@ -19,6 +19,7 @@
     <Compile Include="Equality.fs" />
     <Compile Include="LinearResolution.fs" />
     <Compile Include="LinearInduction.fs" />
+    <Compile Include="ConjuctionProver.fs" />
     <Compile Include="Theory.fs" />
     <Compile Include="Peano.fs" />
     <Compile Include="Program.fs" />
