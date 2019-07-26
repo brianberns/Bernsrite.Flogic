@@ -17,10 +17,10 @@ type Literal =
 
     /// Display string.
     member this.String =
-        Formula.PredicateString(
-            this.Predicate,
-            this.Terms,
-            this.IsPositive)
+        Print.application
+            this.Predicate.Name
+            this.Terms
+            this.IsPositive
 
     /// Display string.
     override this.ToString() =

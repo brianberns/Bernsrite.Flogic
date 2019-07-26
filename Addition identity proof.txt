@@ -1,0 +1,148 @@
+Goal: ∀x.((0 + x) = x)
+
+Premises:
+   ∀x.∀y.((x = y) ⇔ (s(x) = s(y)))
+   ∀x.(s(x) ~= 0)
+   ∀x.((x + 0) = x)
+   ∀x.∀y.((x + s(y)) = s((x + y)))
+   ∀x.(x = x)
+   ∀x.∀y.((x = y) ⇒ (y = x))
+   ∀x.∀y.∀z.(((x = y) & (y = z)) ⇒ (x = z))
+   ∀x.∀y.∀z.(((s(x) = z) & (x = y)) ⇒ (s(y) = z))
+   ∀u.∀v.∀x.∀y.∀z.(((((u + v) = z) & (u = x)) & (v = y)) ⇒ ((x + y) = z))
+
+Base case:
+
+   Goal: ((0 + 0) = 0)
+
+   Premises:
+      ∀x.∀y.((x = y) ⇔ (s(x) = s(y)))
+      ∀x.(s(x) ~= 0)
+      ∀x.((x + 0) = x)
+      ∀x.∀y.((x + s(y)) = s((x + y)))
+      ∀x.(x = x)
+      ∀x.∀y.((x = y) ⇒ (y = x))
+      ∀x.∀y.∀z.(((x = y) & (y = z)) ⇒ (x = z))
+      ∀x.∀y.∀z.(((s(x) = z) & (x = y)) ⇒ (s(y) = z))
+      ∀u.∀v.∀x.∀y.∀z.(((((u + v) = z) & (u = x)) & (v = y)) ⇒ ((x + y) = z))
+
+   Initial clauses:
+      (x ~= y) | (s(x) = s(y))
+      (s(x) ~= s(y)) | (x = y)
+      (s(x) ~= 0)
+      ((x + 0) = x)
+      ((x + s(y)) = s((x + y)))
+      (x = x)
+      (x ~= y) | (y = x)
+      (x ~= y) | (y ~= z) | (x = z)
+      (x ~= y) | (s(x) ~= z) | (s(y) = z)
+      (u ~= x) | (v ~= y) | ((u + v) ~= z) | ((x + y) = z)
+      ((0 + 0) ~= 0)
+
+   Steps:
+
+      1. ((0 + 0) ~= 0)
+            with ((x + 0) = x)
+               x <- 0
+
+   Center clause: Contradiction
+
+      Database:
+         (x ~= y) | (s(x) = s(y))
+         (s(x) ~= s(y)) | (x = y)
+         (s(x) ~= 0)
+         ((x + 0) = x)
+         ((x + s(y)) = s((x + y)))
+         (x = x)
+         (x ~= y) | (y = x)
+         (x ~= y) | (y ~= z) | (x = z)
+         (x ~= y) | (s(x) ~= z) | (s(y) = z)
+         (u ~= x) | (v ~= y) | ((u + v) ~= z) | ((x + y) = z)
+         ((0 + 0) ~= 0)
+         Contradiction
+
+   Proved
+
+Inductive case:
+
+   Goal: ((0 + x) = x) ⇒ ((0 + s(x)) = s(x))
+
+   Premises:
+      ∀x.∀y.((x = y) ⇔ (s(x) = s(y)))
+      ∀x.(s(x) ~= 0)
+      ∀x.((x + 0) = x)
+      ∀x.∀y.((x + s(y)) = s((x + y)))
+      ∀x.(x = x)
+      ∀x.∀y.((x = y) ⇒ (y = x))
+      ∀x.∀y.∀z.(((x = y) & (y = z)) ⇒ (x = z))
+      ∀x.∀y.∀z.(((s(x) = z) & (x = y)) ⇒ (s(y) = z))
+      ∀u.∀v.∀x.∀y.∀z.(((((u + v) = z) & (u = x)) & (v = y)) ⇒ ((x + y) = z))
+      ((0 + 0) = 0)
+
+   Initial clauses:
+      (x ~= y) | (s(x) = s(y))
+      (s(x) ~= s(y)) | (x = y)
+      (s(x) ~= 0)
+      ((x + 0) = x)
+      ((x + s(y)) = s((x + y)))
+      (x = x)
+      (x ~= y) | (y = x)
+      (x ~= y) | (y ~= z) | (x = z)
+      (x ~= y) | (s(x) ~= z) | (s(y) = z)
+      (u ~= x) | (v ~= y) | ((u + v) ~= z) | ((x + y) = z)
+      ((0 + 0) = 0)
+      ((0 + skolem2) = skolem2)
+      ((0 + s(skolem2)) ~= s(skolem2))
+
+   Steps:
+
+      1. ((0 + s(skolem2)) ~= s(skolem2))
+            with (x ~= y) | (y = x)
+               y <- (0 + s(skolem2))
+               x <- s(skolem2)
+
+      2. (s(skolem2) ~= (0 + s(skolem2)))
+            with (x ~= y) | (s(x) ~= z) | (s(y) = z)
+               y <- skolem2
+               z <- (0 + s(skolem2))
+
+      3. (x ~= skolem2) | (s(x) ~= (0 + s(skolem2)))
+            with (x ~= y) | (y = x)
+               y <- s(x)
+               x' <- (0 + s(skolem2))
+
+      4. (x ~= skolem2) | ((0 + s(skolem2)) ~= s(x))
+            with ((x + s(y)) = s((x + y)))
+               x' <- 0
+               y <- skolem2
+               x <- (0 + skolem2)
+
+      5. ((0 + skolem2) ~= skolem2)
+            with ((0 + skolem2) = skolem2)
+
+   Center clause: Contradiction
+
+      Database:
+         (x ~= y) | (s(x) = s(y))
+         (s(x) ~= s(y)) | (x = y)
+         (s(x) ~= 0)
+         ((x + 0) = x)
+         ((x + s(y)) = s((x + y)))
+         (x = x)
+         (x ~= y) | (y = x)
+         (x ~= y) | (y ~= z) | (x = z)
+         (x ~= y) | (s(x) ~= z) | (s(y) = z)
+         (u ~= x) | (v ~= y) | ((u + v) ~= z) | ((x + y) = z)
+         ((0 + 0) = 0)
+         ((0 + skolem2) = skolem2)
+         ((0 + s(skolem2)) ~= s(skolem2))
+         (s(skolem2) ~= (0 + s(skolem2)))
+         (x ~= skolem2) | (s(x) ~= (0 + s(skolem2)))
+         (x ~= skolem2) | ((0 + s(skolem2)) ~= s(x))
+         ((0 + skolem2) ~= skolem2)
+         Contradiction
+
+   Proved
+
+Proved
+

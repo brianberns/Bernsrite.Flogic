@@ -140,9 +140,7 @@ type Term =
             | VariableTerm variable -> variable.Name
             | ConstantTerm constant -> constant.Name
             | Application (func, terms) ->
-                if (func.Arity <> terms.Length) then
-                    failwith "Arity mismatch"
-                sprintf "%s(%s)" func.Name <| String.Join(",", terms)
+                Print.application func.Name terms true
 
     /// Display string.
     override this.ToString() =

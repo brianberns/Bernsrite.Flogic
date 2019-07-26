@@ -120,6 +120,32 @@ module Print =
             (String(' ', 3 * level))
             (obj.ToString())
 
+    /// ~(=(x,y)) -> x ~= y
+    /// +(a,b,c) -> a + b = c
+    let application (name : string) (args : _[]) isPositive =
+        assert(name.Length > 0)
+        match args.Length, Char.IsLetterOrDigit(name.[0]) with
+            | 0, _ -> name
+            | 2, false ->
+                sprintf "(%A %s%s %A)"
+                    args.[0]
+                    (if isPositive then "" else "~")
+                    name
+                    args.[1]
+            | 3, false ->
+                sprintf "(%A %s %A %s %A)"
+                    args.[0]
+                    name
+                    args.[1]
+                    (if isPositive then "=" else "~=")
+                    args.[2]
+            | _ ->
+                sprintf "%s%s(%s)"
+                    (if isPositive then "" else "~")
+                    name
+                    (args |> String.join ", ")
+
+
 /// Interface for pretty printing.
 type Printable =
     {

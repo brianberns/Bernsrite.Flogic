@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.29009.5
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{EB06A930-59C3-473F-877C-FCA792828E9F}"
 	ProjectSection(SolutionItems) = preProject
-		Identity element proof.txt = Identity element proof.txt
+		Addition identity proof.txt = Addition identity proof.txt
 		README.md = README.md
 		ToDo.txt = ToDo.txt
 	EndProjectSection
