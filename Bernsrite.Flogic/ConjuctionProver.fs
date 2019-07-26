@@ -62,7 +62,7 @@ module ConjuctionProver =
                         derivation.Printable
                 }
 
-                // prove P -> Q, then prove Q -> P
+                // prove (P -> Q) & (Q -> P)
             | Biconditional (formula1, formula2) ->
                 And (
                     Implication (formula1, formula2),
@@ -70,7 +70,7 @@ module ConjuctionProver =
                     |> loop
 
                 // ∀x.∀y.(P(x,y) <-> Q(x,y))
-                // prove ∀x.∀y.(P(x,y) -> Q(x,y)), then prove ∀x.∀y.(Q(x,y) -> P(x,y))
+                // prove ∀x.∀y.(P(x,y) -> Q(x,y)) & ∀x.∀y.(Q(x,y) -> P(x,y))
             | ForAll (variable, formula) ->
 
                 let rec rebuild variables formula =
