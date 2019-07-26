@@ -17,10 +17,18 @@ module System =
 
     /// Creates a strategic prover for the given language.
     let strategicProver language : Prover =
+        let tryProveinduction : Prover = inductionProver language
         Prover.serial [|
-            inductionProver language
+
+                // try to split into subproofs
+            ConjuctionProver.tryProve tryProveinduction
+
+                // try to use induction
+            tryProveinduction
+
+                // use resolution alone
             LinearResolution.tryProve
-        |] |> ConjuctionProver.tryProve
+        |]
 
     /// Tries to prove the given formula.
     let tryProve theory =

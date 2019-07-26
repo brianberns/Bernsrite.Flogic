@@ -43,6 +43,23 @@ module ConjuctionProver =
     /// Tries to prove the given formula as a conjunction of two sub-cases.
     let tryProve subprover premises goal =
 
+        let rec rebuild variables formula =
+            match variables with
+                | variable :: tail ->
+                    ForAll (variable, formula)
+                        |> rebuild tail
+                | [] -> formula
+
+        let rec split variables = function
+            | Biconditional (formula1, formula2) ->
+                And (
+                    Implication (formula1, formula2) |> rebuild variables,
+                    Implication (formula2, formula1) |> rebuild variables)
+                    |> Some
+            | ForAll (variable, formula) ->
+                formula |> split (variable :: variables)
+            | _ -> None
+
         let rec loop = function
 
                 // prove P, then prove Q
@@ -62,37 +79,22 @@ module ConjuctionProver =
                         derivation.Printable
                 }
 
-                // prove (P -> Q) & (Q -> P)
-            | Biconditional (formula1, formula2) ->
-                And (
-                    Implication (formula1, formula2),
-                    Implication (formula2, formula1))
-                    |> loop
-
                 // ∀x.∀y.(P(x,y) <-> Q(x,y))
                 // prove ∀x.∀y.(P(x,y) -> Q(x,y)) & ∀x.∀y.(Q(x,y) -> P(x,y))
             | ForAll (variable, formula) ->
+                splitLoop [variable] formula
 
-                let rec rebuild variables formula =
-                    match variables with
-                        | variable :: tail ->
-                            ForAll (variable, formula)
-                                |> rebuild tail
-                        | [] -> formula
+                // prove (P -> Q) & (Q -> P)
+            | Biconditional _ as formula ->
+                splitLoop [] formula
 
-                let rec split variables = function
-                    | Biconditional (formula1, formula2) ->
-                        And (
-                            Implication (formula1, formula2) |> rebuild variables,
-                            Implication (formula2, formula1) |> rebuild variables)
-                    | ForAll (variable, formula) ->
-                        formula |> split (variable :: variables)
-                    | formula -> formula
+            | _ -> None
 
-                formula
-                    |> split [variable]
-                    |> loop
-
-            | goal -> goal |> subprover premises
+        and splitLoop variables formula =
+            opt {
+                let! formula' =
+                    formula |> split variables
+                return! formula' |> loop
+            }
 
         goal |> loop
