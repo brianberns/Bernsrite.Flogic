@@ -72,7 +72,7 @@ module Prover =
 
     /// Combines the given provers in series.
     let combine prover1 prover2 : Prover =
-        [ prover1; prover2 ] |> serial
+        serial [ prover1; prover2 ]
 
     /// Picks only a successful proof.
     let pickSuccess (prover : Prover) : Prover =
@@ -82,3 +82,13 @@ module Prover =
                 if proof.Result then
                     return proof
             }
+
+[<AutoOpen>]
+module ProverAutoOpen =
+
+    /// Wraps one prover inside another and also combines them serially.
+    /// (Right-associative.)
+    let ( **> ) fprover subprover : Prover =
+        Prover.combine
+            (fprover subprover)
+            subprover
