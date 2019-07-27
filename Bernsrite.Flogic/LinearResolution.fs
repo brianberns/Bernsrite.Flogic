@@ -101,15 +101,19 @@ module LinearResolutionDerivation =
 
     /// Initializes derivations for the given clauses.
     let generate premiseClauses goalClauses =
-        let clauses =
+        let allClauses =
             Seq.append premiseClauses goalClauses
                 |> Seq.toArray
-        [|
-                // guess that the last goal clause is most likely to lead to
-                // contradiction (e.g. if plausible-assumption then incorrect-conclusion)
-            for topClause in goalClauses |> Seq.rev do
-                yield create clauses topClause
-        |]
+
+            // guess that negative clauses are more likely to lead to contradiction
+        goalClauses
+            |> Seq.sortBy (fun clause ->
+                clause.Literals
+                    |> Seq.where (fun literal ->
+                        literal.IsPositive)
+                    |> Seq.length)
+            |> Seq.map (fun topClause ->
+                create allClauses topClause)
 
 /// http://www.cs.miami.edu/home/geoff/Courses/CSC648-12S/Content/LinearResolution.shtml
 module LinearResolution =

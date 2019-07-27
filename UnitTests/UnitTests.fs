@@ -304,6 +304,10 @@ type Peano() =
         test ("∀x.∀y.∀z.((=(x, y) ∧ =(y, z)) ⇒ =(x, z))", true)
 
     [<TestMethod>]
+    member __.EqualityFalse() =
+        test ("∀x.∀y.=(x, y)", false)
+
+    [<TestMethod>]
     member __.Successor1() =
         test ("∀x.∀y.(=(x, y) <-> =(s(x), s(y)))", true)
         test ("(=(x, y) <-> =(s(x), s(y)))", true)
@@ -315,20 +319,12 @@ type Peano() =
 
     [<TestMethod>]
     member __.Successor3() =
-        test ("∀x.=(+(x,s(0)), s(x))", true)
-
-    [<TestMethod>]
-    member __.EqualityFalse() =
-        test ("∀x.∀y.=(x, y)", false)
+        test ("∀x.∀y.=(+(x,s(y)), s(+(x,y)))", true)
 
     [<TestMethod>]
     member __.AdditionIdentity() =
         test ("∀x.=(+(x,0), x)", true)
         test ("∀x.=(+(0,x), x)", true)
-
-    [<TestMethod>]
-    member __.AdditionSuccessor() =
-        test ("∀x.∀y.=(+(x,s(y)), s(+(x,y)))", true)
 
     (*
     [<TestMethod>]

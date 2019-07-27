@@ -1,3 +1,5 @@
 * Settle on a single substitution mechanism
 * Implement factoring
 * Group theory axioms
+* Parallelize
+* Cancelable search
