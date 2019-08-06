@@ -236,7 +236,7 @@ type UnitTest() =
                 printfn "   %A" clause
         let proofOpt =
             parse "∀x.P(x)"
-                |> System.tryProve system
+                |> System.tryProve system Array.empty
         printfn "%A" proofOpt
         match proofOpt with
             | Some proof -> Assert.IsTrue(proof.Result)
@@ -281,61 +281,71 @@ type UnitTest() =
 [<TestClass>]
 type Peano() =
 
-    let test (goalStr, flag) =
+    member __.Test(goalStr, ?flagOpt, ?premiseStrsOpt) =
+        let flag = defaultArg flagOpt true
+        let premiseStrs = defaultArg premiseStrsOpt Seq.empty
+        let parse = Language.parse Peano.language
+        let premises =
+            premiseStrs
+                |> Seq.map parse
         let proofOpt =
             goalStr
-                |> Language.parse Peano.language
-                |> System.tryProve Peano.theory
+                |> parse
+                |> System.tryProve Peano.theory premises
         printfn "%A" proofOpt
         match proofOpt with
             | Some proof -> Assert.AreEqual(flag, proof.Result)
             | _ -> Assert.Fail()
 
     [<TestMethod>]
-    member __.EqualityReflexive() =
-        test ("∀x.=(x, x)", true)
+    member this.EqualityReflexive() =
+        this.Test("∀x.=(x, x)")
 
     [<TestMethod>]
-    member __.EqualitySymmetric() =
-        test ("∀x.∀y.(=(x, y) ⇒ =(y, x))", true)
+    member this.EqualitySymmetric() =
+        this.Test("∀x.∀y.(=(x, y) ⇒ =(y, x))")
 
     [<TestMethod>]
-    member __.EqualityTransitive() =
-        test ("∀x.∀y.∀z.((=(x, y) ∧ =(y, z)) ⇒ =(x, z))", true)
+    member this.EqualityTransitive() =
+        this.Test("∀x.∀y.∀z.((=(x, y) ∧ =(y, z)) ⇒ =(x, z))")
 
     [<TestMethod>]
-    member __.EqualityFalse() =
-        test ("∀x.∀y.=(x, y)", false)
+    member this.EqualityFalse() =
+        this.Test("∀x.∀y.=(x, y)", false)
 
     [<TestMethod>]
-    member __.Successor1() =
-        test ("∀x.∀y.(=(x, y) <-> =(s(x), s(y)))", true)
-        test ("(=(x, y) <-> =(s(x), s(y)))", true)
+    member this.Successor1() =
+        this.Test("∀x.∀y.(=(x, y) <-> =(s(x), s(y)))")
+        this.Test ("(=(x, y) <-> =(s(x), s(y)))")
 
     [<TestMethod>]
-    member __.Successor2() =
-        test ("∀x.~=(s(x), 0)", true)
-        test ("∃x.=(s(x), 0)", false)
+    member this.Successor2() =
+        this.Test("∀x.~=(s(x), 0)", true)
+        this.Test("∃x.=(s(x), 0)", false)
 
     [<TestMethod>]
-    member __.Successor3() =
-        test ("∀x.∀y.=(+(x,s(y)), s(+(x,y)))", true)
+    member this.Successor3() =
+        this.Test("∀x.∀y.=(+(x,s(y)), s(+(x,y)))")
 
     [<TestMethod>]
-    member __.AdditionIdentity() =
-        test ("∀x.=(+(x,0), x)", true)
-        test ("∀x.=(+(0,x), x)", true)
+    member this.AdditionIdentity() =
+        this.Test("∀x.=(+(x,0), x)")
+        this.Test("∀x.=(+(0,x), x)")
 
     (*
     [<TestMethod>]
-    member __.AdditionCommutative() =
-        test ("∀x.∀y.=(+(x,y), +(y,x))", true)
+    member this.AdditionCommutative() =
+        this.Test("∀x.∀y.=(+(x,y), +(y,x))",
+            premiseStrsOpt = [
+                "∀x.=(+(x,0), x)"
+                "∀x.=(+(0,x), x)"
+            ])
 
     [<TestMethod>]
-    member __.AdditionCancellative() =
-        test ("∀x.∀y.∀z.(=(+(x,z), +(y,z)) ⇒ =(x, y))", true)
+    member this.AdditionCancellative() =
+        this.Test("∀x.∀y.∀z.(=(+(x,z), +(y,z)) ⇒ =(x, y))")
 
     [<TestMethod>]
-    member __.AdditionAssociative() =
-        test ("∀z.∀x.∀y.=(+(+(x,y),z), +(x,+(y,z)))", true)
+    member this.AdditionAssociative() =
+        this.Test("∀z.∀x.∀y.=(+(+(x,y),z), +(x,+(y,z)))")
     *)

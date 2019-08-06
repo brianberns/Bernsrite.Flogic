@@ -18,19 +18,18 @@ module System =
             **> LinearResolution.tryProve
 
     /// Tries to prove the given formula.
-    let tryProve theory =
-
+    let tryProve theory premises =
         let language = theory.Language
-
-        let premises =
+        strategicProver language
             [|
-                    // explicit premises
+                    // theory's explicit premises
                 yield! theory.Axioms
 
-                    // equality axioms for this theory's language
+                    // implicit equality axioms for this theory's language
                 if language.Predicates |> Seq.contains Equality.predicate then
                     yield! Equality.equivalenceAxioms
                     yield! language |> Equality.substitutionAxioms
-            |]
 
-        strategicProver language premises
+                    // additional premises supplied
+                yield! premises
+            |]
