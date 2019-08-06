@@ -29,4 +29,8 @@
     <PackageReference Include="FParsec" Version="1.0.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.7.0" />
+  </ItemGroup>
+
 </Project>
