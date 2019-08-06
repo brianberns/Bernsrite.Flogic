@@ -9,7 +9,7 @@ module Program =
 
         let dtStart = DateTime.Now
         let proofOpt =
-            "=(+(0, y), +(y, 0)) ⇒ =(+(0, s(y)), +(s(y), 0))"
+            "(=(+(0, y), +(y, 0)) ⇒ =(+(0, s(y)), +(s(y), 0)))"
                 |> Language.parse Peano.theory.Language
                 |> System.tryProve Peano.theory
         printfn "%A" proofOpt
