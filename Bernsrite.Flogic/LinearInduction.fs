@@ -48,10 +48,6 @@ module LinearInduction =
                 // e.g. ∀x.plus(x,0,x)
             | ForAll (variable, schema) as goal ->
 
-                let subprover' =
-                    Prover.combine loop subprover
-                        |> Prover.pickSuccess
-
                 opt {
                         // prove base case, e.g. plus(0,0,0)
                     let! baseCase =
@@ -91,6 +87,13 @@ module LinearInduction =
                 }
 
             | _ -> None
+
+            // recurse before invoking sub-prover, and
+            // accept only successful sub-proofs (not disproofs)
+        and subprover' =
+            Prover.combine
+                loop
+                (Prover.pickSuccess subprover)   // to-do: entire proof should fail in the case of a sub-disproof
 
         goal |> loop premises
 
