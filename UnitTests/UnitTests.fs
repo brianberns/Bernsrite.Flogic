@@ -187,18 +187,16 @@ type UnitTest() =
     [<TestMethod>]
     member __.Factoring() =
         let parser = Parser.makeParser Array.empty
-        let taggedGoalClauses =
+        let goalClauses =
             [|
                 "(p(x) | p(y))"
                 "(¬p(u) | ¬p(v))"
             |] |> Array.map (fun str ->
-                let goalClause =
-                    str
-                        |> Parser.run parser
-                        |> Clause.toClauses
-                        |> Seq.exactlyOne
-                goalClause, Tag.Goal)
-        let goalClause = fst taggedGoalClauses.[0]
+                str
+                    |> Parser.run parser
+                    |> Clause.toClauses
+                    |> Seq.exactlyOne)
+        let goalClause = goalClauses.[0]
         let config =
             {
                 MaxDepth = 60
@@ -207,7 +205,7 @@ type UnitTest() =
             }
         let derivationOpt =
             LinearResolutionDerivation.create
-                taggedGoalClauses goalClause
+                goalClauses goalClause
                     |> LinearResolution.search config
         printfn "%A" derivationOpt
         Assert.IsTrue(derivationOpt.IsSome)
