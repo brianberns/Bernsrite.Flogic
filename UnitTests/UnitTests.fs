@@ -184,12 +184,18 @@ type UnitTest() =
     /// https://pdfs.semanticscholar.org/58e9/db343f70a3d2342a73c4376ce33e4252166d.pdf
     member __.Resolve3() =
         let parser = Parser.makeParser Array.empty
-        let goal = "((((p∧q) ∨ (p∧¬q)) ∨ (¬p∧q)) ∨ (¬p∧¬q))" |> Parser.run parser
-        let proofOpt = LinearResolution.tryProve Array.empty goal
-        printfn "%A" proofOpt
-        match proofOpt with
-            | Some proof -> Assert.IsTrue(proof.Result)
-            | _ -> Assert.Fail()
+        let goals =
+            [|
+                "((((p∧q) ∨ (p∧¬q)) ∨ (¬p∧q)) ∨ (¬p∧¬q))"
+                "(((p ⊃ q) ⊃ p) ⊃ p)"
+                "(∀x.(P(x) ∧ Q(x)) ⊃ (∀x.P(x) ∧ ∀x.Q(x)))"
+            |] |> Array.map (Parser.run parser)
+        for goal in goals do
+            let proofOpt = LinearResolution.tryProve Array.empty goal
+            printfn "%A" proofOpt
+            match proofOpt with
+                | Some proof -> Assert.IsTrue(proof.Result)
+                | _ -> Assert.Fail()
 
     /// This test requires factoring.
     (*

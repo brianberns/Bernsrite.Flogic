@@ -18,7 +18,7 @@ module Parser =
 #endif
 
     /// Symbols with special meanings.
-    let symbols = set "-&(),.|~<>∀∃∧∨→⇒⇐⇔¬!"
+    let symbols = set "-&(),.|~<>∀∃∧∨→⇒⊃⇐⇔¬!"
 
     /// Parses a name, such as "P" or "harry".
     let parseName =
@@ -109,7 +109,7 @@ module Parser =
             [
                 ["&"; "∧"], And
                 ["|"; "∨"], Or
-                ["->"; "=>"; "→"; "⇒"], Implication
+                ["->"; "=>"; "→"; "⇒"; "⊃"], Implication
                 ["<-"; "<="; "⇐"], (fun (q, p) -> Implication (p, q))
                 ["<->"; "<=>"; "⇔"], Biconditional
             ]
