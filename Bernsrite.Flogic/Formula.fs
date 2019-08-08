@@ -128,14 +128,13 @@ module Formula =
 
                 // substitutes within a quantified formula
             let quantified oldVariable formula constructor =
-                if termVariables.Contains(oldVariable) then
-                    None
-                else opt {
-                    if variable = oldVariable then
-                        return constructor (oldVariable, formula)
-                    else
-                        return! unary formula (fun formula' ->
-                            constructor (oldVariable, formula'))
+                opt {
+                    if termVariables.Contains(oldVariable) |> not then
+                        if variable = oldVariable then
+                            return constructor (oldVariable, formula)
+                        else
+                            return! unary formula (fun formula' ->
+                                constructor (oldVariable, formula'))
                 }
 
                 // substitutes within a formula
