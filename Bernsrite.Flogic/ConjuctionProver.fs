@@ -35,6 +35,7 @@ type ConjunctionDerivation =
     /// Printable implementation.
     member this.Printable =
         {
+            Object = this
             ToString = this.ToString
         }
 

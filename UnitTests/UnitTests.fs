@@ -157,8 +157,7 @@ type UnitTest() =
         printfn "%A" proofOpt
         match proofOpt with
             | Some proof ->
-                Assert.IsTrue(proof.Result)
-                // Assert.AreEqual(2, proof.Derivation.Steps.Length)
+                Assert.AreEqual(2, (proof.Derivation.Object :?> LinearResolutionDerivation).Steps.Length)
             | _ -> Assert.Fail()
 
     [<TestMethod>]
@@ -178,8 +177,7 @@ type UnitTest() =
         printfn "%A" proofOpt
         match proofOpt with
             | Some proof ->
-                Assert.IsTrue(proof.Result)
-                // Assert.AreEqual(7, proof.Derivation.Steps.Length)
+                Assert.AreEqual(7, (proof.Derivation.Object :?> LinearResolutionDerivation).Steps.Length)
             | _ -> Assert.Fail()
 
     /// This test requires factoring.

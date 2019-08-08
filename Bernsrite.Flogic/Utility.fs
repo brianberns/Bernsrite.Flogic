@@ -149,5 +149,6 @@ module Print =
 /// Interface for pretty printing.
 type Printable =
     {
+        Object : obj
         ToString : int (*level, 0-based*) -> string
     }

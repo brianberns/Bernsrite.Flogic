@@ -45,7 +45,10 @@ type Proof =
 
     /// Printable implementation.
     member this.Printable =
-        { ToString = this.ToString }
+        {
+            Object = this
+            ToString = this.ToString
+        }
 
 module Proof =
 

@@ -72,7 +72,10 @@ type LinearResolutionDerivation =
 
     /// Printable implementation.
     member this.Printable =
-        { ToString = this.ToString }
+        {
+            Object = this
+            ToString = this.ToString
+        }
 
 /// Restrictions to avoid runaway search.
 type LinearResolutionConfiguration =
