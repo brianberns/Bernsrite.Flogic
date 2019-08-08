@@ -180,6 +180,17 @@ type UnitTest() =
                 Assert.AreEqual(7, (proof.Derivation.Object :?> LinearResolutionDerivation).Steps.Length)
             | _ -> Assert.Fail()
 
+    [<TestMethod>]
+    /// https://pdfs.semanticscholar.org/58e9/db343f70a3d2342a73c4376ce33e4252166d.pdf
+    member __.Resolve3() =
+        let parser = Parser.makeParser Array.empty
+        let goal = "((((p∧q) ∨ (p∧¬q)) ∨ (¬p∧q)) ∨ (¬p∧¬q))" |> Parser.run parser
+        let proofOpt = LinearResolution.tryProve Array.empty goal
+        printfn "%A" proofOpt
+        match proofOpt with
+            | Some proof -> Assert.IsTrue(proof.Result)
+            | _ -> Assert.Fail()
+
     /// This test requires factoring.
     (*
     [<TestMethod>]

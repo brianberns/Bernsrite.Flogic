@@ -125,7 +125,10 @@ module Print =
     let application (name : string) (args : _[]) isPositive =
         assert(name.Length > 0)
         match args.Length, Char.IsLetterOrDigit(name.[0]) with
-            | 0, _ -> name
+            | 0, _ ->
+                sprintf "%s%s"
+                    (if isPositive then "" else "~")
+                    name
             | 2, false ->
                 sprintf "(%A %s%s %A)"
                     args.[0]
