@@ -242,12 +242,19 @@ type UnitTest() =
             | Some proof -> Assert.IsTrue(proof.Result)
             | _ -> Assert.Fail()
 
-    (*
     [<TestMethod>]
     member __.Induction2() =
 
-        let parser = Parser.makeParser ["0"]
-        let parse = Parser.run parser
+        let theory =
+            {
+                Language =
+                    Language.create
+                        [| Peano.zero |]
+                        [| Peano.successor |]
+                        [| Predicate.create "p" 1 |]
+                Axioms = Array.empty
+            }
+        let parse = Language.parse theory.Language
 
         let premises =
             [|
@@ -258,25 +265,24 @@ type UnitTest() =
         let goal = parse "∀x.(p(x) ∧ p(s(x)))"
         let proofOpt =
             goal
-                |> Proof.tryProve Peano.language premises
+                |> System.tryProve theory premises
         printfn "%A" proofOpt
         match proofOpt with
             | Some proof -> Assert.IsTrue(proof.Result)
             | _ -> Assert.Fail()
 
-        let premises =
+        let premises' =
             [|
                 yield! premises
                 yield goal
             |]
         let proofOpt =
             parse "∀x.p(x)"   // to-do: prove this directly from initial premises
-                |> Proof.tryProve Peano.language premises
+                |> System.tryProve theory premises'
         printfn "%A" proofOpt
         match proofOpt with
             | Some proof -> Assert.IsTrue(proof.Result)
             | _ -> Assert.Fail()
-    *)
 
 [<TestClass>]
 type Peano() =
